@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 400" width="1500" height="400">
+  <!-- Main Somapay text -->
+  <text x="50" y="280" font-family="Arial, sans-serif" font-size="200" font-weight="bold" fill="#E55A2B">
+    somapay
+  </text>
+  
+  <!-- Digital Bank badge -->
+  <g transform="translate(1300, 120)">
+    <circle cx="100" cy="100" r="100" fill="#E55A2B"/>
+    <text x="100" y="85" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">
+      Digital
+    </text>
+    <text x="100" y="120" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="white" text-anchor="middle">
+      Bank
+    </text>
+  </g>
+</svg>

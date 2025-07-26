@@ -1,0 +1,1971 @@
+import { useState, useEffect } from 'react'
+import { 
+  UsersIcon, 
+  DocumentArrowUpIcon, 
+  DocumentArrowDownIcon, 
+  TrashIcon, 
+  EyeIcon,
+  PlusIcon,
+  PencilIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  BellIcon,
+  DocumentTextIcon,
+  FunnelIcon
+} from '@heroicons/react/24/outline'
+import { getCurrentUser } from '../../services/auth'
+
+interface User {
+  id: number
+  email: string
+  name: string
+  role: string
+  status: 'active' | 'inactive'
+  createdAt: string
+  lastLogin?: string
+}
+
+interface UploadedFile {
+  id: number
+  fileName: string
+  fileType: string
+  uploadedBy: string
+  uploadDate: string
+  size: number | string
+  status: 'pending' | 'approved' | 'rejected' | 'processed' | 'available'
+  downloadCount: number
+}
+
+interface NfeUpload {
+  id: number
+  fileName: string
+  partnerId: number
+  partnerName: string
+  month: string
+  year: number
+  uploadDate: string
+  fileType: string
+  status: string
+}
+
+interface Notification {
+  id: number
+  title: string
+  message: string
+  type: string
+  recipientId: string | null
+  recipientType: 'all' | 'specific'
+  isRead: boolean
+  createdAt: string
+  emailSent: boolean
+}
+
+export default function Admin() {
+  const [activeTab, setActiveTab] = useState('users')
+  const [users, setUsers] = useState<User[]>([])
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
+  const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showUserModal, setShowUserModal] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedPartnerId, setSelectedPartnerId] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [accessDenied, setAccessDenied] = useState(false)
+  const [managers, setManagers] = useState<any[]>([])
+  const [remunerationTables, setRemunerationTables] = useState<any[]>([])
+  const [showRemunerationModal, setShowRemunerationModal] = useState(false)
+  const [editingRemuneration, setEditingRemuneration] = useState<any>(null)
+  const [newRemuneration, setNewRemuneration] = useState({
+    employeeRangeStart: '',
+    employeeRangeEnd: '',
+    finderNegotiationMargin: '',
+    maxCompanyCashback: '',
+    finalFinderCashback: '',
+    description: ''
+  })
+  const [newUser, setNewUser] = useState({
+    email: '',
+    name: '',
+    role: 'partner',
+    password: '',
+    managerId: '',
+    remunerationTableId: 1
+  })
+  const [newNotification, setNewNotification] = useState({
+    title: '',
+    message: '',
+    type: 'info' as 'info' | 'success' | 'warning' | 'error',
+    recipientType: 'all' as 'all' | 'specific',
+    recipientId: null as string | null,
+    emailSent: false
+  })
+  const [filesDateFilter, setFilesDateFilter] = useState<'current' | 'last' | 'custom' | 'all'>('all')
+  const [nfeDateFilter, setNfeDateFilter] = useState<'current' | 'last' | 'custom' | 'all'>('all')
+  const [filesCustomStartDate, setFilesCustomStartDate] = useState('')
+  const [filesCustomEndDate, setFilesCustomEndDate] = useState('')
+  const [nfeCustomStartDate, setNfeCustomStartDate] = useState('')
+  const [nfeCustomEndDate, setNfeCustomEndDate] = useState('')
+  const [filteredFiles, setFilteredFiles] = useState<UploadedFile[]>([])
+  const [filteredNfeUploads, setFilteredNfeUploads] = useState<NfeUpload[]>([])
+
+  useEffect(() => {
+    const checkUserAccess = async () => {
+      try {
+        const user = await getCurrentUser()
+        setCurrentUser(user)
+        
+        if (!user || user.role !== 'admin') {
+          setAccessDenied(true)
+          setLoading(false)
+          return
+        }
+        
+        // Se é admin, carrega os dados
+        fetchUsers()
+        fetchUploadedFiles()
+        fetchNfeUploads()
+        fetchNotifications()
+        fetchManagers()
+        fetchRemunerationTables()
+      } catch (error) {
+        console.error('Erro ao verificar acesso:', error)
+        setAccessDenied(true)
+        setLoading(false)
+      }
+    }
+    
+    checkUserAccess()
+  }, [])
+
+  // Filtrar arquivos baseado no filtro de data selecionado
+  useEffect(() => {
+    const filterFiles = () => {
+      const currentDate = new Date()
+      const currentMonth = currentDate.getMonth()
+      const currentYear = currentDate.getFullYear()
+      
+      let filtered = [...uploadedFiles]
+      
+      switch (filesDateFilter) {
+        case 'current':
+          filtered = uploadedFiles.filter(file => {
+            const fileDate = new Date(file.uploadDate)
+            return fileDate.getMonth() === currentMonth && fileDate.getFullYear() === currentYear
+          })
+          break
+        case 'last':
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+          filtered = uploadedFiles.filter(file => {
+            const fileDate = new Date(file.uploadDate)
+            return fileDate.getMonth() === lastMonth && fileDate.getFullYear() === lastMonthYear
+          })
+          break
+        case 'custom':
+          if (filesCustomStartDate && filesCustomEndDate) {
+            const startDate = new Date(filesCustomStartDate)
+            const endDate = new Date(filesCustomEndDate)
+            endDate.setMonth(endDate.getMonth() + 1) // Incluir o mês final completo
+            filtered = uploadedFiles.filter(file => {
+              const fileDate = new Date(file.uploadDate)
+              return fileDate >= startDate && fileDate < endDate
+            })
+          }
+          break
+        case 'all':
+        default:
+          filtered = uploadedFiles
+      }
+      
+      setFilteredFiles(filtered)
+    }
+    
+    filterFiles()
+  }, [uploadedFiles, filesDateFilter, filesCustomStartDate, filesCustomEndDate])
+
+  // Filtrar NFe uploads baseado no filtro de data selecionado
+  useEffect(() => {
+    const filterNfeUploads = () => {
+      const currentDate = new Date()
+      const currentMonth = currentDate.getMonth()
+      const currentYear = currentDate.getFullYear()
+      
+      let filtered = [...nfeUploads]
+      
+      switch (nfeDateFilter) {
+        case 'current':
+          filtered = nfeUploads.filter(nfe => {
+            const nfeDate = new Date(nfe.uploadDate)
+            return nfeDate.getMonth() === currentMonth && nfeDate.getFullYear() === currentYear
+          })
+          break
+        case 'last':
+          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+          filtered = nfeUploads.filter(nfe => {
+            const nfeDate = new Date(nfe.uploadDate)
+            return nfeDate.getMonth() === lastMonth && nfeDate.getFullYear() === lastMonthYear
+          })
+          break
+        case 'custom':
+          if (nfeCustomStartDate && nfeCustomEndDate) {
+            const startDate = new Date(nfeCustomStartDate)
+            const endDate = new Date(nfeCustomEndDate)
+            endDate.setMonth(endDate.getMonth() + 1) // Incluir o mês final completo
+            filtered = nfeUploads.filter(nfe => {
+              const nfeDate = new Date(nfe.uploadDate)
+              return nfeDate >= startDate && nfeDate < endDate
+            })
+          }
+          break
+        case 'all':
+        default:
+          filtered = nfeUploads
+      }
+      
+      setFilteredNfeUploads(filtered)
+    }
+    
+    filterNfeUploads()
+  }, [nfeUploads, nfeDateFilter, nfeCustomStartDate, nfeCustomEndDate])
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/users')
+      const usersData = await response.json()
+      
+      // Adicionar dados simulados para demonstração
+      const enhancedUsers = usersData.map((user: any) => ({
+        ...user,
+        status: 'active' as const,
+        createdAt: '2024-01-15T10:00:00Z',
+        lastLogin: '2024-01-20T14:30:00Z'
+      }))
+      
+      setUsers(enhancedUsers)
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchManagers = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/managers')
+      const managersData = await response.json()
+      setManagers(managersData)
+    } catch (error) {
+      console.error('Erro ao buscar gerentes:', error)
+    }
+  }
+
+  const fetchRemunerationTables = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/remuneration_tables')
+      if (response.ok) {
+        const data = await response.json()
+        setRemunerationTables(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar tabelas de remuneração:', error)
+    }
+  }
+
+  const handleCreateRemuneration = async () => {
+    try {
+      const isEditing = editingRemuneration !== null
+      const url = isEditing 
+        ? `http://localhost:3001/remuneration_tables/${editingRemuneration.id}`
+        : 'http://localhost:3001/remuneration_tables'
+      
+      const method = isEditing ? 'PUT' : 'POST'
+      
+      const body = isEditing 
+        ? { ...newRemuneration, id: editingRemuneration.id, createdAt: editingRemuneration.createdAt }
+        : { ...newRemuneration, id: Date.now(), createdAt: new Date().toISOString() }
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      })
+      
+      if (response.ok) {
+        fetchRemunerationTables()
+        setShowRemunerationModal(false)
+        setEditingRemuneration(null)
+        setNewRemuneration({
+          employeeRangeStart: '',
+          employeeRangeEnd: '',
+          finderNegotiationMargin: '',
+          maxCompanyCashback: '',
+          finalFinderCashback: '',
+          description: ''
+        })
+        alert(isEditing ? 'Tabela de remuneração atualizada com sucesso!' : 'Tabela de remuneração criada com sucesso!')
+      }
+    } catch (error) {
+      console.error('Erro ao salvar tabela de remuneração:', error)
+      alert('Erro ao salvar tabela de remuneração')
+    }
+  }
+
+  const handleEditRemuneration = (table: any) => {
+    setEditingRemuneration(table)
+    setNewRemuneration({
+      employeeRangeStart: table.employeeRangeStart,
+      employeeRangeEnd: table.employeeRangeEnd,
+      finderNegotiationMargin: table.finderNegotiationMargin,
+      maxCompanyCashback: table.maxCompanyCashback,
+      finalFinderCashback: table.finalFinderCashback,
+      description: table.description || ''
+    })
+    setShowRemunerationModal(true)
+  }
+
+  const handleDeleteRemuneration = async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir esta tabela de remuneração?')) {
+      try {
+        const response = await fetch(`http://localhost:3001/remuneration_tables/${id}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          fetchRemunerationTables()
+          alert('Tabela de remuneração excluída com sucesso!')
+        }
+      } catch (error) {
+        console.error('Erro ao excluir tabela de remuneração:', error)
+        alert('Erro ao excluir tabela de remuneração')
+      }
+    }
+  }
+
+  const fetchUploadedFiles = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/uploads')
+      const uploadsData = await response.json()
+      
+      // Mapear dados da API para o formato esperado
+      const enhancedFiles = uploadsData.map((upload: any) => ({
+        id: upload.id,
+        fileName: upload.fileName,
+        fileType: upload.fileType || 'PDF',
+        uploadedBy: upload.uploadedBy || 'admin@somapay.com.br',
+        uploadDate: upload.uploadDate || new Date().toISOString(),
+        size: upload.size || 0,
+        status: upload.status || 'pending',
+        downloadCount: upload.downloadCount || 0
+      }))
+      
+      setUploadedFiles(enhancedFiles)
+    } catch (error) {
+      console.error('Erro ao buscar arquivos:', error)
+      setUploadedFiles([])
+    }
+  }
+
+  const fetchNfeUploads = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/nfe_uploads')
+      const nfeData = await response.json()
+      setNfeUploads(nfeData)
+    } catch (error) {
+      console.error('Erro ao buscar NFe uploads:', error)
+      setNfeUploads([])
+    }
+  }
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/notifications')
+      const notificationsData = await response.json()
+      setNotifications(notificationsData)
+    } catch (error) {
+      console.error('Erro ao buscar notificações:', error)
+      setNotifications([])
+    }
+  }
+
+  const handleCreateUser = async () => {
+    try {
+      if (editingUser) {
+        // Editar usuário existente
+        const response = await fetch(`http://localhost:3001/users/${editingUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(editingUser)
+        })
+        
+        if (response.ok && editingUser.role === 'partner') {
+          // Atualizar também na tabela de parceiros
+          const partnerResponse = await fetch(`http://localhost:3001/partners/${editingUser.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ...(editingUser as any),
+              remunerationTableId: (editingUser as any).remunerationTableId || 1
+            })
+          })
+        }
+        
+        fetchUsers()
+        setShowUserModal(false)
+        setEditingUser(null)
+        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+        alert('Usuário atualizado com sucesso!')
+        return
+      }
+      
+      // Criar novo usuário
+      const userData = {
+        ...newUser,
+        id: Date.now(),
+        status: 'active',
+        createdAt: new Date().toISOString()
+      }
+
+      const response = await fetch('http://localhost:3001/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      })
+      
+      if (response.ok) {
+        // Se for um parceiro e tem gerente, criar entrada na tabela de parceiros
+        if (newUser.role === 'partner' && newUser.managerId) {
+          const manager = managers.find(m => m.id === newUser.managerId)
+          const partnerData = {
+            id: userData.id.toString(),
+            name: newUser.name,
+            email: newUser.email,
+            role: 'partner',
+            managerId: newUser.managerId,
+            managerName: manager?.name || '',
+            remunerationTableId: newUser.remunerationTableId,
+            company: {
+              name: '',
+              cnpj: '',
+              address: '',
+              phone: ''
+            },
+            bankData: {
+              bank: '',
+              agency: '',
+              account: '',
+              accountType: 'corrente',
+              pix: ''
+            }
+          }
+
+          await fetch('http://localhost:3001/partners', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(partnerData)
+          })
+
+          // Atualizar lista de parceiros do gerente
+          const updatedManager = {
+            ...manager,
+            partnersIds: [...(manager?.partnersIds || []), userData.id.toString()]
+          }
+
+          await fetch(`http://localhost:3001/managers/${newUser.managerId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(updatedManager)
+          })
+        }
+
+        fetchUsers()
+        setShowUserModal(false)
+        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+        alert('Usuário criado com sucesso!')
+      }
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error)
+      alert('Erro ao criar usuário')
+    }
+  }
+
+  const handleDeleteUser = async (userId: number) => {
+    if (confirm('Tem certeza que deseja excluir este usuário?')) {
+      try {
+        const response = await fetch(`http://localhost:3001/users/${userId}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          fetchUsers()
+          alert('Usuário excluído com sucesso!')
+        }
+      } catch (error) {
+        console.error('Erro ao excluir usuário:', error)
+        alert('Erro ao excluir usuário')
+      }
+    }
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+    }
+  }
+
+  const handleUploadReport = async () => {
+    if (!selectedFile || !selectedPartnerId || !selectedMonth || !selectedYear) {
+      alert('Por favor, preencha todos os campos: arquivo, parceiro, mês e ano de referência.')
+      return
+    }
+
+    const selectedPartner = users.find(user => user.id.toString() === selectedPartnerId)
+    if (!selectedPartner) {
+      alert('Parceiro não encontrado.')
+      return
+    }
+
+    try {
+      // Criar nome do arquivo com informações do parceiro e período de referência
+      const fileExtension = selectedFile.name.split('.').pop()
+      const fileName = `relatorio_${selectedPartner.name.toLowerCase().replace(/\s+/g, '_')}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.${fileExtension}`
+
+      const newFile: UploadedFile = {
+        id: Date.now(),
+        fileName: fileName,
+        fileType: fileExtension?.toUpperCase() || 'PDF',
+        uploadedBy: 'admin@somapay.com.br',
+        uploadDate: new Date().toISOString(),
+        size: selectedFile.size,
+        status: 'approved',
+        downloadCount: 0
+      }
+
+      // Adicionar à lista de arquivos
+      setUploadedFiles(prev => [newFile, ...prev])
+
+      // Adicionar aos relatórios do parceiro no db.json
+       const reportData = {
+         id: Date.now(),
+         fileName: fileName,
+         partnerId: selectedPartner.id,
+         partnerName: selectedPartner.name,
+         referenceMonth: parseInt(selectedMonth),
+         referenceYear: parseInt(selectedYear),
+         uploadDate: new Date().toISOString(),
+         fileType: fileExtension?.toUpperCase() || 'PDF',
+         size: selectedFile.size,
+         status: 'available'
+       }
+
+      await fetch('http://localhost:3001/partner_reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reportData)
+      })
+
+      // Enviar notificação automática para o parceiro
+      await createNotification({
+        title: 'Novo relatório disponível',
+        message: `Seu relatório de ${selectedMonth}/${selectedYear} está disponível para download.`,
+        type: 'report_available',
+        recipientId: selectedPartner.id.toString(),
+        recipientType: 'specific'
+      })
+
+      // Resetar modal
+       setShowUploadModal(false)
+       setSelectedFile(null)
+       setSelectedPartnerId('')
+       setSelectedMonth('')
+       setSelectedYear(new Date().getFullYear().toString())
+       alert(`Relatório de ${selectedMonth}/${selectedYear} enviado com sucesso para ${selectedPartner.name}!`)
+    } catch (error) {
+      console.error('Erro ao fazer upload do relatório:', error)
+      alert('Erro ao fazer upload do relatório')
+    }
+  }
+
+  const handleFileStatusChange = (fileId: number, newStatus: 'pending' | 'approved' | 'rejected' | 'processed' | 'available') => {
+    setUploadedFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, status: newStatus } : file
+    ))
+  }
+
+  const handleDeleteFile = (fileId: number) => {
+    if (confirm('Tem certeza que deseja excluir este arquivo?')) {
+      setUploadedFiles(prev => prev.filter(file => file.id !== fileId))
+      alert('Arquivo excluído com sucesso!')
+    }
+  }
+
+  const createNotification = async (notification: {
+    title: string
+    message: string
+    type: string
+    recipientId: string | null
+    recipientType: 'all' | 'specific'
+  }) => {
+    try {
+      const newNotification = {
+        id: Date.now(),
+        ...notification,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        emailSent: false
+      }
+      
+      const response = await fetch('http://localhost:3001/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newNotification)
+      })
+      
+      if (response.ok) {
+        fetchNotifications()
+      }
+    } catch (error) {
+      console.error('Erro ao criar notificação:', error)
+    }
+  }
+
+  const handleCreateNotification = async () => {
+    if (!newNotification.title || !newNotification.message) {
+      alert('Por favor, preencha título e mensagem.')
+      return
+    }
+
+    if (newNotification.recipientType === 'specific' && !newNotification.recipientId) {
+      alert('Por favor, selecione um parceiro específico.')
+      return
+    }
+
+    await createNotification({
+      title: newNotification.title,
+      message: newNotification.message,
+      type: 'admin_message',
+      recipientId: newNotification.recipientType === 'all' ? null : newNotification.recipientId,
+      recipientType: newNotification.recipientType
+    })
+
+    setNewNotification({
+      title: '',
+      message: '',
+      type: 'info',
+      recipientType: 'all',
+      recipientId: null,
+      emailSent: false
+    })
+    setShowNotificationModal(false)
+    alert('Notificação enviada com sucesso!')
+  }
+
+  const handleFileDownload = async (fileName: string, partnerId?: string) => {
+    try {
+      // Simular download do arquivo
+      const link = document.createElement('a')
+      link.href = `#` // Em produção, seria a URL real do arquivo
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Se for um arquivo de parceiro, enviar notificação
+      if (partnerId) {
+        const partner = users.find(u => u.id.toString() === partnerId)
+        if (partner) {
+          await createNotification({
+            title: 'Download realizado',
+            message: `O administrador fez download do seu arquivo: ${fileName}`,
+            type: 'file_downloaded',
+            recipientId: partnerId,
+            recipientType: 'specific'
+          })
+        }
+      }
+      
+      alert(`Download iniciado: ${fileName}`)
+    } catch (error) {
+      console.error('Erro no download:', error)
+      alert('Erro ao fazer download do arquivo')
+    }
+  }
+
+  const handleFileView = (fileName: string, fileType: string) => {
+    try {
+      // Simular visualização do arquivo
+      if (fileType.toLowerCase().includes('pdf')) {
+        // Para PDFs, simular abertura em nova aba
+        alert(`Visualizando PDF: ${fileName}\n\nEm produção, o arquivo seria aberto em uma nova aba.`)
+      } else {
+        // Para outros tipos, mostrar modal de visualização
+        alert(`Visualizando arquivo: ${fileName}\nTipo: ${fileType}\n\nEm produção, o arquivo seria exibido em um modal ou nova aba.`)
+      }
+    } catch (error) {
+      console.error('Erro ao visualizar arquivo:', error)
+      alert('Erro ao visualizar arquivo')
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <div className="text-center">
+          <XCircleIcon className="mx-auto h-16 w-16 text-red-500 mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 mb-4">
+            Você não tem permissão para acessar esta área. Apenas administradores podem gerenciar usuários e relatórios.
+          </p>
+          <p className="text-sm text-gray-500">
+            Se você acredita que isso é um erro, entre em contato com o administrador do sistema.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-8">
+      {/* Header */}
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-2xl font-bold leading-6 text-gray-900">Painel de Administração</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Gerencie usuários, uploads de relatórios e downloads do sistema.
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="mt-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <UsersIcon className="h-5 w-5 inline mr-2" />
+              Usuários
+            </button>
+            <button
+              onClick={() => setActiveTab('files')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'files'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <DocumentArrowUpIcon className="h-5 w-5 inline mr-2" />
+              Arquivos
+            </button>
+            <button
+              onClick={() => setActiveTab('nfe')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'nfe'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <DocumentTextIcon className="h-5 w-5 inline mr-2" />
+              NFe Uploads
+            </button>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'notifications'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BellIcon className="h-5 w-5 inline mr-2" />
+              Notificações
+            </button>
+            <button
+              onClick={() => setActiveTab('remuneration')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'remuneration'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 inline mr-2" />
+              Remuneração
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="mt-8">
+        {activeTab === 'users' && (
+          <div>
+            {/* Users Header */}
+            <div className="sm:flex sm:items-center mb-6">
+              <div className="sm:flex-auto">
+                <h2 className="text-lg font-semibold text-gray-900">Gerenciamento de Usuários</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Visualize e gerencie todos os usuários do sistema.
+                </p>
+              </div>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <button
+                  onClick={() => setShowUserModal(true)}
+                  className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                  <PlusIcon className="h-4 w-4 inline mr-1" />
+                  Novo Usuário
+                </button>
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Usuário
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Função
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Último Acesso
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.role === 'admin' 
+                            ? 'bg-red-100 text-red-800' 
+                            : user.role === 'manager'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {user.role === 'admin' ? 'Administrador' : 
+                           user.role === 'manager' ? 'Gerente de Parceiro' : 'Parceiro'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.status === 'active' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {user.lastLogin ? formatDate(user.lastLogin) : 'Nunca'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingUser(user)
+                              setShowUserModal(true)
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'remuneration' && (
+          <div>
+            {/* Remuneration Header */}
+            <div className="sm:flex sm:items-center mb-6">
+              <div className="sm:flex-auto">
+                <h2 className="text-lg font-semibold text-gray-900">Tabelas de Remuneração</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Configure as tabelas de remuneração para parceiros baseadas na quantidade de funcionários das empresas.
+                </p>
+              </div>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <button
+                  onClick={() => setShowRemunerationModal(true)}
+                  className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                  <PlusIcon className="h-4 w-4 inline mr-1" />
+                  Nova Tabela
+                </button>
+              </div>
+            </div>
+
+            {/* Remuneration Table */}
+            <div className="mt-8 flow-root">
+              <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Quantidade de Funcionários
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Margem de Negociação Finder
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Cashback Máximo Empresa
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Cashback Final Finder
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Data Criação
+                        </th>
+                        <th className="relative px-6 py-3">
+                          <span className="sr-only">Ações</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {remunerationTables.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                            Nenhuma tabela de remuneração cadastrada
+                          </td>
+                        </tr>
+                      ) : (
+                        remunerationTables.map((table) => (
+                          <tr key={table.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {table.employeeRangeEnd ? `${table.employeeRangeStart} a ${table.employeeRangeEnd}` : `A partir de ${table.employeeRangeStart}`}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              R$ {parseFloat(table.finderNegotiationMargin).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              R$ {parseFloat(table.maxCompanyCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              R$ {parseFloat(table.finalFinderCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {formatDate(table.createdAt)}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => handleEditRemuneration(table)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Editar"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteRemuneration(table.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Excluir"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'files' && (
+          <div>
+            {/* Files Header */}
+            <div className="sm:flex sm:items-center mb-6">
+              <div className="sm:flex-auto">
+                <h2 className="text-lg font-semibold text-gray-900">Gerenciamento de Arquivos</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Faça upload de relatórios e gerencie downloads para parceiros.
+                </p>
+              </div>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                  <DocumentArrowUpIcon className="h-4 w-4 inline mr-1" />
+                  Upload Relatório
+                </button>
+              </div>
+            </div>
+
+            {/* Filtros de Data para Arquivos */}
+            <div className="mb-6 bg-white shadow rounded-lg p-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm font-medium text-gray-700">Filtrar por data de upload:</span>
+                </div>
+                
+                <div className="flex space-x-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="filesDateFilter"
+                      value="all"
+                      checked={filesDateFilter === 'all'}
+                      onChange={(e) => setFilesDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                      className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Todos</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="filesDateFilter"
+                      value="current"
+                      checked={filesDateFilter === 'current'}
+                      onChange={(e) => setFilesDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                      className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Mês Atual</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="filesDateFilter"
+                      value="last"
+                      checked={filesDateFilter === 'last'}
+                      onChange={(e) => setFilesDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                      className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Mês Passado</span>
+                  </label>
+                  
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="filesDateFilter"
+                      value="custom"
+                      checked={filesDateFilter === 'custom'}
+                      onChange={(e) => setFilesDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                      className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-gray-700">Personalizado</span>
+                  </label>
+                </div>
+                
+                {filesDateFilter === 'custom' && (
+                  <div className="flex space-x-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Início</label>
+                      <input
+                        type="month"
+                        value={filesCustomStartDate}
+                        onChange={(e) => setFilesCustomStartDate(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim</label>
+                      <input
+                        type="month"
+                        value={filesCustomEndDate}
+                        onChange={(e) => setFilesCustomEndDate(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Files Table */}
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table className="min-w-full divide-y divide-gray-300">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Arquivo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tamanho
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Upload
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Downloads
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {(filesDateFilter === 'all' ? uploadedFiles : filteredFiles).map((file) => (
+                    <tr key={file.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{file.fileName}</div>
+                          <div className="text-sm text-gray-500">{file.fileType || 'PDF'}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {typeof file.size === 'string' ? file.size : formatFileSize(file.size || 0)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm text-gray-900">{formatDate(file.uploadDate)}</div>
+                          <div className="text-sm text-gray-500">{file.uploadedBy}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <select
+                          value={file.status}
+                          onChange={(e) => handleFileStatusChange(file.id, e.target.value as any)}
+                          className={`text-xs font-semibold rounded-full px-2 py-1 border-0 ${
+                            file.status === 'approved' || file.status === 'available'
+                              ? 'bg-green-100 text-green-800'
+                              : file.status === 'processed'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : file.status === 'rejected'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          <option value="pending">Pendente</option>
+                          <option value="approved">Aprovado</option>
+                          <option value="rejected">Rejeitado</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {file.downloadCount || 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleFileView(file.fileName, file.fileType)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                            title="Visualizar"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleFileDownload(file.fileName)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="Download"
+                          >
+                            <DocumentArrowDownIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFile(file.id)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Excluir"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* NFe Uploads Section */}
+        {activeTab === 'nfe' && (
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                  Uploads de NFe dos Parceiros
+                </h3>
+                
+                {/* Filtros de Data para NFe */}
+                <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center">
+                      <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">Filtrar por data de upload:</span>
+                    </div>
+                    
+                    <div className="flex space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="nfeDateFilter"
+                          value="all"
+                          checked={nfeDateFilter === 'all'}
+                          onChange={(e) => setNfeDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Todos</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="nfeDateFilter"
+                          value="current"
+                          checked={nfeDateFilter === 'current'}
+                          onChange={(e) => setNfeDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Mês Atual</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="nfeDateFilter"
+                          value="last"
+                          checked={nfeDateFilter === 'last'}
+                          onChange={(e) => setNfeDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Mês Passado</span>
+                      </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="nfeDateFilter"
+                          value="custom"
+                          checked={nfeDateFilter === 'custom'}
+                          onChange={(e) => setNfeDateFilter(e.target.value as 'current' | 'last' | 'custom' | 'all')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Personalizado</span>
+                      </label>
+                    </div>
+                    
+                    {nfeDateFilter === 'custom' && (
+                      <div className="flex space-x-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Data Início</label>
+                          <input
+                            type="month"
+                            value={nfeCustomStartDate}
+                            onChange={(e) => setNfeCustomStartDate(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim</label>
+                          <input
+                            type="month"
+                            value={nfeCustomEndDate}
+                            onChange={(e) => setNfeCustomEndDate(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Parceiro
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Arquivo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Data de Upload
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {(nfeDateFilter === 'all' ? nfeUploads : filteredNfeUploads).map((nfe) => (
+                        <tr key={nfe.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {users.find(u => u.id.toString() === nfe.partnerId.toString())?.name || 'Parceiro não encontrado'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {nfe.fileName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              nfe.fileType === 'xml' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {nfe.fileType.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(nfe.uploadDate).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              nfe.status === 'processed' ? 'bg-green-100 text-green-800' :
+                              nfe.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {nfe.status === 'processed' ? 'Processado' :
+                               nfe.status === 'processing' ? 'Processando' : 'Pendente'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleFileDownload(nfe.fileName, nfe.partnerId.toString())}
+                                className="text-blue-600 hover:text-blue-900"
+                                title="Download"
+                              >
+                                <DocumentArrowDownIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                className="text-indigo-600 hover:text-indigo-900"
+                                title="Visualizar"
+                              >
+                                <EyeIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notifications Section */}
+        {activeTab === 'notifications' && (
+          <div className="space-y-6">
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Gerenciar Notificações
+                  </h3>
+                  <button
+                    onClick={() => setShowNotificationModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    <BellIcon className="h-4 w-4 mr-2" />
+                    Nova Notificação
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Título
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Destinatário
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Data
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {notifications.map((notification) => (
+                        <tr key={notification.id}>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {notification.title}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {notification.recipientType === 'all' ? 'Todos os parceiros' :
+                             users.find(u => u.id.toString() === notification.recipientId)?.name || 'Usuário não encontrado'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              notification.type === 'info' ? 'bg-blue-100 text-blue-800' :
+                              notification.type === 'success' ? 'bg-green-100 text-green-800' :
+                              notification.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                              {notification.type === 'info' ? 'Informação' :
+                               notification.type === 'success' ? 'Sucesso' :
+                               notification.type === 'warning' ? 'Aviso' : 'Erro'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(notification.createdAt).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              notification.isRead ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800'
+                            }`}>
+                              {notification.isRead ? 'Lida' : 'Não lida'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              notification.emailSent ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {notification.emailSent ? 'Enviado' : 'Não enviado'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* User Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nome</label>
+                  <input
+                    type="text"
+                    value={editingUser ? editingUser.name : newUser.name}
+                    onChange={(e) => editingUser 
+                      ? setEditingUser({...editingUser, name: e.target.value})
+                      : setNewUser({...newUser, name: e.target.value})
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={editingUser ? editingUser.email : newUser.email}
+                    onChange={(e) => editingUser 
+                      ? setEditingUser({...editingUser, email: e.target.value})
+                      : setNewUser({...newUser, email: e.target.value})
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Função</label>
+                  <select
+                    value={editingUser ? editingUser.role : newUser.role}
+                    onChange={(e) => editingUser 
+                      ? setEditingUser({...editingUser, role: e.target.value})
+                      : setNewUser({...newUser, role: e.target.value})
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="partner">Parceiro</option>
+                    <option value="manager">Gerente de Parceiro</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                {(newUser.role === 'partner' || (editingUser && editingUser.role === 'partner')) && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Gerente Responsável</label>
+                      <select
+                        value={editingUser ? (editingUser as any).managerId || '' : newUser.managerId}
+                        onChange={(e) => editingUser 
+                          ? setEditingUser({...editingUser, managerId: e.target.value} as any)
+                          : setNewUser({...newUser, managerId: e.target.value})
+                        }
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      >
+                        <option value="">Selecione um gerente</option>
+                        {managers.map((manager) => (
+                          <option key={manager.id} value={manager.id}>
+                            {manager.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Tabela de Remuneração</label>
+                        <select
+                          value={editingUser ? (editingUser as any).remunerationTableId || 1 : newUser.remunerationTableId}
+                          onChange={(e) => editingUser 
+                            ? setEditingUser({...editingUser, remunerationTableId: parseInt(e.target.value)} as any)
+                            : setNewUser({...newUser, remunerationTableId: parseInt(e.target.value)})
+                          }
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                          {remunerationTables.map((table) => (
+                            <option key={table.id} value={table.id}>
+                              {table.employeeRangeEnd ? `${table.employeeRangeStart} a ${table.employeeRangeEnd} funcionários` : `A partir de ${table.employeeRangeStart} funcionários`} - R$ {parseFloat(table.finalFinderCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {currentUser?.role === 'admin' ? 'Apenas administradores podem alterar as tabelas de remuneração' : 'Gerentes podem alterar a tabela aplicada ao parceiro'}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+                {!editingUser && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Senha</label>
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowUserModal(false)
+                    setEditingUser(null)
+                    setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateUser}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+                >
+                  {editingUser ? 'Salvar' : 'Criar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Upload de Relatório para Parceiro
+              </h3>
+              <div className="space-y-4">
+                <div>
+                   <label className="block text-sm font-medium text-gray-700">Selecionar Parceiro</label>
+                   <select
+                     value={selectedPartnerId}
+                     onChange={(e) => setSelectedPartnerId(e.target.value)}
+                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                   >
+                     <option value="">Escolha um parceiro...</option>
+                     {users.filter(user => user.role === 'partner').map(partner => (
+                       <option key={partner.id} value={partner.id.toString()}>
+                         {partner.name} ({partner.email})
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700">Mês de Referência</label>
+                     <select
+                       value={selectedMonth}
+                       onChange={(e) => setSelectedMonth(e.target.value)}
+                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                     >
+                       <option value="">Selecione o mês...</option>
+                       <option value="1">Janeiro</option>
+                       <option value="2">Fevereiro</option>
+                       <option value="3">Março</option>
+                       <option value="4">Abril</option>
+                       <option value="5">Maio</option>
+                       <option value="6">Junho</option>
+                       <option value="7">Julho</option>
+                       <option value="8">Agosto</option>
+                       <option value="9">Setembro</option>
+                       <option value="10">Outubro</option>
+                       <option value="11">Novembro</option>
+                       <option value="12">Dezembro</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700">Ano de Referência</label>
+                     <select
+                       value={selectedYear}
+                       onChange={(e) => setSelectedYear(e.target.value)}
+                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                     >
+                       {Array.from({length: 5}, (_, i) => {
+                         const year = new Date().getFullYear() - i
+                         return (
+                           <option key={year} value={year.toString()}>
+                             {year}
+                           </option>
+                         )
+                       })}
+                     </select>
+                   </div>
+                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Arquivo do Relatório</label>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={handleFileUpload}
+                    className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                  />
+                  {selectedFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Arquivo selecionado: {selectedFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowUploadModal(false)
+                    setSelectedFile(null)
+                    setSelectedPartnerId('')
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleUploadReport}
+                  disabled={!selectedFile || !selectedPartnerId}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Enviar Relatório
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remuneration Modal */}
+      {showRemunerationModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                {editingRemuneration ? 'Editar Tabela de Remuneração' : 'Nova Tabela de Remuneração'}
+              </h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Funcionários - Inicial</label>
+                    <input
+                      type="number"
+                      value={newRemuneration.employeeRangeStart}
+                      onChange={(e) => setNewRemuneration({...newRemuneration, employeeRangeStart: e.target.value})}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="Ex: 50"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Funcionários - Final</label>
+                    <input
+                      type="number"
+                      value={newRemuneration.employeeRangeEnd}
+                      onChange={(e) => setNewRemuneration({...newRemuneration, employeeRangeEnd: e.target.value})}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      placeholder="Ex: 200 (deixe vazio para 'A partir de')"
+                      min="1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Margem de Negociação Finder (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newRemuneration.finderNegotiationMargin}
+                    onChange={(e) => setNewRemuneration({...newRemuneration, finderNegotiationMargin: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Ex: 12.00"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cashback Máximo Empresa (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newRemuneration.maxCompanyCashback}
+                    onChange={(e) => setNewRemuneration({...newRemuneration, maxCompanyCashback: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Ex: 5.00"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cashback Final Finder (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={newRemuneration.finalFinderCashback}
+                    onChange={(e) => setNewRemuneration({...newRemuneration, finalFinderCashback: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Ex: 7.00"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Descrição (Opcional)</label>
+                  <textarea
+                    value={newRemuneration.description}
+                    onChange={(e) => setNewRemuneration({...newRemuneration, description: e.target.value})}
+                    rows={2}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Descrição adicional sobre esta faixa de funcionários"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowRemunerationModal(false);
+                    setEditingRemuneration(null);
+                    setNewRemuneration({
+                      employeeRangeStart: '',
+                      employeeRangeEnd: '',
+                      finderNegotiationMargin: '',
+                      maxCompanyCashback: '',
+                      finalFinderCashback: '',
+                      description: ''
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateRemuneration}
+                  disabled={!newRemuneration.employeeRangeStart || !newRemuneration.finderNegotiationMargin || !newRemuneration.maxCompanyCashback || !newRemuneration.finalFinderCashback}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {editingRemuneration ? 'Atualizar Tabela' : 'Criar Tabela'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Nova Notificação
+              </h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Título</label>
+                  <input
+                    type="text"
+                    value={newNotification.title}
+                    onChange={(e) => setNewNotification({...newNotification, title: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Digite o título da notificação"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mensagem</label>
+                  <textarea
+                    value={newNotification.message}
+                    onChange={(e) => setNewNotification({...newNotification, message: e.target.value})}
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    placeholder="Digite a mensagem da notificação"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select
+                    value={newNotification.type}
+                    onChange={(e) => setNewNotification({...newNotification, type: e.target.value as any})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="info">Informação</option>
+                    <option value="success">Sucesso</option>
+                    <option value="warning">Aviso</option>
+                    <option value="error">Erro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Destinatário</label>
+                  <select
+                    value={newNotification.recipientType === 'all' ? 'all' : newNotification.recipientId || ''}
+                    onChange={(e) => {
+                      if (e.target.value === 'all') {
+                        setNewNotification({...newNotification, recipientType: 'all', recipientId: ''});
+                      } else {
+                        setNewNotification({...newNotification, recipientType: 'specific', recipientId: e.target.value});
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="all">Todos os parceiros</option>
+                    {users.filter(user => user.role === 'partner').map(partner => (
+                      <option key={partner.id} value={partner.id.toString()}>
+                        {partner.name} ({partner.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="sendEmail"
+                    checked={newNotification.emailSent}
+                    onChange={(e) => setNewNotification({...newNotification, emailSent: e.target.checked})}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="sendEmail" className="ml-2 block text-sm text-gray-900">
+                    Enviar também por email
+                  </label>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowNotificationModal(false);
+                    setNewNotification({
+                      title: '',
+                      message: '',
+                      type: 'info',
+                      recipientType: 'all',
+                      recipientId: '',
+                      emailSent: false
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateNotification}
+                  disabled={!newNotification.title || !newNotification.message}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Enviar Notificação
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

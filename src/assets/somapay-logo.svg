@@ -1,0 +1,13 @@
+<svg width="300" height="80" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- somapay text -->
+  <text x="10" y="45" font-family="Arial, sans-serif" font-size="36" font-weight="600" fill="#EA580C">
+    <tspan>somapay</tspan>
+  </text>
+  
+  <!-- Digital Bank badge -->
+  <rect x="240" y="15" width="50" height="50" rx="25" fill="#EA580C"/>
+  <text x="265" y="35" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">
+    <tspan x="265" dy="0">Digital</tspan>
+    <tspan x="265" dy="12">Bank</tspan>
+  </text>
+</svg>

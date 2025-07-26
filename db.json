@@ -1,0 +1,649 @@
+{
+  "users": [
+    {
+      "id": "1",
+      "email": "admin@somapay.com.br",
+      "password": "SomaPay@2024!",
+      "name": "Administrador Principal",
+      "role": "admin",
+      "status": "active",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "permissions": [
+        "user_management",
+        "file_management",
+        "system_settings",
+        "reports_access",
+        "admin_panel"
+      ]
+    },
+    {
+      "id": "2",
+      "email": "parceiro1@empresa.com",
+      "password": "parceiro123",
+      "name": "João Silva",
+      "role": "partner"
+    },
+    {
+      "id": "3",
+      "email": "parceiro2@negocio.com",
+      "password": "parceiro456",
+      "name": "Maria Santos",
+      "role": "partner"
+    },
+    {
+      "id": "4",
+      "email": "parceiro3@comercio.com",
+      "password": "parceiro789",
+      "name": "Carlos Oliveira",
+      "role": "partner"
+    },
+    {
+      "id": "1753409800039",
+      "email": "lucasuchoa@hotmail.com",
+      "name": "Lucas Uchoa",
+      "role": "admin",
+      "password": "lucas123",
+      "status": "active",
+      "createdAt": "2025-07-25T02:16:40.039Z"
+    },
+    {
+      "id": "1753416259657",
+      "email": "lucassuchoa@gmail.com",
+      "name": "lucas Teste",
+      "role": "partner",
+      "password": "lucas123",
+      "status": "active",
+      "createdAt": "2025-07-25T04:04:19.657Z"
+    },
+    {
+      "id": "5",
+      "email": "ana.costa@somapay.com.br",
+      "password": "manager123",
+      "name": "Ana Costa",
+      "role": "manager",
+      "status": "active",
+      "createdAt": "2025-01-25T10:00:00.000Z"
+    },
+    {
+      "id": "6",
+      "email": "roberto.lima@somapay.com.br",
+      "password": "manager456",
+      "name": "Roberto Lima",
+      "role": "manager",
+      "status": "active",
+      "createdAt": "2025-01-25T10:00:00.000Z"
+    }
+  ],
+  "partners": [
+    {
+      "id": "2",
+      "name": "João Silva",
+      "email": "parceiro1@empresa.com",
+      "role": "partner",
+      "company": {
+        "name": "Silva & Associados",
+        "cnpj": "12.345.678/0001-90",
+        "address": "Rua das Flores, 123 - São Paulo, SP",
+        "phone": "(11) 99999-9999"
+      },
+      "bankData": {
+        "bank": "Banco do Brasil",
+        "agency": "1234",
+        "account": "56789-0",
+        "accountType": "corrente",
+        "pix": "parceiro1@empresa.com"
+      },
+      "managerId": "5",
+      "managerName": "Ana Costa",
+      "remunerationTableId": 1
+    },
+    {
+      "id": "3",
+      "name": "Maria Santos",
+      "email": "parceiro2@negocio.com",
+      "role": "partner",
+      "company": {
+        "name": "Santos Negócios Ltda",
+        "cnpj": "98.765.432/0001-10",
+        "address": "Av. Paulista, 456 - São Paulo, SP",
+        "phone": "(11) 88888-8888"
+      },
+      "bankData": {
+        "bank": "Itaú",
+        "agency": "5678",
+        "account": "12345-6",
+        "accountType": "corrente",
+        "pix": "11988888888"
+      },
+      "managerId": "6",
+      "managerName": "Roberto Lima",
+      "remunerationTableId": 1
+    },
+    {
+      "id": "4",
+      "name": "Carlos Oliveira",
+      "email": "parceiro3@comercio.com",
+      "role": "partner",
+      "company": {
+        "name": "Oliveira Comércio S.A.",
+        "cnpj": "11.222.333/0001-44",
+        "address": "Rua do Comércio, 789 - Rio de Janeiro, RJ",
+        "phone": "(21) 77777-7777"
+      },
+      "bankData": {
+        "bank": "Bradesco",
+        "agency": "9012",
+        "account": "34567-8",
+        "accountType": "poupanca",
+        "pix": "11.222.333/0001-44"
+      },
+      "managerId": "5",
+      "managerName": "Ana Costa",
+      "remunerationTableId": 1
+    },
+    {
+      "id": "1753416259657",
+      "name": "lucas Teste",
+      "email": "lucassuchoa@gmail.com",
+      "role": "partner",
+      "company": {
+        "name": "Lucas Tech Solutions",
+        "cnpj": "22.333.444/0001-55",
+        "address": "Rua da Tecnologia, 100 - São Paulo, SP",
+        "phone": "(11) 66666-6666"
+      },
+      "bankData": {
+        "bank": "Nubank",
+        "agency": "0001",
+        "account": "98765-4",
+        "accountType": "corrente",
+        "pix": "lucassuchoa@gmail.com"
+      },
+      "managerId": "6",
+      "managerName": "Roberto Lima",
+      "remunerationTableId": 1
+    }
+  ],
+  "managers": [
+    {
+      "id": "5",
+      "name": "Ana Costa",
+      "email": "ana.costa@somapay.com.br",
+      "role": "manager",
+      "partnersIds": [
+        "2",
+        "4"
+      ]
+    },
+    {
+      "id": "6",
+      "name": "Roberto Lima",
+      "email": "roberto.lima@somapay.com.br",
+      "role": "manager",
+      "partnersIds": [
+        "3",
+        "1753416259657"
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "id": "1",
+      "companyName": "Empresa ABC Ltda",
+      "cnpj": "12.345.678/0001-90",
+      "employeeCount": 545,
+      "currentProducts": [],
+      "viabilityScore": 60,
+      "potentialProducts": [
+        "Folha de Pagamento",
+        "Benefícios"
+      ],
+      "lastAnalysis": "2025-07-25",
+      "potentialProductsWithValues": [
+        {
+          "product": "Folha de Pagamento",
+          "totalLives": 1000
+        },
+        {
+          "product": "Benefícios",
+          "benefitDetails": {
+            "vt": 0,
+            "vr": 0,
+            "premiacao": 100000,
+            "gestaoCorporativa": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "XYZ Comércio S.A.",
+      "cnpj": "98.765.432/0001-10",
+      "status": "pending",
+      "contractEndDate": "2025-06-30",
+      "totalLives": 80,
+      "stage": "negociacao",
+      "temperature": "morno",
+      "lastUpdated": "2024-01-24T14:15:00Z"
+    },
+    {
+      "id": "3",
+      "name": "Tech Solutions Ltda",
+      "cnpj": "11.222.333/0001-44",
+      "status": "active",
+      "contractEndDate": "2025-03-15",
+      "totalLives": 220,
+      "stage": "contrato_fechado",
+      "temperature": "quente",
+      "lastUpdated": "2024-01-23T09:45:00Z"
+    },
+    {
+      "id": "1753463245454",
+      "name": "Comercial ABC",
+      "cnpj": "98.765.432/0001-10",
+      "status": "active",
+      "stage": "prospeccao",
+      "temperature": "morno",
+      "totalLives": 0,
+      "contractEndDate": "",
+      "lastUpdated": "2025-07-25T17:07:25.454Z",
+      "partnerId": 2,
+      "contactName": "Maria Santos",
+      "email": "maria@comercialabc.com",
+      "phone": "(11) 88888-8888",
+      "segment": "Comércio"
+    },
+    {
+      "id": "1753463256534",
+      "companyName": "ewewq",
+      "cnpj": "eq",
+      "employeeCount": 485,
+      "segment": "Tecnologia",
+      "currentProducts": [
+        "Folha de Pagamento"
+      ],
+      "viabilityScore": 65,
+      "potentialProducts": [
+        "Folha de Pagamento"
+      ],
+      "lastAnalysis": "2025-07-26",
+      "potentialProductsWithValues": [
+        {
+          "product": "Folha de Pagamento",
+          "totalLives": 1000
+        }
+      ]
+    },
+    {
+      "id": "1753463271603",
+      "companyName": "21",
+      "cnpj": "21",
+      "employeeCount": 480,
+      "segment": "Tecnologia",
+      "currentProducts": [
+        "Folha de Pagamento"
+      ],
+      "viabilityScore": 65,
+      "potentialProducts": [
+        "Folha de Pagamento"
+      ],
+      "lastAnalysis": "2025-07-26",
+      "potentialProductsWithValues": [
+        {
+          "product": "Folha de Pagamento",
+          "totalLives": 1000
+        }
+      ]
+    }
+  ],
+  "transactions": [
+    {
+      "id": "1",
+      "clientId": 1,
+      "type": "payment",
+      "amount": 1500,
+      "status": "completed",
+      "date": "2024-01-20T10:30:00Z"
+    },
+    {
+      "id": "2",
+      "clientId": 2,
+      "type": "transfer",
+      "amount": 2750.5,
+      "status": "pending",
+      "date": "2024-01-21T14:15:00Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "1",
+      "clientId": 1,
+      "type": "contract",
+      "status": "pending",
+      "uploadDate": "2024-01-19T08:45:00Z"
+    },
+    {
+      "id": "2",
+      "clientId": 2,
+      "type": "identification",
+      "status": "approved",
+      "uploadDate": "2024-01-20T16:20:00Z"
+    }
+  ],
+  "uploads": [
+    {
+      "id": "1",
+      "fileName": "relatorio_janeiro_2024.pdf",
+      "uploadedBy": "João Silva",
+      "uploadDate": "2024-01-25T09:30:00Z",
+      "status": "pending",
+      "type": "monthly_report",
+      "size": "2.5 MB"
+    },
+    {
+      "id": "2",
+      "fileName": "relatorio_dezembro_2023.xlsx",
+      "uploadedBy": "Maria Santos",
+      "uploadDate": "2024-01-20T14:15:00Z",
+      "status": "approved",
+      "type": "monthly_report",
+      "size": "1.8 MB"
+    },
+    {
+      "id": "3",
+      "fileName": "documento_fiscal_Q4.pdf",
+      "uploadedBy": "Carlos Oliveira",
+      "uploadDate": "2024-01-22T11:45:00Z",
+      "status": "rejected",
+      "type": "fiscal_document",
+      "size": "3.2 MB"
+    }
+  ],
+  "nfe_uploads": [
+    {
+      "id": "1",
+      "fileName": "João_Silva-Janeiro-2024-2024-01-25.pdf",
+      "partnerId": 2,
+      "partnerName": "João Silva",
+      "month": "Janeiro",
+      "year": 2024,
+      "uploadDate": "2024-01-25T10:30:00Z",
+      "fileType": "PDF",
+      "status": "received"
+    },
+    {
+      "id": "2",
+      "fileName": "Maria_Santos-Dezembro-2023-2024-01-20.xml",
+      "partnerId": 3,
+      "partnerName": "Maria Santos",
+      "month": "Dezembro",
+      "year": 2023,
+      "uploadDate": "2024-01-20T14:15:00Z",
+      "fileType": "XML",
+      "status": "received"
+    }
+  ],
+  "prospects": [
+    {
+      "id": "1",
+      "companyName": "Tech Solutions Ltda",
+      "contactName": "João Silva",
+      "email": "joao@techsolutions.com",
+      "phone": "(11) 99999-9999",
+      "cnpj": "12.345.678/0001-90",
+      "employeeCount": 150,
+      "segment": "Tecnologia",
+      "status": "approved",
+      "submittedAt": "2024-01-15",
+      "viabilityScore": 85,
+      "partnerId": 2
+    },
+    {
+      "id": "2",
+      "companyName": "Comercial ABC",
+      "contactName": "Maria Santos",
+      "email": "maria@comercialabc.com",
+      "phone": "(11) 88888-8888",
+      "cnpj": "98.765.432/0001-10",
+      "employeeCount": 75,
+      "segment": "Comércio",
+      "status": "approved",
+      "submittedAt": "2024-01-20",
+      "partnerId": 2
+    },
+    {
+      "id": "1753416324806",
+      "companyName": "ewewq",
+      "contactName": "eewq",
+      "email": "ew@ew",
+      "phone": "eq",
+      "cnpj": "eq",
+      "employeeCount": 232,
+      "segment": "Tecnologia",
+      "status": "approved",
+      "submittedAt": "2025-07-25",
+      "partnerId": 2,
+      "adminValidation": {
+        "isValidated": true,
+        "validatedBy": "Lucas Uchoa",
+        "validatedAt": "2025-07-25T04:22:20.623Z",
+        "notes": "Validado manualmente pelo administrador",
+        "isApproved": true
+      }
+    },
+    {
+      "id": "1753416744955",
+      "companyName": "21",
+      "contactName": "21",
+      "email": "21@121",
+      "phone": "212",
+      "cnpj": "21",
+      "employeeCount": 21,
+      "segment": "Tecnologia",
+      "status": "approved",
+      "submittedAt": "2025-07-25",
+      "partnerId": "1753416259657",
+      "adminValidation": {
+        "isValidated": true,
+        "validatedBy": "Lucas Uchoa",
+        "validatedAt": "2025-07-25T14:28:11.741Z",
+        "notes": "Validado manualmente pelo administrador",
+        "isApproved": true
+      }
+    }
+  ],
+  "partner_reports": [
+    {
+      "id": "1",
+      "fileName": "relatorio_empresa_abc_ltda_2024_01.pdf",
+      "partnerId": 2,
+      "partnerName": "Empresa ABC Ltda",
+      "referenceMonth": 1,
+      "referenceYear": 2024,
+      "uploadDate": "2024-01-10T09:00:00Z",
+      "fileType": "PDF",
+      "size": 2048576,
+      "status": "available"
+    },
+    {
+      "id": "2",
+      "fileName": "relatorio_tech_solutions_2024_01.xlsx",
+      "partnerId": 3,
+      "partnerName": "Tech Solutions",
+      "referenceMonth": 1,
+      "referenceYear": 2024,
+      "uploadDate": "2024-01-12T11:30:00Z",
+      "fileType": "XLSX",
+      "size": 1536000,
+      "status": "available"
+    },
+    {
+      "id": "1753409053566",
+      "fileName": "relatorio_joão_silva_2025_07.pdf",
+      "partnerId": 2,
+      "partnerName": "João Silva",
+      "referenceMonth": 7,
+      "referenceYear": 2025,
+      "uploadDate": "2025-07-25T02:04:13.566Z",
+      "fileType": "PDF",
+      "size": 3985192,
+      "status": "available"
+    },
+    {
+      "id": "1753413759921",
+      "fileName": "relatorio_maria_santos_2025_08.docx",
+      "partnerId": 3,
+      "partnerName": "Maria Santos",
+      "referenceMonth": 8,
+      "referenceYear": 2025,
+      "uploadDate": "2025-07-25T03:22:39.921Z",
+      "fileType": "DOCX",
+      "size": 67443,
+      "status": "available"
+    },
+    {
+      "id": "1753414277321",
+      "fileName": "relatorio_joão_silva_2025_01.pdf",
+      "partnerId": "2",
+      "partnerName": "João Silva",
+      "referenceMonth": 1,
+      "referenceYear": 2025,
+      "uploadDate": "2025-07-25T03:31:17.321Z",
+      "fileType": "PDF",
+      "size": 689,
+      "status": "available"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "1",
+      "title": "Novo relatório disponível",
+      "message": "Seu relatório de Janeiro 2024 está disponível para download.",
+      "type": "report_available",
+      "recipientId": 2,
+      "recipientType": "partner",
+      "isRead": false,
+      "createdAt": "2024-01-25T10:30:00Z",
+      "emailSent": true
+    },
+    {
+      "id": "2",
+      "title": "Download realizado",
+      "message": "O administrador fez download do seu arquivo: relatorio_janeiro_2024.pdf",
+      "type": "file_downloaded",
+      "recipientId": 2,
+      "recipientType": "partner",
+      "isRead": false,
+      "createdAt": "2024-01-25T14:15:00Z",
+      "emailSent": true
+    },
+    {
+      "id": "1753413686179",
+      "title": "OI",
+      "message": "oioioi",
+      "type": "admin_message",
+      "recipientId": null,
+      "recipientType": "all",
+      "isRead": false,
+      "createdAt": "2025-07-25T03:21:26.179Z",
+      "emailSent": true
+    },
+    {
+      "id": "1753413760018",
+      "title": "Novo relatório disponível",
+      "message": "Seu relatório de 8/2025 está disponível para download.",
+      "type": "report_available",
+      "recipientId": 3,
+      "recipientType": "partner",
+      "isRead": false,
+      "createdAt": "2025-07-25T03:22:40.018Z",
+      "emailSent": true
+    },
+    {
+      "id": "1753414277358",
+      "title": "Novo relatório disponível",
+      "message": "Seu relatório de 1/2025 está disponível para download.",
+      "type": "report_available",
+      "recipientId": "2",
+      "recipientType": "partner",
+      "isRead": false,
+      "createdAt": "2025-07-25T03:31:17.358Z",
+      "emailSent": false
+    },
+    {
+      "id": "1753414303265",
+      "title": "1221",
+      "message": "2121",
+      "type": "admin_message",
+      "recipientId": null,
+      "recipientType": "all",
+      "isRead": false,
+      "createdAt": "2025-07-25T03:31:43.265Z",
+      "emailSent": false
+    },
+    {
+      "id": 1753451506185,
+      "title": "223",
+      "message": "3232",
+      "type": "admin_message",
+      "recipientId": null,
+      "recipientType": "all",
+      "isRead": false,
+      "createdAt": "2025-07-25T13:51:46.185Z",
+      "emailSent": false
+    },
+    {
+      "id": 1753457183315,
+      "title": "321231",
+      "message": "21331",
+      "type": "admin_message",
+      "recipientId": "2",
+      "recipientType": "specific",
+      "isRead": false,
+      "createdAt": "2025-07-25T15:26:23.315Z",
+      "emailSent": false
+    }
+  ],
+  "remuneration_tables": [
+    {
+      "id": 1,
+      "employeeRangeStart": "50",
+      "employeeRangeEnd": "200",
+      "finderNegotiationMargin": "12.00",
+      "maxCompanyCashback": "5.00",
+      "finalFinderCashback": "7.00",
+      "description": "50 a 200 funcionários",
+      "createdAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "employeeRangeStart": "201",
+      "employeeRangeEnd": "500",
+      "finderNegotiationMargin": "12.00",
+      "maxCompanyCashback": "8.00",
+      "finalFinderCashback": "4.00",
+      "description": "201 a 500 funcionários",
+      "createdAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": 3,
+      "employeeRangeStart": "501",
+      "employeeRangeEnd": "1000",
+      "finderNegotiationMargin": "12.00",
+      "maxCompanyCashback": "10.00",
+      "finalFinderCashback": "2.00",
+      "description": "501 a 1000 funcionários",
+      "createdAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": 4,
+      "employeeRangeStart": "1001",
+      "employeeRangeEnd": "",
+      "finderNegotiationMargin": "13.00",
+      "maxCompanyCashback": "12.00",
+      "finalFinderCashback": "1.00",
+      "description": "A partir de 1001 funcionários",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
