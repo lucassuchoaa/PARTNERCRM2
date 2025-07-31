@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, Menu } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, XMarkIcon, BellIcon } from '@heroicons/react/24/outline'
 import { ChartBarIcon, FolderIcon, HomeIcon, UsersIcon, BookOpenIcon, UserPlusIcon, CogIcon } from '@heroicons/react/24/outline'
 import { UserIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/20/solid'
 import Settings from './Settings'
@@ -12,6 +12,7 @@ import Admin from './Admin'
 
 import Profile from './Profile'
 import { getCurrentUser } from '../../services/auth'
+import { API_URL } from '../../config/api'
 
 interface Client {
   id: number
@@ -42,6 +43,16 @@ interface Document {
   uploadDate: string
 }
 
+interface Notification {
+  id: number
+  title: string
+  message: string
+  type: 'info' | 'success' | 'warning' | 'error'
+  isRead: boolean
+  recipientId: string
+  createdAt: string
+}
+
 const getNavigation = (isAdmin: boolean) => {
   const baseNavigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true, view: 'dashboard' },
@@ -68,12 +79,18 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentView, setCurrentView] = useState('dashboard')
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [productFilter, setProductFilter] = useState('all')
+  const [stageFilter, setStageFilter] = useState('all')
   const [prospects, setProspects] = useState<any[]>([])
   const [dashboardData, setDashboardData] = useState({
     totalClients: 0,
     totalTransactions: 0,
-    pendingDocuments: 0
+    currentMonthReferrals: 0,
+    previousMonthReferrals: 0,
+    referralsGrowth: 0
   })
   const [clients, setClients] = useState<Client[]>([])
 
@@ -97,53 +114,125 @@ export default function Dashboard() {
   }
 
   const getFilteredClients = () => {
-    if (productFilter === 'all') {
-      return clients
+    let filteredClients = clients
+    
+    // Filtrar por produto
+    if (productFilter !== 'all') {
+      const productMapping: { [key: string]: string[] } = {
+        'folha': ['prospeccao', 'apresentacao', 'negociacao', 'contrato_fechado'],
+        'consignado': ['negociacao', 'contrato_fechado'],
+        'beneficios': ['prospeccao', 'apresentacao', 'contrato_fechado']
+      }
+      
+      const relevantStages = productMapping[productFilter] || []
+      filteredClients = filteredClients.filter(client => relevantStages.includes(client.stage))
     }
     
-    // Filtrar clientes baseado no produto selecionado
-    const productMapping: { [key: string]: string[] } = {
-      'folha': ['lead', 'negociacao', 'fechado'],
-      'consignado': ['negociacao', 'proposta', 'fechado'],
-      'beneficios': ['lead', 'proposta', 'fechado']
+    // Filtrar por etapa
+    if (stageFilter !== 'all') {
+      filteredClients = filteredClients.filter(client => client.stage === stageFilter)
     }
     
-    const relevantStages = productMapping[productFilter] || []
-    return clients.filter(client => relevantStages.includes(client.stage))
+    return filteredClients
+  }
+  
+  const getStageCount = (stage: string) => {
+    return clients.filter(client => client.stage === stage).length
+  }
+
+  const loadNotifications = async (userId: string) => {
+    try {
+      const response = await fetch(`${API_URL}/notifications?recipientId=${userId}`)
+      const notificationsData = await response.json()
+      setNotifications(notificationsData)
+      
+      // Contar notificações não lidas
+      const unread = notificationsData.filter((n: Notification) => !n.isRead).length
+      setUnreadCount(unread)
+    } catch (error) {
+      console.error('Erro ao carregar notificações:', error)
+    }
+  }
+
+  const markAsRead = async (notificationId: number) => {
+    try {
+      await fetch(`${API_URL}/notifications/${notificationId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isRead: true })
+      })
+      
+      // Atualizar estado local
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, isRead: true } : n)
+      )
+      setUnreadCount(prev => Math.max(0, prev - 1))
+    } catch (error) {
+      console.error('Erro ao marcar notificação como lida:', error)
+    }
   }
 
   useEffect(() => {
-    const fetchData = async () => {
+    const loadUserAndData = async () => {
       try {
-        // Get current user
         const user = await getCurrentUser()
-        setCurrentUser(user)
-        
-        // Fetch dashboard data
-        const [clientsData, transactions, documents, prospectsData] = await Promise.all([
-          fetch('http://localhost:3001/clients').then(res => res.json()),
-          fetch('http://localhost:3001/transactions').then(res => res.json()),
-          fetch('http://localhost:3001/documents').then(res => res.json()),
-          fetch('http://localhost:3001/prospects').then(res => res.json())
-        ])
+        if (user) {
+          setCurrentUser(user)
+          
+          // Carregar notificações do usuário
+          await loadNotifications(user.id.toString())
+          
+          // Fetch dashboard data
+          const [clientsData, transactions, prospectsData] = await Promise.all([
+            fetch(`${API_URL}/clients`).then(res => res.json()),
+            fetch(`${API_URL}/transactions`).then(res => res.json()),
+            fetch(`${API_URL}/prospects`).then(res => res.json())
+          ])
 
-        const totalTransactionsAmount = transactions.reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
-        const pendingDocs = documents.filter((doc: Document) => doc.status === 'pending').length
+          const totalTransactionsAmount = transactions.reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
 
-        setDashboardData({
-          totalClients: clientsData.length,
-          totalTransactions: totalTransactionsAmount,
-          pendingDocuments: pendingDocs
-        })
-        
-        setClients(clientsData)
-        setProspects(prospectsData)
+          // Calcular indicações do mês atual e anterior
+          const now = new Date()
+          const currentMonth = now.getMonth()
+          const currentYear = now.getFullYear()
+          const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1
+          const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+          const currentMonthReferrals = prospectsData.filter((prospect: any) => {
+            if (!prospect.submittedAt) return false
+            const submittedDate = new Date(prospect.submittedAt)
+            return submittedDate.getMonth() === currentMonth && submittedDate.getFullYear() === currentYear
+          }).length
+
+          const previousMonthReferrals = prospectsData.filter((prospect: any) => {
+            if (!prospect.submittedAt) return false
+            const submittedDate = new Date(prospect.submittedAt)
+            return submittedDate.getMonth() === previousMonth && submittedDate.getFullYear() === previousYear
+          }).length
+
+          const referralsGrowth = previousMonthReferrals > 0 
+            ? ((currentMonthReferrals - previousMonthReferrals) / previousMonthReferrals) * 100
+            : currentMonthReferrals > 0 ? 100 : 0
+
+          setDashboardData({
+            totalClients: clientsData.length,
+            totalTransactions: totalTransactionsAmount,
+            currentMonthReferrals,
+            previousMonthReferrals,
+            referralsGrowth
+          })
+          
+          setClients(clientsData)
+          setProspects(prospectsData)
+        }
       } catch (error) {
         console.error('Error fetching data:', error)
       }
     }
 
-    fetchData()
+    loadUserAndData()
   }, [])
 
   return (
@@ -233,23 +322,58 @@ export default function Dashboard() {
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
-              <button type="button" className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500">
-                <span className="sr-only">Ver notificações</span>
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-                  />
-                </svg>
-              </button>
+              {/* Notifications */}
+              <Menu as="div" className="relative">
+                <Menu.Button className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500 relative">
+                  <span className="sr-only">Ver notificações</span>
+                  <BellIcon className="h-6 w-6" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Menu.Button>
+                <Menu.Items className="absolute right-0 z-10 mt-2.5 w-80 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none max-h-96 overflow-y-auto">
+                  <div className="px-4 py-2 border-b border-gray-200">
+                    <h3 className="text-sm font-medium text-gray-900">Notificações</h3>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                      Nenhuma notificação
+                    </div>
+                  ) : (
+                    notifications.map((notification) => (
+                      <Menu.Item key={notification.id}>
+                        {({ active }) => (
+                          <div
+                            className={`px-4 py-3 cursor-pointer ${
+                              active ? 'bg-gray-50' : ''
+                            } ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {notification.title}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {new Date(notification.createdAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              {!notification.isRead && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full ml-2 mt-1"></div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </Menu.Item>
+                    ))
+                  )}
+                </Menu.Items>
+              </Menu>
 
               {/* Separator */}
               <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />
@@ -339,7 +463,7 @@ export default function Dashboard() {
             ) : currentView === 'admin' && currentUser?.role === 'admin' ? (
               <Admin />
             ) : currentView === 'profile' ? (
-              <Profile />
+              <Profile onUserUpdate={setCurrentUser} />
             ) : (
               <div>
                 {/* Hero Section - Inspirado na Somapay */}
@@ -375,7 +499,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Stats Cards - Redesenhados com cores da Somapay */}
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-8">
                   <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
                     <div className="p-6">
                       <div className="flex items-center">
@@ -386,8 +510,13 @@ export default function Dashboard() {
                         </div>
                         <div className="ml-4 flex-1">
                           <p className="text-sm font-medium text-gray-600">Clientes Indicados</p>
-                          <p className="text-2xl font-bold text-gray-900">{dashboardData.totalClients}</p>
-                          <p className="text-sm text-green-600 font-medium">+12% este mês</p>
+                          <p className="text-2xl font-bold text-gray-900">{dashboardData.currentMonthReferrals}</p>
+                          <p className="text-sm text-gray-500 mb-1">Este mês</p>
+                          <p className={`text-sm font-medium ${
+                            dashboardData.referralsGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {dashboardData.referralsGrowth >= 0 ? '+' : ''}{dashboardData.referralsGrowth.toFixed(1)}% vs mês anterior ({dashboardData.previousMonthReferrals})
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -415,22 +544,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
-                    <div className="p-6">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-                            <FolderIcon className="h-6 w-6 text-white" aria-hidden="true" />
-                          </div>
-                        </div>
-                        <div className="ml-4 flex-1">
-                          <p className="text-sm font-medium text-gray-600">Propostas Pendentes</p>
-                          <p className="text-2xl font-bold text-gray-900">{dashboardData.pendingDocuments}</p>
-                          <p className="text-sm text-yellow-600 font-medium">Aguardando análise</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
 
                 {/* Produtos Somapay - Seção com filtros */}
@@ -525,28 +639,117 @@ export default function Dashboard() {
                 {/* Funil de Vendas e Tabela */}
                 <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">Funil de Vendas</h2>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">Funil de Vendas</h2>
+                      <button
+                        onClick={() => setStageFilter('all')}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                          stageFilter === 'all'
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Limpar Filtro
+                      </button>
+                    </div>
                     <div className="bg-white rounded-lg shadow">
                       <div className="p-6">
-                        <svg width="600" height="300" viewBox="0 0 600 300" className="w-full max-w-2xl mx-auto">
-                          {/* Funil Stage 1: Leads */}
-                          <path d="M50,20 L550,20 L500,100 L100,100 Z" fill="#4F46E5" opacity="0.9"/>
-                          <text x="300" y="70" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="24">Leads</text>
+                        <svg width="600" height="380" viewBox="0 0 600 380" className="w-full max-w-2xl mx-auto">
+                          {/* Funil Stage 1: Prospecção */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'prospeccao' ? 'all' : 'prospeccao')}
+                          >
+                            <path 
+                              d="M50,20 L550,20 L520,80 L80,80 Z" 
+                              fill={stageFilter === 'prospeccao' ? '#1E40AF' : '#3B82F6'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="45" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Prospecção ({getStageCount('prospeccao')})
+                            </text>
+                            <text x="300" y="62" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
                           
-                          {/* Funil Stage 2: Negociação */}
-                          <path d="M100,110 L500,110 L450,190 L150,190 Z" fill="#6366F1" opacity="0.9"/>
-                          <text x="300" y="160" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="24">Negociação</text>
+                          {/* Funil Stage 2: Apresentação */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'apresentacao' ? 'all' : 'apresentacao')}
+                          >
+                            <path 
+                              d="M80,90 L520,90 L480,150 L120,150 Z" 
+                              fill={stageFilter === 'apresentacao' ? '#1E40AF' : '#6366F1'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="115" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Apresentação ({getStageCount('apresentacao')})
+                            </text>
+                            <text x="300" y="132" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
                           
-                          {/* Funil Stage 3: Contrato Fechado */}
-                          <path d="M150,200 L450,200 L400,280 L200,280 Z" fill="#818CF8" opacity="0.9"/>
-                          <text x="300" y="250" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="24">Contrato Fechado</text>
+                          {/* Funil Stage 3: Negociação */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'negociacao' ? 'all' : 'negociacao')}
+                          >
+                            <path 
+                              d="M120,160 L480,160 L440,220 L160,220 Z" 
+                              fill={stageFilter === 'negociacao' ? '#DC2626' : '#F59E0B'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="185" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Negociação ({getStageCount('negociacao')})
+                            </text>
+                            <text x="300" y="202" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
+                          
+                          {/* Funil Stage 4: Contrato Fechado */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'contrato_fechado' ? 'all' : 'contrato_fechado')}
+                          >
+                            <path 
+                              d="M160,230 L440,230 L400,290 L200,290 Z" 
+                              fill={stageFilter === 'contrato_fechado' ? '#059669' : '#10B981'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="255" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Contrato Fechado ({getStageCount('contrato_fechado')})
+                            </text>
+                            <text x="300" y="272" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
                         </svg>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">Detalhamento do Funil</h2>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">
+                        Detalhamento do Funil
+                        {stageFilter !== 'all' && (
+                          <span className="ml-2 text-sm font-normal text-gray-600">
+                            - Filtrado por: {stageFilter === 'prospeccao' ? 'Prospecção' : 
+                                            stageFilter === 'apresentacao' ? 'Apresentação' :
+                                            stageFilter === 'negociacao' ? 'Negociação' :
+                                            stageFilter === 'contrato_fechado' ? 'Contrato Fechado' : 'Perdido'}
+                          </span>
+                        )}
+                      </h2>
+                      {stageFilter !== 'all' && (
+                        <span className="text-sm text-gray-500">
+                          {getFilteredClients().length} cliente(s)
+                        </span>
+                      )}
+                    </div>
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -569,13 +772,13 @@ export default function Dashboard() {
                           {getFilteredClients().map((client) => {
                             const getStageBadge = (stage: string) => {
                               const stageConfig = {
-                                'lead': { color: 'bg-blue-100 text-blue-800', text: 'Lead' },
+                                'prospeccao': { color: 'bg-blue-100 text-blue-800', text: 'Prospecção' },
+                                'apresentacao': { color: 'bg-indigo-100 text-indigo-800', text: 'Apresentação' },
                                 'negociacao': { color: 'bg-yellow-100 text-yellow-800', text: 'Negociação' },
-                                'proposta': { color: 'bg-purple-100 text-purple-800', text: 'Proposta' },
-                                'fechado': { color: 'bg-green-100 text-green-800', text: 'Fechado' },
+                                'contrato_fechado': { color: 'bg-green-100 text-green-800', text: 'Contrato Fechado' },
                                 'perdido': { color: 'bg-red-100 text-red-800', text: 'Perdido' }
                               }
-                              const config = stageConfig[stage as keyof typeof stageConfig] || { color: 'bg-gray-100 text-gray-800', text: stage }
+                              const config = stageConfig[stage as keyof typeof stageConfig] || { color: 'bg-gray-100 text-gray-800', text: stage || 'N/A' }
                               return (
                                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
                                   {config.text}

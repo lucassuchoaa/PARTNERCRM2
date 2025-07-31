@@ -10,7 +10,7 @@ interface LoginCredentials {
   password: string
 }
 
-const API_URL = 'http://localhost:3001'
+import { API_URL } from '../config/api'
 
 export async function login({ email, password }: LoginCredentials): Promise<User> {
   const response = await fetch(`${API_URL}/users?email=${email}`)

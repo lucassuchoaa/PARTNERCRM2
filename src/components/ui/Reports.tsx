@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { DocumentArrowDownIcon, PaperAirplaneIcon, CalendarIcon, DocumentArrowUpIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
+import { emailService } from '../../services/emailService'
+import { API_URL } from '../../config/api'
 
 interface MonthlyReport {
   id: number
@@ -157,7 +159,7 @@ export default function Reports() {
 
   const fetchPartnerReports = async (partnerId: number) => {
     try {
-      const response = await fetch('http://localhost:3001/partner_reports')
+      const response = await fetch(`${API_URL}/partner_reports`)
       const allReports = await response.json()
       
       // Filtrar relatórios apenas do parceiro logado
@@ -194,18 +196,40 @@ export default function Reports() {
     alert(`Baixando relatório: ${availableReport.fileName}`)
   }
 
-  const handleSendInvoice = (reportId: number, month: string, year: number) => {
-    // Simular envio da nota fiscal
-    console.log(`Enviando nota fiscal: ${month} ${year}`)
-    
-    // Atualizar o estado para marcar como enviado
-    setReports(prev => prev.map(report => 
-      report.id === reportId 
-        ? { ...report, invoiceSent: true }
-        : report
-    ))
-    
-    alert(`Nota fiscal de ${month} ${year} enviada com sucesso!`)
+  const handleSendInvoice = async (reportId: number, month: string, year: number) => {
+    try {
+      // Encontrar o relatório
+      const report = reports.find(r => r.id === reportId)
+      if (!report || !currentUser) {
+        alert('Relatório ou usuário não encontrado')
+        return
+      }
+
+      // Enviar email com a nota fiscal
+      const emailResult = await emailService.sendNotificationEmail({
+        recipientEmail: currentUser.email,
+        recipientName: currentUser.name,
+        title: `Nota Fiscal - ${month}/${year}`,
+        message: `Sua nota fiscal referente ao período de ${month}/${year} foi processada e está sendo enviada. Em breve você receberá o documento oficial por email.`,
+        type: 'info'
+      })
+
+      if (emailResult.success) {
+        // Atualizar o estado para marcar como enviado
+        setReports(prev => prev.map(report => 
+          report.id === reportId 
+            ? { ...report, invoiceSent: true }
+            : report
+        ))
+        
+        alert(`Nota fiscal de ${month}/${year} enviada com sucesso por email!`)
+      } else {
+        throw new Error(emailResult.error || 'Erro ao enviar email')
+      }
+    } catch (error) {
+      console.error('Erro ao enviar nota fiscal:', error)
+      alert('Erro ao enviar nota fiscal. Tente novamente.')
+    }
   }
 
   const handleNfeUpload = async (event: React.ChangeEvent<HTMLInputElement>, reportId: number, month: string, year: number) => {

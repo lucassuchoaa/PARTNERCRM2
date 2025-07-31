@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DocumentTextIcon, BookOpenIcon, AcademicCapIcon, ArrowDownTrayIcon, EyeIcon } from '@heroicons/react/24/outline'
+import { API_URL } from '../../config/api'
 
 interface SupportMaterial {
   id: number
@@ -11,84 +12,35 @@ interface SupportMaterial {
   viewUrl?: string
   duration?: string
   fileSize?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export default function SupportMaterials() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [materials] = useState<SupportMaterial[]>([
-    {
-      id: 1,
-      title: 'Guia Completo de Folha de Pagamento Digital',
-      category: 'folha-pagamento',
-      type: 'pdf',
-      description: 'Manual completo sobre como implementar e gerenciar folha de pagamento digital com a Somapay.',
-      downloadUrl: '#',
-      fileSize: '2.5 MB'
-    },
-    {
-      id: 2,
-      title: 'Webinar: Modernização da Folha de Pagamento',
-      category: 'folha-pagamento',
-      type: 'webinar',
-      description: 'Apresentação sobre as melhores práticas para modernizar processos de folha de pagamento.',
-      viewUrl: '#',
-      duration: '45 min'
-    },
-    {
-      id: 3,
-      title: 'Manual de Crédito Consignado',
-      category: 'consignado',
-      type: 'pdf',
-      description: 'Guia detalhado sobre produtos de crédito consignado e como oferecê-los aos colaboradores.',
-      downloadUrl: '#',
-      fileSize: '1.8 MB'
-    },
-    {
-      id: 4,
-      title: 'Vídeo: Como Funciona o Consignado Somapay',
-      category: 'consignado',
-      type: 'video',
-      description: 'Explicação em vídeo sobre o funcionamento do crédito consignado na plataforma Somapay.',
-      viewUrl: '#',
-      duration: '12 min'
-    },
-    {
-      id: 5,
-      title: 'Guia de Benefícios Flexíveis',
-      category: 'beneficios-flexiveis',
-      type: 'guia',
-      description: 'Como implementar e gerenciar benefícios flexíveis para aumentar a satisfação dos colaboradores.',
-      downloadUrl: '#',
-      fileSize: '3.2 MB'
-    },
-    {
-      id: 6,
-      title: 'Webinar: Tendências em Benefícios Corporativos',
-      category: 'beneficios-flexiveis',
-      type: 'webinar',
-      description: 'Apresentação sobre as principais tendências em benefícios corporativos e como aplicá-las.',
-      viewUrl: '#',
-      duration: '38 min'
-    },
-    {
-      id: 7,
-      title: 'Calculadora de ROI - Benefícios Flexíveis',
-      category: 'beneficios-flexiveis',
-      type: 'pdf',
-      description: 'Ferramenta para calcular o retorno sobre investimento em programas de benefícios flexíveis.',
-      downloadUrl: '#',
-      fileSize: '850 KB'
-    },
-    {
-      id: 8,
-      title: 'Checklist de Implementação - Folha Digital',
-      category: 'folha-pagamento',
-      type: 'pdf',
-      description: 'Lista de verificação completa para implementação bem-sucedida da folha de pagamento digital.',
-      downloadUrl: '#',
-      fileSize: '1.2 MB'
+  const [materials, setMaterials] = useState<SupportMaterial[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch(`${API_URL}/support_materials`)
+        if (response.ok) {
+          const data = await response.json()
+          setMaterials(data)
+        } else {
+          console.error('Erro ao buscar materiais de apoio')
+        }
+      } catch (error) {
+        console.error('Erro ao buscar materiais de apoio:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
+    
+    fetchMaterials()
+  }, [])
 
   const categories = [
     { id: 'all', name: 'Todos os Materiais', count: materials.length },
@@ -96,6 +48,16 @@ export default function SupportMaterials() {
     { id: 'consignado', name: 'Consignado', count: materials.filter(m => m.category === 'consignado').length },
     { id: 'beneficios-flexiveis', name: 'Benefícios Flexíveis', count: materials.filter(m => m.category === 'beneficios-flexiveis').length }
   ]
+
+  // Mostrar indicador de carregamento enquanto os dados estão sendo buscados
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        <span className="ml-3 text-gray-700">Carregando materiais...</span>
+      </div>
+    )
+  }
 
   const filteredMaterials = selectedCategory === 'all' 
     ? materials 

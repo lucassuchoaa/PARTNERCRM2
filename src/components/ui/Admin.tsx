@@ -11,9 +11,16 @@ import {
   XCircleIcon,
   BellIcon,
   DocumentTextIcon,
-  FunnelIcon
+  FunnelIcon,
+  CogIcon,
+  BookOpenIcon,
+  CurrencyDollarIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
+import { emailService } from '../../services/emailService'
+import { API_URL } from '../../config/api'
+import NetSuiteIntegration from './NetSuiteIntegration'
 
 interface User {
   id: number
@@ -62,6 +69,19 @@ interface Notification {
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState('users')
+  const [supportMaterials, setSupportMaterials] = useState<any[]>([])
+  const [showMaterialModal, setShowMaterialModal] = useState(false)
+  const [editingMaterial, setEditingMaterial] = useState<any>(null)
+  const [newMaterial, setNewMaterial] = useState({
+    title: '',
+    category: 'folha-pagamento',
+    type: 'pdf',
+    description: '',
+    downloadUrl: '#',
+    viewUrl: '',
+    duration: '',
+    fileSize: ''
+  })
   const [users, setUsers] = useState<User[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
@@ -133,6 +153,7 @@ export default function Admin() {
         fetchNotifications()
         fetchManagers()
         fetchRemunerationTables()
+        fetchSupportMaterials()
       } catch (error) {
         console.error('Erro ao verificar acesso:', error)
         setAccessDenied(true)
@@ -237,7 +258,7 @@ export default function Admin() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:3001/users')
+      const response = await fetch(`${API_URL}/users`)
       const usersData = await response.json()
       
       // Adicionar dados simulados para demonstração
@@ -258,7 +279,7 @@ export default function Admin() {
 
   const fetchManagers = async () => {
     try {
-      const response = await fetch('http://localhost:3001/managers')
+      const response = await fetch(`${API_URL}/managers`)
       const managersData = await response.json()
       setManagers(managersData)
     } catch (error) {
@@ -268,7 +289,7 @@ export default function Admin() {
 
   const fetchRemunerationTables = async () => {
     try {
-      const response = await fetch('http://localhost:3001/remuneration_tables')
+      const response = await fetch(`${API_URL}/remuneration_tables`)
       if (response.ok) {
         const data = await response.json()
         setRemunerationTables(data)
@@ -278,12 +299,119 @@ export default function Admin() {
     }
   }
 
+  const fetchSupportMaterials = async () => {
+    try {
+      const response = await fetch(`${API_URL}/support_materials`)
+      if (response.ok) {
+        const data = await response.json()
+        setSupportMaterials(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar materiais de apoio:', error)
+    }
+  }
+  
+  const handleAddMaterial = async () => {
+    try {
+      // Adicionar data de criação
+      const materialToAdd = {
+        ...newMaterial,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      const response = await fetch(`${API_URL}/support_materials`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(materialToAdd)
+      })
+      
+      if (response.ok) {
+        const addedMaterial = await response.json()
+        setSupportMaterials([...supportMaterials, addedMaterial])
+        setShowMaterialModal(false)
+        setNewMaterial({
+          title: '',
+          category: 'folha-pagamento',
+          type: 'pdf',
+          description: '',
+          downloadUrl: '#',
+          viewUrl: '',
+          duration: '',
+          fileSize: ''
+        })
+        alert('Material de apoio adicionado com sucesso!')
+      } else {
+        alert('Erro ao adicionar material de apoio')
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar material de apoio:', error)
+      alert('Erro ao adicionar material de apoio')
+    }
+  }
+  
+  const handleUpdateMaterial = async () => {
+    if (!editingMaterial) return
+    
+    try {
+      const materialToUpdate = {
+        ...editingMaterial,
+        updatedAt: new Date().toISOString()
+      }
+      
+      const response = await fetch(`${API_URL}/support_materials/${editingMaterial.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(materialToUpdate)
+      })
+      
+      if (response.ok) {
+        const updatedMaterial = await response.json()
+        setSupportMaterials(supportMaterials.map(material => 
+          material.id === updatedMaterial.id ? updatedMaterial : material
+        ))
+        setShowMaterialModal(false)
+        setEditingMaterial(null)
+        alert('Material de apoio atualizado com sucesso!')
+      } else {
+        alert('Erro ao atualizar material de apoio')
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar material de apoio:', error)
+      alert('Erro ao atualizar material de apoio')
+    }
+  }
+  
+  const handleDeleteMaterial = async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir este material de apoio?')) {
+      try {
+        const response = await fetch(`${API_URL}/support_materials/${id}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          setSupportMaterials(supportMaterials.filter(material => material.id !== id))
+          alert('Material de apoio excluído com sucesso!')
+        } else {
+          alert('Erro ao excluir material de apoio')
+        }
+      } catch (error) {
+        console.error('Erro ao excluir material de apoio:', error)
+        alert('Erro ao excluir material de apoio')
+      }
+    }
+  }
+
   const handleCreateRemuneration = async () => {
     try {
       const isEditing = editingRemuneration !== null
       const url = isEditing 
-        ? `http://localhost:3001/remuneration_tables/${editingRemuneration.id}`
-        : 'http://localhost:3001/remuneration_tables'
+        ? `${API_URL}/remuneration_tables/${editingRemuneration.id}`
+        : `${API_URL}/remuneration_tables`
       
       const method = isEditing ? 'PUT' : 'POST'
       
@@ -335,7 +463,7 @@ export default function Admin() {
   const handleDeleteRemuneration = async (id: number) => {
     if (confirm('Tem certeza que deseja excluir esta tabela de remuneração?')) {
       try {
-        const response = await fetch(`http://localhost:3001/remuneration_tables/${id}`, {
+        const response = await fetch(`${API_URL}/remuneration_tables/${id}`, {
           method: 'DELETE'
         })
         
@@ -352,7 +480,7 @@ export default function Admin() {
 
   const fetchUploadedFiles = async () => {
     try {
-      const response = await fetch('http://localhost:3001/uploads')
+      const response = await fetch(`${API_URL}/uploads`)
       const uploadsData = await response.json()
       
       // Mapear dados da API para o formato esperado
@@ -376,7 +504,7 @@ export default function Admin() {
 
   const fetchNfeUploads = async () => {
     try {
-      const response = await fetch('http://localhost:3001/nfe_uploads')
+      const response = await fetch(`${API_URL}/nfe_uploads`)
       const nfeData = await response.json()
       setNfeUploads(nfeData)
     } catch (error) {
@@ -387,7 +515,7 @@ export default function Admin() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('http://localhost:3001/notifications')
+      const response = await fetch(`${API_URL}/notifications`)
       const notificationsData = await response.json()
       setNotifications(notificationsData)
     } catch (error) {
@@ -400,7 +528,7 @@ export default function Admin() {
     try {
       if (editingUser) {
         // Editar usuário existente
-        const response = await fetch(`http://localhost:3001/users/${editingUser.id}`, {
+        const response = await fetch(`${API_URL}/users/${editingUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -410,7 +538,7 @@ export default function Admin() {
         
         if (response.ok && editingUser.role === 'partner') {
           // Atualizar também na tabela de parceiros
-          const partnerResponse = await fetch(`http://localhost:3001/partners/${editingUser.id}`, {
+          const partnerResponse = await fetch(`${API_URL}/partners/${editingUser.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -438,7 +566,7 @@ export default function Admin() {
         createdAt: new Date().toISOString()
       }
 
-      const response = await fetch('http://localhost:3001/users', {
+      const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -473,7 +601,7 @@ export default function Admin() {
             }
           }
 
-          await fetch('http://localhost:3001/partners', {
+          await fetch(`${API_URL}/partners`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -487,7 +615,7 @@ export default function Admin() {
             partnersIds: [...(manager?.partnersIds || []), userData.id.toString()]
           }
 
-          await fetch(`http://localhost:3001/managers/${newUser.managerId}`, {
+          await fetch(`${API_URL}/managers/${newUser.managerId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -496,10 +624,21 @@ export default function Admin() {
           })
         }
 
+        // Enviar email de boas-vindas para o novo usuário
+        try {
+          await emailService.sendWelcomeEmail(
+            userData.email,
+            userData.name,
+            newUser.password
+          )
+        } catch (emailError) {
+          console.error('Erro ao enviar email de boas-vindas:', emailError)
+        }
+
         fetchUsers()
         setShowUserModal(false)
         setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
-        alert('Usuário criado com sucesso!')
+        alert('Usuário criado com sucesso! Email de boas-vindas enviado.')
       }
     } catch (error) {
       console.error('Erro ao criar usuário:', error)
@@ -510,7 +649,7 @@ export default function Admin() {
   const handleDeleteUser = async (userId: number) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
       try {
-        const response = await fetch(`http://localhost:3001/users/${userId}`, {
+        const response = await fetch(`${API_URL}/users/${userId}`, {
           method: 'DELETE'
         })
         
@@ -577,7 +716,7 @@ export default function Admin() {
          status: 'available'
        }
 
-      await fetch('http://localhost:3001/partner_reports', {
+      await fetch(`${API_URL}/partner_reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -591,8 +730,27 @@ export default function Admin() {
         message: `Seu relatório de ${selectedMonth}/${selectedYear} está disponível para download.`,
         type: 'report_available',
         recipientId: selectedPartner.id.toString(),
-        recipientType: 'specific'
+        recipientType: 'specific',
+        sendEmail: true
       })
+
+      // Enviar email específico de relatório disponível
+      try {
+        const monthNames = [
+          'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ]
+        const monthName = monthNames[parseInt(selectedMonth) - 1]
+        
+        await emailService.sendReportAvailableEmail(
+          selectedPartner.email,
+          selectedPartner.name,
+          monthName,
+          parseInt(selectedYear)
+        )
+      } catch (emailError) {
+        console.error('Erro ao enviar email de relatório:', emailError)
+      }
 
       // Resetar modal
        setShowUploadModal(false)
@@ -620,12 +778,54 @@ export default function Admin() {
     }
   }
 
+  const sendNotificationEmails = async (notification: any) => {
+    try {
+      if (notification.recipientType === 'all') {
+        // Enviar para todos os parceiros
+        const partners = users.filter(user => user.role === 'partner')
+        for (const partner of partners) {
+          await emailService.sendNotificationEmail({
+            recipientEmail: partner.email,
+            recipientName: partner.name,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type
+          })
+        }
+      } else if (notification.recipientId) {
+        // Enviar para parceiro específico
+        const recipient = users.find(user => user.id.toString() === notification.recipientId)
+        if (recipient) {
+          await emailService.sendNotificationEmail({
+            recipientEmail: recipient.email,
+            recipientName: recipient.name,
+            title: notification.title,
+            message: notification.message,
+            type: notification.type
+          })
+        }
+      }
+      
+      // Atualizar status de email enviado
+      await fetch(`${API_URL}/notifications/${notification.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ emailSent: true })
+      })
+    } catch (error) {
+      console.error('Erro ao enviar emails:', error)
+    }
+  }
+
   const createNotification = async (notification: {
     title: string
     message: string
     type: string
     recipientId: string | null
     recipientType: 'all' | 'specific'
+    sendEmail?: boolean
   }) => {
     try {
       const newNotification = {
@@ -636,7 +836,7 @@ export default function Admin() {
         emailSent: false
       }
       
-      const response = await fetch('http://localhost:3001/notifications', {
+      const response = await fetch(`${API_URL}/notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -645,6 +845,10 @@ export default function Admin() {
       })
       
       if (response.ok) {
+        // Enviar email se solicitado
+        if (notification.sendEmail) {
+          await sendNotificationEmails(newNotification)
+        }
         fetchNotifications()
       }
     } catch (error) {
@@ -668,7 +872,8 @@ export default function Admin() {
       message: newNotification.message,
       type: 'admin_message',
       recipientId: newNotification.recipientType === 'all' ? null : newNotification.recipientId,
-      recipientType: newNotification.recipientType
+      recipientType: newNotification.recipientType,
+      sendEmail: newNotification.emailSent
     })
 
     setNewNotification({
@@ -844,6 +1049,28 @@ export default function Admin() {
               <DocumentArrowDownIcon className="h-5 w-5 inline mr-2" />
               Remuneração
             </button>
+            <button
+              onClick={() => setActiveTab('materials')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'materials'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <BookOpenIcon className="h-5 w-5 inline mr-2" />
+              Material de Apoio
+            </button>
+            <button
+              onClick={() => setActiveTab('netsuite')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'netsuite'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <CogIcon className="h-5 w-5 inline mr-2" />
+              NetSuite
+            </button>
           </nav>
         </div>
       </div>
@@ -953,6 +1180,11 @@ export default function Admin() {
           </div>
         )}
 
+        {/* NetSuite Integration Section */}
+        {activeTab === 'netsuite' && (
+          <NetSuiteIntegration />
+        )}
+
         {activeTab === 'remuneration' && (
           <div>
             {/* Remuneration Header */}
@@ -1024,19 +1256,12 @@ export default function Admin() {
                               R$ {parseFloat(table.finalFinderCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {formatDate(table.createdAt)}
+                              {new Date(table.createdAt).toLocaleDateString('pt-BR')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                              <div className="flex space-x-2">
+                              <div className="flex space-x-2 justify-end">
                                 <button
-                                  onClick={() => handleEditRemuneration(table)}
-                                  className="text-indigo-600 hover:text-indigo-900"
-                                  title="Editar"
-                                >
-                                  <PencilIcon className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteRemuneration(table.id)}
+                                  onClick={() => handleDeleteRemunerationTable(table.id)}
                                   className="text-red-600 hover:text-red-900"
                                   title="Excluir"
                                 >
@@ -1054,6 +1279,253 @@ export default function Admin() {
             </div>
           </div>
         )}
+        
+        {activeTab === 'materials' && (
+          <div>
+            {/* Materials Header */}
+            <div className="sm:flex sm:items-center mb-6">
+              <div className="sm:flex-auto">
+                <h2 className="text-lg font-semibold text-gray-900">Materiais de Apoio</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Gerencie os materiais de apoio disponíveis para os parceiros e usuários do sistema.
+                </p>
+              </div>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <button
+                  onClick={() => {
+                    setEditingMaterial(null)
+                    setNewMaterial({
+                      title: '',
+                      category: 'folha-pagamento',
+                      type: 'pdf',
+                      description: '',
+                      downloadUrl: '#',
+                      viewUrl: '',
+                      duration: '',
+                      fileSize: ''
+                    })
+                    setShowMaterialModal(true)
+                  }}
+                  className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                >
+                  <PlusIcon className="h-4 w-4 inline mr-1" />
+                  Novo Material
+                </button>
+              </div>
+            </div>
+
+            {/* Materials Table */}
+            <div className="mt-8 flow-root">
+              <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Título
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Categoria
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Data de Criação
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {supportMaterials.map((material) => (
+                        <tr key={material.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{material.title}</div>
+                            <div className="text-sm text-gray-500">{material.description}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {material.category === 'folha-pagamento' ? 'Folha de Pagamento' :
+                             material.category === 'consignado' ? 'Consignado' :
+                             material.category === 'beneficios-flexiveis' ? 'Benefícios Flexíveis' : material.category}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${material.type === 'pdf' ? 'bg-red-100 text-red-800' : material.type === 'video' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                              {material.type.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(material.createdAt).toLocaleDateString('pt-BR')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingMaterial(material)
+                                  setNewMaterial({
+                                    title: material.title,
+                                    category: material.category,
+                                    type: material.type,
+                                    description: material.description,
+                                    downloadUrl: material.downloadUrl,
+                                    viewUrl: material.viewUrl || '',
+                                    duration: material.duration || '',
+                                    fileSize: material.fileSize || ''
+                                  })
+                                  setShowMaterialModal(true)
+                                }}
+                                className="text-indigo-600 hover:text-indigo-900"
+                                title="Editar"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMaterial(material.id)}
+                                className="text-red-600 hover:text-red-900"
+                                title="Excluir"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Material Modal */}
+        {showMaterialModal && (
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {editingMaterial ? 'Editar Material de Apoio' : 'Adicionar Material de Apoio'}
+                </h3>
+                <button
+                  onClick={() => setShowMaterialModal(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <XCircleIcon className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">Título</label>
+                  <input
+                    type="text"
+                    id="title"
+                    value={editingMaterial ? editingMaterial.title : newMaterial.title}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, title: e.target.value}) : setNewMaterial({...newMaterial, title: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700">Categoria</label>
+                  <select
+                    id="category"
+                    value={editingMaterial ? editingMaterial.category : newMaterial.category}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, category: e.target.value}) : setNewMaterial({...newMaterial, category: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="folha-pagamento">Folha de Pagamento</option>
+                    <option value="consignado">Consignado</option>
+                    <option value="beneficios-flexiveis">Benefícios Flexíveis</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
+                  <select
+                    id="type"
+                    value={editingMaterial ? editingMaterial.type : newMaterial.type}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, type: e.target.value}) : setNewMaterial({...newMaterial, type: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  >
+                    <option value="pdf">PDF</option>
+                    <option value="video">Vídeo</option>
+                    <option value="doc">Documento</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descrição</label>
+                  <textarea
+                    id="description"
+                    value={editingMaterial ? editingMaterial.description : newMaterial.description}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, description: e.target.value}) : setNewMaterial({...newMaterial, description: e.target.value})}
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="downloadUrl" className="block text-sm font-medium text-gray-700">URL de Download</label>
+                  <input
+                    type="text"
+                    id="downloadUrl"
+                    value={editingMaterial ? editingMaterial.downloadUrl : newMaterial.downloadUrl}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, downloadUrl: e.target.value}) : setNewMaterial({...newMaterial, downloadUrl: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="viewUrl" className="block text-sm font-medium text-gray-700">URL de Visualização (opcional)</label>
+                  <input
+                    type="text"
+                    id="viewUrl"
+                    value={editingMaterial ? (editingMaterial.viewUrl || '') : newMaterial.viewUrl}
+                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, viewUrl: e.target.value}) : setNewMaterial({...newMaterial, viewUrl: e.target.value})}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="fileSize" className="block text-sm font-medium text-gray-700">Tamanho do Arquivo (opcional)</label>
+                    <input
+                      type="text"
+                      id="fileSize"
+                      value={editingMaterial ? (editingMaterial.fileSize || '') : newMaterial.fileSize}
+                      onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, fileSize: e.target.value}) : setNewMaterial({...newMaterial, fileSize: e.target.value})}
+                      placeholder="Ex: 2.5 MB"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duração (para vídeos, opcional)</label>
+                    <input
+                      type="text"
+                      id="duration"
+                      value={editingMaterial ? (editingMaterial.duration || '') : newMaterial.duration}
+                      onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, duration: e.target.value}) : setNewMaterial({...newMaterial, duration: e.target.value})}
+                      placeholder="Ex: 10:30"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button
+                  type="button"
+                  onClick={() => editingMaterial ? handleUpdateMaterial() : handleAddMaterial()}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
+                >
+                  {editingMaterial ? 'Atualizar' : 'Adicionar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMaterialModal(false)}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {activeTab === 'files' && (
           <div>

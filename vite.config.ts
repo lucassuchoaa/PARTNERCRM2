@@ -12,6 +12,13 @@ export default defineConfig({
     'process.env': process.env
   },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
   }
 })

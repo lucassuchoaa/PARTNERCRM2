@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { UserPlusIcon, BuildingOfficeIcon, MagnifyingGlassIcon, CheckCircleIcon, ClockIcon, XCircleIcon, DocumentArrowUpIcon, ArrowDownTrayIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 // Removido: import HubSpotService from '../../services/hubspot'
 import { getCurrentUser } from '../../services/auth'
+import { API_URL } from '../../config/api'
 
 interface Prospect {
   id: string
@@ -93,7 +94,7 @@ export default function Referrals() {
     
     try {
       // Atualizar no backend
-      const response = await fetch(`http://localhost:3001/clients/${editingClient.id}`, {
+      const response = await fetch(`${API_URL}/clients/${editingClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -240,7 +241,7 @@ export default function Referrals() {
     if (!selectedClient) return
 
     try {
-      const response = await fetch(`http://localhost:3001/clients/${selectedClient.id}`, {
+      const response = await fetch(`${API_URL}/clients/${selectedClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -279,7 +280,7 @@ export default function Referrals() {
         setCurrentUser(user)
 
         // Carregar prospects
-        const response = await fetch('http://localhost:3001/prospects')
+        const response = await fetch(`${API_URL}/prospects`)
         if (response.ok) {
           const data = await response.json()
           
@@ -293,7 +294,7 @@ export default function Referrals() {
         }
 
         // Carregar clientes da carteira
-        const clientsResponse = await fetch('http://localhost:3001/clients')
+        const clientsResponse = await fetch(`${API_URL}/clients`)
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
           // Converter clientes para formato de análise de carteira
@@ -337,7 +338,7 @@ export default function Referrals() {
     
     try {
       // Salvar no backend
-      const response = await fetch('http://localhost:3001/prospects', {
+      const response = await fetch(`${API_URL}/prospects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -381,7 +382,7 @@ export default function Referrals() {
         }
       }
 
-      const response = await fetch(`http://localhost:3001/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -413,7 +414,7 @@ export default function Referrals() {
         status: 'in-analysis' as const
       }
 
-      const response = await fetch(`http://localhost:3001/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -439,7 +440,7 @@ export default function Referrals() {
         status: 'approved' as const
       }
 
-      const prospectResponse = await fetch(`http://localhost:3001/prospects/${prospect.id}`, {
+      const prospectResponse = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -467,7 +468,7 @@ export default function Referrals() {
           segment: prospect.segment
         }
 
-        const clientResponse = await fetch('http://localhost:3001/clients', {
+        const clientResponse = await fetch(`${API_URL}/clients`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -495,7 +496,7 @@ export default function Referrals() {
         status: 'rejected' as const
       }
 
-      const response = await fetch(`http://localhost:3001/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -566,7 +567,7 @@ export default function Referrals() {
       const savedProspects = []
       for (const prospect of newProspects) {
         try {
-          const response = await fetch('http://localhost:3001/prospects', {
+          const response = await fetch(`${API_URL}/prospects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -1035,50 +1036,52 @@ export default function Referrals() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Nova Indicação</h3>
               
-              {/* Seção de Upload de Planilha */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-md font-medium text-gray-900 mb-3">Importar Indicações via Planilha</h4>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    type="button"
-                    onClick={downloadTemplate}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-                  >
-                    <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
-                    Baixar Modelo
-                  </button>
-                  
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".csv,.xlsx,.xls"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                      id="file-upload"
-                    />
-                    <label
-                      htmlFor="file-upload"
-                      className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
-                        isUploading 
-                          ? 'bg-gray-400 cursor-not-allowed' 
-                          : 'bg-orange-600 hover:bg-orange-700 cursor-pointer'
-                      } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+              {/* Seção de Upload de Planilha - Apenas para Gerentes e Administradores */}
+              {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">Importar Indicações via Planilha</h4>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      type="button"
+                      onClick={downloadTemplate}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                     >
-                      <DocumentArrowUpIcon className="h-4 w-4 mr-2" />
-                      {isUploading ? 'Processando...' : 'Enviar Planilha'}
-                    </label>
+                      <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                      Baixar Modelo
+                    </button>
+                    
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={handleFileUpload}
+                        disabled={isUploading}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                        id="file-upload"
+                      />
+                      <label
+                        htmlFor="file-upload"
+                        className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                          isUploading 
+                            ? 'bg-gray-400 cursor-not-allowed' 
+                            : 'bg-orange-600 hover:bg-orange-700 cursor-pointer'
+                        } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500`}
+                      >
+                        <DocumentArrowUpIcon className="h-4 w-4 mr-2" />
+                        {isUploading ? 'Processando...' : 'Enviar Planilha'}
+                      </label>
+                    </div>
                   </div>
-                </div>
-                {selectedFile && (
-                  <p className="mt-2 text-sm text-gray-600">
-                    Arquivo selecionado: {selectedFile.name}
+                  {selectedFile && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Arquivo selecionado: {selectedFile.name}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    Formatos aceitos: CSV, Excel (.xlsx, .xls). Use o modelo para garantir a formatação correta.
                   </p>
-                )}
-                <p className="mt-2 text-xs text-gray-500">
-                  Formatos aceitos: CSV, Excel (.xlsx, .xls). Use o modelo para garantir a formatação correta.
-                </p>
-              </div>
+                </div>
+              )}
               
               <div className="border-t border-gray-200 pt-6">
                 <h4 className="text-md font-medium text-gray-900 mb-4">Ou preencha manualmente:</h4>

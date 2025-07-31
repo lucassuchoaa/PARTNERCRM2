@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { getCurrentUser } from '../../services/auth'
-import { UserIcon, BuildingOfficeIcon, CreditCardIcon, BanknotesIcon } from '@heroicons/react/24/outline'
+import { UserIcon, BuildingOfficeIcon, CreditCardIcon, BanknotesIcon, CameraIcon } from '@heroicons/react/24/outline'
+import { API_URL } from '../../config/api'
 
 interface Partner {
   id: string | number
   name: string
   email: string
   role: string
+  profilePhoto?: string
   company?: {
     name: string
     cnpj: string
@@ -24,9 +26,14 @@ interface Partner {
   managerName?: string
 }
 
-export default function Profile() {
+interface ProfileProps {
+  onUserUpdate?: (user: any) => void
+}
+
+export default function Profile({ onUserUpdate }: ProfileProps) {
   const [currentUser, setCurrentUser] = useState<Partner | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [formData, setFormData] = useState<Partner>({
     id: '',
     name: '',
@@ -53,7 +60,7 @@ export default function Profile() {
         const user = await getCurrentUser()
         if (user) {
           // Buscar dados completos do parceiro
-          const response = await fetch(`http://localhost:3001/partners/${user.id}`)
+          const response = await fetch(`${API_URL}/partners/${user.id}`)
           if (response.ok) {
             const partnerData = await response.json()
             setCurrentUser(partnerData)
@@ -90,12 +97,21 @@ export default function Profile() {
 
   const handleSave = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/partners/${currentUser?.id}`, {
-        method: currentUser?.company?.name ? 'PUT' : 'POST',
+      // Verificar se o parceiro já existe no banco de dados
+      const checkResponse = await fetch(`${API_URL}/partners/${currentUser?.id}`)
+      const partnerExists = checkResponse.ok
+      
+      const method = partnerExists ? 'PUT' : 'POST'
+      const url = partnerExists ? `${API_URL}/partners/${currentUser?.id}` : `${API_URL}/partners`
+      
+      const dataToSave = partnerExists ? formData : { ...formData, id: currentUser?.id }
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSave)
       })
 
       if (response.ok) {
@@ -103,12 +119,19 @@ export default function Profile() {
         setCurrentUser(updatedData)
         setIsEditing(false)
         alert('Dados atualizados com sucesso!')
+        
+        // Atualiza o usuário no Dashboard
+        if (onUserUpdate) {
+          onUserUpdate(updatedData)
+        }
       } else {
-        throw new Error('Erro ao salvar dados')
+        const errorText = await response.text()
+        console.error('Erro na resposta:', errorText)
+        throw new Error(`Erro ao salvar dados: ${response.status}`)
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
-      alert('Erro ao salvar dados. Tente novamente.')
+      alert(`Erro ao salvar dados: ${error instanceof Error ? error.message : 'Erro desconhecido'}. Tente novamente.`)
     }
   }
 
@@ -120,6 +143,61 @@ export default function Profile() {
         [field]: value
       }
     }))
+  }
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem.')
+      return
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 5MB.')
+      return
+    }
+
+    setUploadingPhoto(true)
+
+    try {
+      // Converter para base64 para armazenar no JSON
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const base64 = e.target?.result as string
+        
+        // Atualizar o perfil com a nova foto
+         const updatedUser = {
+           ...currentUser!,
+           profilePhoto: base64
+         }
+
+         const response = await fetch(`${API_URL}/partners/${currentUser?.id}`, {
+           method: 'PUT',
+           headers: {
+             'Content-Type': 'application/json'
+           },
+           body: JSON.stringify(updatedUser)
+         })
+
+         if (response.ok) {
+           setCurrentUser(updatedUser)
+           setFormData(updatedUser)
+           alert('Foto atualizada com sucesso!')
+         } else {
+           throw new Error('Erro ao salvar foto')
+         }
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Erro ao fazer upload da foto:', error)
+      alert('Erro ao fazer upload da foto. Tente novamente.')
+    } finally {
+      setUploadingPhoto(false)
+    }
   }
 
   if (!currentUser) {
@@ -137,8 +215,32 @@ export default function Profile() {
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center">
-                <UserIcon className="w-10 h-10 text-blue-600" />
+              <div className="relative w-20 h-20">
+                {currentUser.profilePhoto ? (
+                  <img
+                    src={currentUser.profilePhoto}
+                    alt="Foto do perfil"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-white"
+                  />
+                ) : (
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center border-4 border-white">
+                    <UserIcon className="w-10 h-10 text-blue-600" />
+                  </div>
+                )}
+                <label className="absolute bottom-0 right-0 bg-blue-600 rounded-full p-1.5 cursor-pointer hover:bg-blue-700 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                  />
+                  {uploadingPhoto ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <CameraIcon className="w-4 h-4 text-white" />
+                  )}
+                </label>
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">{currentUser.name}</h1>

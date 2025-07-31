@@ -3,6 +3,7 @@ import { UsersIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 import { getCurrentUser } from '../../services/auth'
+import { API_URL } from '../../config/api'
 
 interface Client {
   id: number
@@ -23,11 +24,12 @@ export default function Clients() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isManager, setIsManager] = useState(false)
 
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await fetch('http://localhost:3001/clients')
+        const response = await fetch(`${API_URL}/clients`)
         const clientsData = await response.json()
         
         setClients(clientsData)
@@ -42,9 +44,11 @@ export default function Clients() {
       try {
         const user = await getCurrentUser()
         setIsAdmin(user?.role === 'admin')
+        setIsManager(user?.role === 'manager')
       } catch (error) {
         console.error('Error checking user role:', error)
         setIsAdmin(false)
+        setIsManager(false)
       }
     }
 
@@ -55,7 +59,7 @@ export default function Clients() {
   const updateClient = async (clientId: number, updates: Partial<Client>) => {
     setUpdating(true)
     try {
-      const response = await fetch(`http://localhost:3001/clients/${clientId}`, {
+      const response = await fetch(`${API_URL}/clients/${clientId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +94,9 @@ export default function Clients() {
     await updateClient(editingClient.id, {
       status: editingClient.status,
       stage: editingClient.stage,
-      temperature: editingClient.temperature
+      temperature: editingClient.temperature,
+      contractEndDate: editingClient.contractEndDate,
+      totalLives: editingClient.totalLives
     })
     
     setIsEditModalOpen(false)
@@ -116,10 +122,8 @@ export default function Clients() {
   const getStageBadge = (stage: string) => {
     const stageConfig = {
       prospeccao: { color: 'bg-blue-100 text-blue-800', text: 'Prospecção' },
-      qualificacao: { color: 'bg-purple-100 text-purple-800', text: 'Qualificação' },
       apresentacao: { color: 'bg-indigo-100 text-indigo-800', text: 'Apresentação' },
       negociacao: { color: 'bg-yellow-100 text-yellow-800', text: 'Negociação' },
-      proposta: { color: 'bg-orange-100 text-orange-800', text: 'Proposta' },
       contrato_fechado: { color: 'bg-green-100 text-green-800', text: 'Contrato Fechado' },
       perdido: { color: 'bg-red-100 text-red-800', text: 'Perdido' }
     }
@@ -329,11 +333,11 @@ export default function Clients() {
                         >
                           <option value="">Selecione uma etapa</option>
                           <option value="prospeccao">Prospecção</option>
-                          <option value="qualificacao">Qualificação</option>
                           <option value="apresentacao">Apresentação</option>
                           <option value="negociacao">Negociação</option>
-                          <option value="proposta">Proposta</option>
-                          <option value="contrato_fechado">Contrato Fechado</option>
+                          {(isAdmin || isManager) && (
+                            <option value="contrato_fechado">Contrato Fechado</option>
+                          )}
                           <option value="perdido">Perdido</option>
                         </select>
                       </div>
@@ -353,6 +357,34 @@ export default function Clients() {
                           <option value="morno">🌤️ Morno</option>
                           <option value="quente">🔥 Quente</option>
                         </select>
+                      </div>
+
+                      {/* Contrato Ativo Até */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Contrato Ativo Até
+                        </label>
+                        <input
+                          type="date"
+                          value={editingClient.contractEndDate || ''}
+                          onChange={(e) => setEditingClient({...editingClient, contractEndDate: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+
+                      {/* Total de Vidas */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Total de Vidas
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editingClient.totalLives || ''}
+                          onChange={(e) => setEditingClient({...editingClient, totalLives: parseInt(e.target.value) || 0})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Digite o número de vidas"
+                        />
                       </div>
                     </div>
                   )}

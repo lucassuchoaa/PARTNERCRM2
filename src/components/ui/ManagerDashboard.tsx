@@ -4,6 +4,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { ChartBarIcon, FolderIcon, HomeIcon, UsersIcon, BookOpenIcon, UserPlusIcon } from '@heroicons/react/24/outline'
 import { UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/20/solid'
 import { getCurrentUser } from '../../services/auth'
+import { API_URL } from '../../config/api'
 import Profile from './Profile'
 
 interface Partner {
@@ -89,12 +90,12 @@ export default function ManagerDashboard() {
           setCurrentUser(user)
           
           // Buscar dados do gerente
-          const managerResponse = await fetch(`http://localhost:3001/managers/${user.id}`)
+          const managerResponse = await fetch(`${API_URL}/managers/${user.id}`)
           if (managerResponse.ok) {
             const managerData = await managerResponse.json()
             
             // Buscar parceiros vinculados ao gerente
-            const partnersResponse = await fetch('http://localhost:3001/partners')
+            const partnersResponse = await fetch(`${API_URL}/partners`)
             if (partnersResponse.ok) {
               const allPartners = await partnersResponse.json()
               const myPartners = allPartners.filter((partner: Partner) => 
@@ -103,7 +104,7 @@ export default function ManagerDashboard() {
               setPartners(myPartners)
               
               // Buscar prospects dos parceiros
-              const prospectsResponse = await fetch('http://localhost:3001/prospects')
+              const prospectsResponse = await fetch(`${API_URL}/prospects`)
               let myProspects: Prospect[] = []
               if (prospectsResponse.ok) {
                 const allProspects = await prospectsResponse.json()
@@ -114,7 +115,7 @@ export default function ManagerDashboard() {
               }
               
               // Buscar clientes dos parceiros
-              const clientsResponse = await fetch('http://localhost:3001/clients')
+              const clientsResponse = await fetch(`${API_URL}/clients`)
               let myClients: Client[] = []
               if (clientsResponse.ok) {
                 const allClients = await clientsResponse.json()
@@ -272,7 +273,7 @@ export default function ManagerDashboard() {
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
             {currentView === 'profile' ? (
-              <Profile />
+              <Profile onUserUpdate={setCurrentUser} />
             ) : currentView === 'partners' ? (
               <div>
                 <div className="sm:flex sm:items-center">
