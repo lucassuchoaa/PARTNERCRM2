@@ -21,7 +21,11 @@
       "email": "parceiro1@empresa.com",
       "password": "parceiro123",
       "name": "João Silva",
-      "role": "partner"
+      "role": "partner",
+      "status": "active",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "lastLogin": "2024-01-20T14:30:00Z",
+      "managerId": "1754016563222"
     },
     {
       "id": "3",
@@ -74,6 +78,17 @@
       "remunerationTableId": 1,
       "status": "active",
       "createdAt": "2025-07-31T18:08:18.363Z"
+    },
+    {
+      "id": 1754016563222,
+      "email": "gerente@gmail.com",
+      "name": "gerente",
+      "role": "manager",
+      "password": "Lucas123",
+      "managerId": "",
+      "remunerationTableId": 1,
+      "status": "active",
+      "createdAt": "2025-08-01T02:49:23.222Z"
     }
   ],
   "partners": [
@@ -237,6 +252,13 @@
         "3",
         "1753416259657"
       ]
+    },
+    {
+      "id": "1754016563222",
+      "name": "gerente",
+      "email": "gerente@gmail.com",
+      "role": "manager",
+      "partnersIds": []
     }
   ],
   "clients": [
@@ -350,6 +372,23 @@
           "totalLives": 1000
         }
       ]
+    },
+    {
+      "id": "1754016137728",
+      "name": "nkjbbsjka",
+      "cnpj": "240990423",
+      "status": "active",
+      "stage": "prospeccao",
+      "temperature": "morno",
+      "totalLives": 0,
+      "contractEndDate": "",
+      "lastUpdated": "2025-08-01T02:42:17.728Z",
+      "partnerId": "1",
+      "contactName": "LJKCSNBAKJ",
+      "email": "klnfsok@lkjfneovom.com",
+      "phone": "20432",
+      "employees": "21",
+      "segment": "Tecnologia"
     }
   ],
   "transactions": [
@@ -516,8 +555,46 @@
       "cnpj": "240990423",
       "employees": "21",
       "segment": "Tecnologia",
+      "status": "approved",
+      "partnerId": "1",
+      "adminValidation": {
+        "isValidated": true,
+        "validatedBy": "Administrador Principal",
+        "validatedAt": "2025-08-01T02:42:12.889Z",
+        "notes": "Validado manualmente pelo administrador",
+        "isApproved": true
+      }
+    },
+    {
+      "id": "1754016202750",
+      "companyName": "teste3103",
+      "contactName": "teste3107",
+      "email": "tes@tes.com",
+      "phone": "212",
+      "cnpj": "2123132",
+      "employees": "2222",
+      "segment": "Tecnologia",
+      "status": "rejected",
+      "partnerId": "1753985298363",
+      "adminValidation": {
+        "isValidated": true,
+        "validatedBy": "Administrador Principal",
+        "validatedAt": "2025-08-01T02:44:03.266Z",
+        "notes": "Validado manualmente pelo administrador",
+        "isApproved": true
+      }
+    },
+    {
+      "id": "1754016610150",
+      "companyName": "dwq",
+      "contactName": "dwq",
+      "email": "dw@dsa.co",
+      "phone": "212",
+      "cnpj": "2112",
+      "employees": "222",
+      "segment": "Tecnologia",
       "status": "pending",
-      "partnerId": "1"
+      "partnerId": "1754016563222"
     }
   ],
   "partner_reports": [
@@ -712,6 +789,17 @@
       "finalFinderCashback": "1.00",
       "description": "A partir de 1001 funcionários",
       "createdAt": "2024-01-15T10:00:00Z"
+    },
+    {
+      "id": 1754019301903,
+      "employeeRangeStart": "1",
+      "employeeRangeEnd": "1000",
+      "finderNegotiationMargin": "2",
+      "maxCompanyCashback": "12",
+      "finalFinderCashback": "2",
+      "description": "",
+      "valueType": "percentage",
+      "createdAt": "2025-08-01T03:35:01.903Z"
     }
   ],
   "support_materials": [

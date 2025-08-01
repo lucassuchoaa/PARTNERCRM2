@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react'
 import { Dialog, Menu } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { ChartBarIcon, FolderIcon, HomeIcon, UsersIcon, BookOpenIcon, UserPlusIcon } from '@heroicons/react/24/outline'
-import { UserIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/20/solid'
+import { UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/20/solid'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
 import Profile from './Profile'
+import Admin from './Admin'
 
 interface Partner {
   id: string
@@ -27,6 +28,7 @@ interface Partner {
   }
   managerId?: string
   managerName?: string
+  remunerationTableIds?: number[]
 }
 
 interface Prospect {
@@ -38,10 +40,17 @@ interface Prospect {
   cnpj: string
   employeeCount: number
   segment: string
-  status: string
+  status: 'pending' | 'validated' | 'in-analysis' | 'approved' | 'rejected'
   submittedAt: string
   viabilityScore?: number
   partnerId: string
+  managerValidation?: {
+    isValidated: boolean
+    validatedBy: string
+    validatedAt: string
+    notes: string
+    isApproved: boolean
+  }
 }
 
 interface Client {
@@ -59,9 +68,11 @@ interface Client {
 
 const navigation = [
   { name: 'Dashboard', href: '#', icon: HomeIcon, current: true, view: 'dashboard' },
+  { name: 'Clientes', href: '#', icon: UsersIcon, current: false, view: 'clients' },
   { name: 'Meus Parceiros', href: '#', icon: UsersIcon, current: false, view: 'partners' },
   { name: 'Indicações', href: '#', icon: UserPlusIcon, current: false, view: 'referrals' },
   { name: 'Relatórios', href: '#', icon: ChartBarIcon, current: false, view: 'reports' },
+  { name: 'Administração', href: '#', icon: FolderIcon, current: false, view: 'admin' },
 ]
 
 function classNames(...classes: string[]) {
@@ -81,6 +92,9 @@ export default function ManagerDashboard() {
     totalClients: 0,
     pendingProspects: 0
   })
+  const [stageFilter, setStageFilter] = useState<string>('all')
+  const [partnerFilter, setPartnerFilter] = useState<string>('all')
+  const [partnerReports, setPartnerReports] = useState<any[]>([])
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -125,6 +139,16 @@ export default function ManagerDashboard() {
                 setClients(myClients)
               }
               
+              // Buscar relatórios dos parceiros
+              const reportsResponse = await fetch(`${API_URL}/partner_reports`)
+              if (reportsResponse.ok) {
+                const allReports = await reportsResponse.json()
+                const myReports = allReports.filter((report: any) => 
+                  managerData.partnersIds.includes(report.partnerId?.toString())
+                )
+                setPartnerReports(myReports)
+              }
+              
               // Calcular estatísticas
               const pendingProspects = myProspects.filter((p: Prospect) => p.status === 'pending' || p.status === 'in-analysis').length
               
@@ -145,6 +169,24 @@ export default function ManagerDashboard() {
     loadUserData()
   }, [])
 
+  const getStageCount = (stage: string) => {
+    return clients.filter(client => client.stage === stage).length
+  }
+
+  const getFilteredClients = () => {
+    let filtered = clients
+    
+    if (stageFilter !== 'all') {
+      filtered = filtered.filter(client => client.stage === stageFilter)
+    }
+    
+    if (partnerFilter !== 'all') {
+      filtered = filtered.filter(client => client.partnerId === partnerFilter)
+    }
+    
+    return filtered
+  }
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'pending': { color: 'bg-yellow-100 text-yellow-800', text: 'Pendente' },
@@ -159,6 +201,103 @@ export default function ManagerDashboard() {
         {config.text}
       </span>
     )
+  }
+
+  const validateProspect = async (prospect: Prospect) => {
+    try {
+      const updatedProspect = {
+        ...prospect,
+        status: 'validated' as const,
+        managerValidation: {
+          isValidated: true,
+          validatedBy: currentUser?.name || 'Gerente',
+          validatedAt: new Date().toISOString(),
+          notes: 'Validado pelo gerente',
+          isApproved: true
+        }
+      }
+
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedProspect)
+      })
+
+      if (response.ok) {
+        setProspects(prev => prev.map(p => 
+          p.id === prospect.id ? updatedProspect : p
+        ))
+        alert(`Indicação de ${prospect.companyName} validada com sucesso!`)
+      }
+    } catch (error) {
+      console.error('Erro ao validar prospect:', error)
+      alert('Erro ao validar indicação. Tente novamente.')
+    }
+  }
+
+  const rejectProspect = async (prospect: Prospect) => {
+    const reason = prompt('Motivo da rejeição (opcional):') || 'Rejeitado pelo gerente'
+    
+    try {
+      const updatedProspect = {
+        ...prospect,
+        status: 'rejected' as const,
+        managerValidation: {
+          isValidated: true,
+          validatedBy: currentUser?.name || 'Gerente',
+          validatedAt: new Date().toISOString(),
+          notes: reason,
+          isApproved: false
+        }
+      }
+
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedProspect)
+      })
+
+      if (response.ok) {
+        setProspects(prev => prev.map(p => 
+          p.id === prospect.id ? updatedProspect : p
+        ))
+        alert(`Indicação de ${prospect.companyName} rejeitada.`)
+      }
+    } catch (error) {
+      console.error('Erro ao rejeitar prospect:', error)
+      alert('Erro ao rejeitar indicação. Tente novamente.')
+    }
+  }
+
+  const changeProspectStatus = async (prospect: Prospect, newStatus: Prospect['status']) => {
+    try {
+      const updatedProspect = {
+        ...prospect,
+        status: newStatus
+      }
+
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedProspect)
+      })
+
+      if (response.ok) {
+        setProspects(prev => prev.map(p => 
+          p.id === prospect.id ? updatedProspect : p
+        ))
+        alert(`Status da indicação ${prospect.companyName} alterado para ${getStatusBadge(newStatus).props.children}.`)
+      }
+    } catch (error) {
+      console.error('Erro ao alterar status:', error)
+      alert('Erro ao alterar status. Tente novamente.')
+    }
   }
 
   return (
@@ -363,6 +502,9 @@ export default function ManagerDashboard() {
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Data
                               </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Ações
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -380,10 +522,76 @@ export default function ManagerDashboard() {
                                     {partner?.name || 'Não encontrado'}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    {getStatusBadge(prospect.status)}
+                                    <div className="flex flex-col space-y-1">
+                                      {getStatusBadge(prospect.status)}
+                                      <select
+                                        value={prospect.status}
+                                        onChange={(e) => changeProspectStatus(prospect, e.target.value as Prospect['status'])}
+                                        className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                                      >
+                                        <option value="pending">Pendente</option>
+                                        <option value="validated">Validado</option>
+                                        <option value="in-analysis">Em Análise</option>
+                                        <option value="approved">Aprovado</option>
+                                        <option value="rejected">Rejeitado</option>
+                                      </select>
+                                    </div>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {new Date(prospect.submittedAt).toLocaleDateString('pt-BR')}
+                                    <div className="flex flex-col space-y-1">
+                                      <span>{new Date(prospect.submittedAt).toLocaleDateString('pt-BR')}</span>
+                                      {prospect.managerValidation?.validatedAt && (
+                                        <span className="text-xs text-gray-400">
+                                          Validado: {new Date(prospect.managerValidation.validatedAt).toLocaleDateString('pt-BR')}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div className="flex space-x-2">
+                                      {prospect.status === 'pending' && (
+                                        <>
+                                          <button
+                                            onClick={() => validateProspect(prospect)}
+                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                            title="Validar indicação"
+                                          >
+                                            <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                            Validar
+                                          </button>
+                                          <button
+                                            onClick={() => rejectProspect(prospect)}
+                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                            title="Rejeitar indicação"
+                                          >
+                                            <XCircleIcon className="h-4 w-4 mr-1" />
+                                            Rejeitar
+                                          </button>
+                                        </>
+                                      )}
+                                      {prospect.status === 'validated' && (
+                                        <span className="inline-flex items-center px-3 py-2 text-sm text-green-600">
+                                          <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                          Validado por {prospect.managerValidation?.validatedBy}
+                                        </span>
+                                      )}
+                                      {prospect.status === 'rejected' && (
+                                        <span className="inline-flex items-center px-3 py-2 text-sm text-red-600">
+                                          <XCircleIcon className="h-4 w-4 mr-1" />
+                                          Rejeitado por {prospect.managerValidation?.validatedBy}
+                                        </span>
+                                      )}
+                                      {(prospect.status === 'in-analysis' || prospect.status === 'approved') && (
+                                        <span className="inline-flex items-center px-3 py-2 text-sm text-blue-600">
+                                          {prospect.status === 'in-analysis' ? 'Em análise' : 'Aprovado'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {prospect.managerValidation?.notes && (
+                                      <div className="mt-1 text-xs text-gray-500">
+                                        Obs: {prospect.managerValidation.notes}
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               )
@@ -395,6 +603,429 @@ export default function ManagerDashboard() {
                   </div>
                 </div>
               </div>
+            ) : currentView === 'clients' ? (
+              <div>
+                {/* Header */}
+                <div className="mb-8">
+                  <h1 className="text-2xl font-semibold text-gray-900">Clientes dos Parceiros</h1>
+                  <p className="mt-2 text-sm text-gray-700">
+                    Acompanhe o funil de vendas dos clientes dos seus parceiros
+                  </p>
+                </div>
+
+                {/* Filtros */}
+                <div className="mb-6 flex flex-wrap gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Parceiro</label>
+                    <select
+                      value={partnerFilter}
+                      onChange={(e) => setPartnerFilter(e.target.value)}
+                      className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                      <option value="all">Todos os Parceiros</option>
+                      {partners.map((partner) => (
+                        <option key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Etapa</label>
+                    <select
+                      value={stageFilter}
+                      onChange={(e) => setStageFilter(e.target.value)}
+                      className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                      <option value="all">Todas as Etapas</option>
+                      <option value="prospeccao">Prospecção</option>
+                      <option value="apresentacao">Apresentação</option>
+                      <option value="negociacao">Negociação</option>
+                      <option value="contrato_fechado">Contrato Fechado</option>
+                      <option value="perdido">Perdido</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Funil de Vendas e Tabela */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">Funil de Vendas</h2>
+                      <button
+                        onClick={() => setStageFilter('all')}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                          stageFilter === 'all'
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        Limpar Filtro
+                      </button>
+                    </div>
+                    <div className="bg-white rounded-lg shadow">
+                      <div className="p-6">
+                        <svg width="600" height="380" viewBox="0 0 600 380" className="w-full max-w-2xl mx-auto">
+                          {/* Funil Stage 1: Prospecção */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'prospeccao' ? 'all' : 'prospeccao')}
+                          >
+                            <path 
+                              d="M50,20 L550,20 L520,80 L80,80 Z" 
+                              fill={stageFilter === 'prospeccao' ? '#1E40AF' : '#3B82F6'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="45" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Prospecção ({getStageCount('prospeccao')})
+                            </text>
+                            <text x="300" y="62" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
+                          
+                          {/* Funil Stage 2: Apresentação */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'apresentacao' ? 'all' : 'apresentacao')}
+                          >
+                            <path 
+                              d="M80,90 L520,90 L480,150 L120,150 Z" 
+                              fill={stageFilter === 'apresentacao' ? '#1E40AF' : '#6366F1'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="115" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Apresentação ({getStageCount('apresentacao')})
+                            </text>
+                            <text x="300" y="132" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
+                          
+                          {/* Funil Stage 3: Negociação */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'negociacao' ? 'all' : 'negociacao')}
+                          >
+                            <path 
+                              d="M120,160 L480,160 L440,220 L160,220 Z" 
+                              fill={stageFilter === 'negociacao' ? '#DC2626' : '#F59E0B'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="185" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Negociação ({getStageCount('negociacao')})
+                            </text>
+                            <text x="300" y="202" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
+                          
+                          {/* Funil Stage 4: Contrato Fechado */}
+                          <g 
+                            className="cursor-pointer transition-opacity hover:opacity-80"
+                            onClick={() => setStageFilter(stageFilter === 'contrato_fechado' ? 'all' : 'contrato_fechado')}
+                          >
+                            <path 
+                              d="M160,230 L440,230 L400,290 L200,290 Z" 
+                              fill={stageFilter === 'contrato_fechado' ? '#059669' : '#10B981'} 
+                              opacity="0.9"
+                            />
+                            <text x="300" y="255" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="18" fontWeight="bold">
+                              Contrato Fechado ({getStageCount('contrato_fechado')})
+                            </text>
+                            <text x="300" y="272" textAnchor="middle" fill="white" fontFamily="Arial" fontSize="10">
+                              Clique para filtrar
+                            </text>
+                          </g>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">
+                        Detalhamento dos Clientes
+                        {(stageFilter !== 'all' || partnerFilter !== 'all') && (
+                          <span className="ml-2 text-sm font-normal text-gray-600">
+                            - Filtrado
+                          </span>
+                        )}
+                      </h2>
+                      <span className="text-sm text-gray-500">
+                        {getFilteredClients().length} cliente(s)
+                      </span>
+                    </div>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Cliente
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Parceiro
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Etapa
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Temperatura
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {getFilteredClients().map((client) => {
+                            const partner = partners.find(p => p.id === client.partnerId)
+                            
+                            const getStageBadge = (stage: string) => {
+                              const stageConfig = {
+                                'prospeccao': { color: 'bg-blue-100 text-blue-800', text: 'Prospecção' },
+                                'apresentacao': { color: 'bg-indigo-100 text-indigo-800', text: 'Apresentação' },
+                                'negociacao': { color: 'bg-yellow-100 text-yellow-800', text: 'Negociação' },
+                                'contrato_fechado': { color: 'bg-green-100 text-green-800', text: 'Contrato Fechado' },
+                                'perdido': { color: 'bg-red-100 text-red-800', text: 'Perdido' }
+                              }
+                              const config = stageConfig[stage as keyof typeof stageConfig] || { color: 'bg-gray-100 text-gray-800', text: stage || 'N/A' }
+                              return (
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
+                                  {config.text}
+                                </span>
+                              )
+                            }
+
+                            const getTemperatureBadge = (temperature: string) => {
+                              const tempConfig = {
+                                'frio': { color: 'bg-blue-100 text-blue-800', text: 'Frio' },
+                                'morno': { color: 'bg-yellow-100 text-yellow-800', text: 'Morno' },
+                                'quente': { color: 'bg-red-100 text-red-800', text: 'Quente' }
+                              }
+                              const config = tempConfig[temperature as keyof typeof tempConfig] || { color: 'bg-gray-100 text-gray-800', text: temperature }
+                              return (
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
+                                  {config.text}
+                                </span>
+                              )
+                            }
+
+                            return (
+                              <tr key={client.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {client.name}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {partner?.name || 'Não encontrado'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {getStageBadge(client.stage)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {getTemperatureBadge(client.temperature)}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : currentView === 'reports' ? (
+              <div>
+                {/* Header */}
+                <div className="mb-8">
+                  <h1 className="text-2xl font-semibold text-gray-900">Relatórios dos Parceiros</h1>
+                  <p className="mt-2 text-sm text-gray-700">
+                    Visualize e gerencie os relatórios dos seus parceiros
+                  </p>
+                </div>
+
+                {/* Filtros */}
+                <div className="mb-6 flex flex-wrap gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Parceiro</label>
+                    <select
+                      value={partnerFilter}
+                      onChange={(e) => setPartnerFilter(e.target.value)}
+                      className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                      <option value="all">Todos os Parceiros</option>
+                      {partners.map((partner) => (
+                        <option key={partner.id} value={partner.id}>
+                          {partner.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Tabela de Relatórios */}
+                <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                  <div className="px-4 py-5 sm:p-6">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                      Relatórios Disponíveis
+                      {partnerFilter !== 'all' && (
+                        <span className="ml-2 text-sm font-normal text-gray-600">
+                          - Filtrado por {partners.find(p => p.id === partnerFilter)?.name}
+                        </span>
+                      )}
+                    </h3>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Parceiro
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Arquivo
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Período
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Data de Upload
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Tipo
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Ações
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                           {(() => {
+                             // Filtrar relatórios por parceiro se necessário
+                             const filteredReports = partnerFilter === 'all' 
+                               ? partnerReports
+                               : partnerReports.filter(report => report.partnerId?.toString() === partnerFilter)
+
+                            const formatFileSize = (bytes: number) => {
+                              if (bytes === 0) return '0 Bytes'
+                              const k = 1024
+                              const sizes = ['Bytes', 'KB', 'MB', 'GB']
+                              const i = Math.floor(Math.log(bytes) / Math.log(k))
+                              return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+                            }
+
+                            const getStatusBadge = (status: string) => {
+                              const statusConfig = {
+                                'available': { color: 'bg-green-100 text-green-800', text: 'Disponível' },
+                                'processing': { color: 'bg-yellow-100 text-yellow-800', text: 'Processando' },
+                                'error': { color: 'bg-red-100 text-red-800', text: 'Erro' }
+                              }
+                              const config = statusConfig[status as keyof typeof statusConfig] || { color: 'bg-gray-100 text-gray-800', text: status }
+                              return (
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>
+                                  {config.text}
+                                </span>
+                              )
+                            }
+
+                            const handleDownloadReport = (reportId: string, fileName: string) => {
+                              // Simular download do relatório
+                              alert(`Download iniciado: ${fileName}`)
+                            }
+
+                            return filteredReports.map((report) => {
+                              const partner = partners.find(p => p.id === report.partnerId)
+                              return (
+                                <tr key={report.id}>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {partner?.name || 'Parceiro não encontrado'}
+                                  </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  <div className="flex items-center">
+                                    <svg className="h-4 w-4 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                                    </svg>
+                                    <div>
+                                      <div className="text-sm font-medium text-gray-900">{report.fileName}</div>
+                                      <div className="text-xs text-gray-500">{formatFileSize(report.size)}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {String(report.referenceMonth).padStart(2, '0')}/{report.referenceYear}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {new Date(report.uploadDate).toLocaleDateString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    {report.fileType}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  {getStatusBadge(report.status)}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                  {report.status === 'available' ? (
+                                    <button
+                                      onClick={() => handleDownloadReport(report.id, report.fileName)}
+                                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    >
+                                      <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                      </svg>
+                                      Baixar
+                                    </button>
+                                  ) : (
+                                    <span className="text-gray-400">Indisponível</span>
+                                  )}
+                                </td>
+                              </tr>
+                               )
+                            })
+                          })()
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {(() => {
+                      const partnerReports = [
+                        { partnerId: partners[0]?.id || '' },
+                        { partnerId: partners[1]?.id || '' },
+                        { partnerId: partners[0]?.id || '' }
+                      ]
+                      const filteredReports = partnerFilter === 'all' 
+                        ? partnerReports.filter(report => partners.some(p => p.id === report.partnerId))
+                        : partnerReports.filter(report => report.partnerId === partnerFilter)
+                      
+                      return filteredReports.length === 0 && (
+                        <div className="text-center py-8">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum relatório encontrado</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            {partnerFilter === 'all' 
+                              ? 'Não há relatórios disponíveis para seus parceiros.'
+                              : `Não há relatórios disponíveis para ${partners.find(p => p.id === partnerFilter)?.name}.`
+                            }
+                          </p>
+                        </div>
+                      )
+                    })()
+                    }
+                  </div>
+                </div>
+              </div>
+            ) : currentView === 'admin' ? (
+              <Admin />
             ) : (
               <div>
                 {/* Dashboard Overview */}

@@ -97,7 +97,7 @@ export default function Admin() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [managers, setManagers] = useState<any[]>([])
+  const [managers, setManagers] = useState<any[]>([])  
   const [remunerationTables, setRemunerationTables] = useState<any[]>([])
   const [showRemunerationModal, setShowRemunerationModal] = useState(false)
   const [editingRemuneration, setEditingRemuneration] = useState<any>(null)
@@ -107,7 +107,8 @@ export default function Admin() {
     finderNegotiationMargin: '',
     maxCompanyCashback: '',
     finalFinderCashback: '',
-    description: ''
+    description: '',
+    valueType: 'currency' as 'currency' | 'percentage'
   })
   const [newUser, setNewUser] = useState({
     email: '',
@@ -115,7 +116,7 @@ export default function Admin() {
     role: 'partner',
     password: '',
     managerId: '',
-    remunerationTableId: 1
+    remunerationTableIds: [1]
   })
   const [newNotification, setNewNotification] = useState({
     title: '',
@@ -140,7 +141,7 @@ export default function Admin() {
         const user = await getCurrentUser()
         setCurrentUser(user)
         
-        if (!user || user.role !== 'admin') {
+        if (!user || (user.role !== 'admin' && user.role !== 'manager')) {
           setAccessDenied(true)
           setLoading(false)
           return
@@ -299,6 +300,23 @@ export default function Admin() {
     }
   }
 
+  // Função para formatar valores monetários ou percentuais
+  const formatValue = (value: string | number, type: 'currency' | 'percentage') => {
+    const numValue = parseFloat(value.toString())
+    if (type === 'currency') {
+      return `R$ ${numValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    } else {
+      return `${numValue}%`
+    }
+  }
+
+  // Função para formatar valores da tabela baseado no tipo da tabela
+  const formatTableValue = (table: any, field: string) => {
+    const value = table[field]
+    const type = table.valueType || 'currency'
+    return formatValue(value, type)
+  }
+
   const fetchSupportMaterials = async () => {
     try {
       const response = await fetch(`${API_URL}/support_materials`)
@@ -437,7 +455,8 @@ export default function Admin() {
           finderNegotiationMargin: '',
           maxCompanyCashback: '',
           finalFinderCashback: '',
-          description: ''
+          description: '',
+          valueType: 'currency'
         })
         alert(isEditing ? 'Tabela de remuneração atualizada com sucesso!' : 'Tabela de remuneração criada com sucesso!')
       }
@@ -455,7 +474,8 @@ export default function Admin() {
       finderNegotiationMargin: table.finderNegotiationMargin,
       maxCompanyCashback: table.maxCompanyCashback,
       finalFinderCashback: table.finalFinderCashback,
-      description: table.description || ''
+      description: table.description || '',
+      valueType: table.valueType || 'currency'
     })
     setShowRemunerationModal(true)
   }
@@ -545,7 +565,7 @@ export default function Admin() {
             },
             body: JSON.stringify({
               ...(editingUser as any),
-              remunerationTableId: (editingUser as any).remunerationTableId || 1
+              remunerationTableIds: (editingUser as any).remunerationTableIds || [(editingUser as any).remunerationTableId] || [1]
             })
           })
         }
@@ -553,7 +573,7 @@ export default function Admin() {
         fetchUsers()
         setShowUserModal(false)
         setEditingUser(null)
-        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
         alert('Usuário atualizado com sucesso!')
         return
       }
@@ -585,7 +605,7 @@ export default function Admin() {
             role: 'partner',
             managerId: newUser.managerId,
             managerName: manager?.name || '',
-            remunerationTableId: newUser.remunerationTableId,
+            remunerationTableIds: newUser.remunerationTableIds,
             company: {
               name: '',
               cnpj: '',
@@ -624,6 +644,25 @@ export default function Admin() {
           })
         }
 
+        // Se for um gerente, criar entrada na tabela de gerentes
+        if (newUser.role === 'manager') {
+          const managerData = {
+            id: userData.id.toString(),
+            name: newUser.name,
+            email: newUser.email,
+            role: 'manager',
+            partnersIds: []
+          }
+
+          await fetch(`${API_URL}/managers`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(managerData)
+          })
+        }
+
         // Enviar email de boas-vindas para o novo usuário
         try {
           await emailService.sendWelcomeEmail(
@@ -637,7 +676,7 @@ export default function Admin() {
 
         fetchUsers()
         setShowUserModal(false)
-        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
         alert('Usuário criado com sucesso! Email de boas-vindas enviado.')
       }
     } catch (error) {
@@ -1226,6 +1265,9 @@ export default function Admin() {
                           Cashback Final Finder
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tipo de Valor
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Data Criação
                         </th>
                         <th className="relative px-6 py-3">
@@ -1236,7 +1278,7 @@ export default function Admin() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {remunerationTables.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                          <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
                             Nenhuma tabela de remuneração cadastrada
                           </td>
                         </tr>
@@ -1247,13 +1289,22 @@ export default function Admin() {
                               {table.employeeRangeEnd ? `${table.employeeRangeStart} a ${table.employeeRangeEnd}` : `A partir de ${table.employeeRangeStart}`}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              R$ {parseFloat(table.finderNegotiationMargin).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              {formatTableValue(table, 'finderNegotiationMargin')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              R$ {parseFloat(table.maxCompanyCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              {formatTableValue(table, 'maxCompanyCashback')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              R$ {parseFloat(table.finalFinderCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              {formatTableValue(table, 'finalFinderCashback')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                table.valueType === 'percentage' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {table.valueType === 'percentage' ? 'Porcentagem (%)' : 'Reais (R$)'}
+                              </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                               {new Date(table.createdAt).toLocaleDateString('pt-BR')}
@@ -1261,7 +1312,7 @@ export default function Admin() {
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <div className="flex space-x-2 justify-end">
                                 <button
-                                  onClick={() => handleDeleteRemunerationTable(table.id)}
+                                  onClick={() => handleDeleteRemuneration(table.id)}
                                   className="text-red-600 hover:text-red-900"
                                   title="Excluir"
                                 >
@@ -2061,21 +2112,46 @@ export default function Admin() {
                     </div>
                     {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Tabela de Remuneração</label>
-                        <select
-                          value={editingUser ? (editingUser as any).remunerationTableId || 1 : newUser.remunerationTableId}
-                          onChange={(e) => editingUser 
-                            ? setEditingUser({...editingUser, remunerationTableId: parseInt(e.target.value)} as any)
-                            : setNewUser({...newUser, remunerationTableId: parseInt(e.target.value)})
-                          }
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        >
-                          {remunerationTables.map((table) => (
-                            <option key={table.id} value={table.id}>
-                              {table.employeeRangeEnd ? `${table.employeeRangeStart} a ${table.employeeRangeEnd} funcionários` : `A partir de ${table.employeeRangeStart} funcionários`} - R$ {parseFloat(table.finalFinderCashback).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </option>
-                          ))}
-                        </select>
+                        <label className="block text-sm font-medium text-gray-700">Tabelas de Remuneração</label>
+                        <div className="mt-1 space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                          {remunerationTables.map((table) => {
+                            const selectedIds = editingUser ? (editingUser as any).remunerationTableIds || [(editingUser as any).remunerationTableId] || [1] : newUser.remunerationTableIds;
+                            const isSelected = selectedIds.includes(table.id);
+                            
+                            return (
+                              <label key={table.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const currentIds = editingUser ? (editingUser as any).remunerationTableIds || [(editingUser as any).remunerationTableId] || [1] : newUser.remunerationTableIds;
+                                    let newIds;
+                                    
+                                    if (e.target.checked) {
+                                      newIds = [...currentIds, table.id];
+                                    } else {
+                                      newIds = currentIds.filter((id: number) => id !== table.id);
+                                      // Garantir que pelo menos uma tabela esteja selecionada
+                                      if (newIds.length === 0) {
+                                        newIds = [remunerationTables[0]?.id || 1];
+                                      }
+                                    }
+                                    
+                                    if (editingUser) {
+                                      setEditingUser({...editingUser, remunerationTableIds: newIds} as any);
+                                    } else {
+                                      setNewUser({...newUser, remunerationTableIds: newIds});
+                                    }
+                                  }}
+                                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <span className="text-sm text-gray-700">
+                                  {table.employeeRangeEnd ? `${table.employeeRangeStart} a ${table.employeeRangeEnd} funcionários` : `A partir de ${table.employeeRangeStart} funcionários`} - {formatTableValue(table, 'finalFinderCashback')}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
                         <p className="mt-1 text-xs text-gray-500">
                           {currentUser?.role === 'admin' ? 'Apenas administradores podem alterar as tabelas de remuneração' : 'Gerentes podem alterar a tabela aplicada ao parceiro'}
                         </p>
@@ -2100,7 +2176,7 @@ export default function Admin() {
                   onClick={() => {
                     setShowUserModal(false)
                     setEditingUser(null)
-                    setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableId: 1 })
+                    setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                 >
@@ -2255,8 +2331,38 @@ export default function Admin() {
                     />
                   </div>
                 </div>
+                
+                {/* Value Type Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Margem de Negociação Finder (R$)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Valor</label>
+                  <div className="flex rounded-md shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setNewRemuneration({...newRemuneration, valueType: 'currency'})}
+                      className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
+                        newRemuneration.valueType === 'currency'
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      R$ (Reais)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewRemuneration({...newRemuneration, valueType: 'percentage'})}
+                      className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                        newRemuneration.valueType === 'percentage'
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      % (Porcentagem)
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Margem de Negociação Finder ({newRemuneration.valueType === 'currency' ? 'R$' : '%'})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2268,7 +2374,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cashback Máximo Empresa (R$)</label>
+                  <label className="block text-sm font-medium text-gray-700">Cashback Máximo Empresa ({newRemuneration.valueType === 'currency' ? 'R$' : '%'})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2280,7 +2386,7 @@ export default function Admin() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cashback Final Finder (R$)</label>
+                  <label className="block text-sm font-medium text-gray-700">Cashback Final Finder ({newRemuneration.valueType === 'currency' ? 'R$' : '%'})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2313,7 +2419,8 @@ export default function Admin() {
                       finderNegotiationMargin: '',
                       maxCompanyCashback: '',
                       finalFinderCashback: '',
-                      description: ''
+                      description: '',
+                      valueType: 'currency'
                     });
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
