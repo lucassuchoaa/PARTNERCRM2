@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UserPlusIcon, BuildingOfficeIcon, MagnifyingGlassIcon, CheckCircleIcon, ClockIcon, XCircleIcon, DocumentArrowUpIcon, ArrowDownTrayIcon, ShieldCheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { UserPlusIcon, BuildingOfficeIcon, MagnifyingGlassIcon, CheckCircleIcon, ClockIcon, XCircleIcon, DocumentArrowUpIcon, ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline'
 // Removido: import HubSpotService from '../../services/hubspot'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
@@ -999,37 +999,6 @@ export default function Referrals() {
       {/* Indicações Tab */}
       {activeTab === 'indicate' && (
         <div className="mt-8">
-          {/* Informações sobre HubSpot */}
-          <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-6 mb-8">
-            <div className="flex items-start">
-              <ShieldCheckIcon className="h-6 w-6 text-orange-600 mt-1 mr-3" />
-              <div className="flex-1">
-                <h3 className="text-lg font-medium text-orange-900 mb-2">Validação HubSpot</h3>
-                <p className="text-sm text-orange-800 mb-3">
-                  Valide suas indicações diretamente no HubSpot para verificar se são prospects novos, existentes ou já clientes.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <h4 className="font-medium text-orange-900 mb-1">Benefícios:</h4>
-                    <ul className="text-orange-800 space-y-1">
-                      <li>• Evita duplicação de esforços</li>
-                      <li>• Identifica clientes existentes</li>
-                      <li>• Verifica histórico de deals</li>
-                      <li>• Melhora qualificação de leads</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-orange-900 mb-1">Como configurar:</h4>
-                    <ol className="text-orange-800 space-y-1">
-                      <li>1. Indicações são validadas manualmente pelo administrador</li>
-                      <li>2. Após validação, seguem para análise de carteira</li>
-                      <li>3. Acompanhe o status na tabela abaixo</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Formulário de Indicação */}
