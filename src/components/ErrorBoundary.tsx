@@ -53,9 +53,15 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // In production, you would log to an error reporting service
-    // Example: Sentry, LogRocket, etc.
-    // logErrorToService(error, errorInfo);
+    // Log to Sentry in production
+    if (import.meta.env.PROD) {
+      import('../config/sentry.config').then(({ captureError }) => {
+        captureError(error, {
+          errorInfo: errorInfo.componentStack,
+          errorBoundary: true,
+        });
+      });
+    }
   }
 
   handleReset = (): void => {

@@ -1,19 +1,39 @@
 {
-  "name": "trae",
+  "name": "partners-platform",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Modern CRM platform for partner management with HubSpot and Gemini AI integration",
+  "author": "Lucas Uchoa <lucasuchoa@hotmail.com>",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "server": "json-server --watch db.json --port 3001"
+    "server": "json-server --watch db.json --port 3001",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "prepare": "husky",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules/.vite",
+    "build:analyze": "vite build --mode production",
+    "deploy:preview": "vercel",
+    "deploy:prod": "vercel --prod",
+    "health-check": "curl -f https://your-domain.vercel.app/api/health || exit 1",
+    "smoke-test": "curl -I https://your-domain.vercel.app && curl https://your-domain.vercel.app/api/health && curl https://your-domain.vercel.app/api/status",
+    "security-check": "./scripts/check-security.sh",
+    "build:secure": "npm run build && npm run security-check"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",
     "@heroicons/react": "^2.2.0",
     "@hubspot/api-client": "^13.0.0",
+    "@sentry/react": "^8.55.0",
     "@tanstack/react-query": "^5.90.6",
     "axios": "^1.11.0",
     "framer-motion": "^12.23.24",
@@ -22,27 +42,45 @@
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.5",
     "react-router-dom": "^6.22.0",
-    "resend": "^4.7.0"
+    "resend": "^4.7.0",
+    "web-vitals": "^4.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tanstack/react-query-devtools": "^5.90.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/jspdf": "^1.3.3",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
+    "@vercel/node": "^5.5.6",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^4.0.9",
+    "@vitest/ui": "^4.0.9",
     "autoprefixer": "^10.4.17",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "happy-dom": "^20.0.10",
+    "husky": "^9.1.7",
+    "jsdom": "^27.2.0",
     "json-server": "^1.0.0-beta.3",
+    "lint-staged": "^16.2.6",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
     "terser": "^5.44.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vite-plugin-remove-console": "^2.2.0",
-    "vite-plugin-svgr": "^4.3.0"
+    "vite-plugin-svgr": "^4.3.0",
+    "vitest": "^4.0.9"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   }
 }
