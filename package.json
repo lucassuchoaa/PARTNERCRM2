@@ -6,6 +6,10 @@
   "description": "Modern CRM platform for partner management with HubSpot and Gemini AI integration",
   "author": "Lucas Uchoa <lucasuchoa@hotmail.com>",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
