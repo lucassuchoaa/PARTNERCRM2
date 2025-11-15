@@ -55,3 +55,6 @@ jspm_packages/
 
 # Optional eslint cache
 .eslintcache
+
+# CulturaBuilder MCP (development tool, not needed in deployment)
+CulturaBuilder-MCP/
