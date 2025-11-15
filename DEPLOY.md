@@ -36,34 +36,39 @@ Complete deployment guide for production environments.
 
 Create these environment variables in your Vercel project settings:
 
-#### Frontend Variables
+#### Frontend Variables (Build-time - VITE_* prefix)
 ```bash
 # Application URLs
 VITE_APP_URL=https://your-domain.vercel.app
-VITE_API_URL=https://your-domain.vercel.app/api
+VITE_API_URL=/api
 
-# Error Tracking
-VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
-
-# API Keys
-VITE_HUBSPOT_API_KEY=your-hubspot-api-key
-VITE_GEMINI_API_KEY=your-gemini-api-key
-
-# Application Version
-VITE_APP_VERSION=1.0.0
+# Feature Flags
+VITE_ENABLE_REACT_QUERY_DEVTOOLS=false
+VITE_ENABLE_ERROR_LOGGING=true
 ```
 
-#### Backend Variables (Serverless Functions)
+⚠️ **SECURITY WARNING**: Never expose API keys with VITE_* prefix - they will be included in the frontend bundle!
+
+#### Backend Variables (Serverless Functions - NO VITE_* prefix)
 ```bash
-# Node Environment
-NODE_ENV=production
+# JWT Authentication (Generate with: openssl rand -base64 32)
+JWT_SECRET=your-super-secret-jwt-secret-min-32-chars
+JWT_REFRESH_SECRET=your-super-secret-refresh-token-secret-min-32-chars
 
-# API Keys (same as frontend)
-VITE_HUBSPOT_API_KEY=your-hubspot-api-key
-VITE_GEMINI_API_KEY=your-gemini-api-key
+# Resend Email Service (https://resend.com/api-keys)
+RESEND_API_KEY=your-resend-api-key-here
+DEFAULT_FROM_EMAIL=noreply@partnerscrm.com
 
-# Sentry
-VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+# HubSpot Integration (HubSpot > Settings > Integrations > Private Apps)
+# Required scopes: crm.objects.contacts, crm.objects.companies, crm.objects.deals
+HUBSPOT_ACCESS_TOKEN=your-hubspot-private-app-access-token
+
+# Google Gemini AI (https://makersuite.google.com/app/apikey)
+# Free tier: 15 requests/minute, 1M tokens/minute
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# CORS Configuration
+FRONTEND_URL=https://your-domain.vercel.app
 ```
 
 ### Optional Variables
@@ -203,14 +208,20 @@ jobs:
    ```json
    {
      "status": "healthy",
-     "timestamp": "2024-01-15T10:30:00Z",
+     "timestamp": "2025-01-15T10:30:00Z",
      "uptime": 3600,
      "checks": {
        "hubspot": { "status": "up", "responseTime": 150 },
-       "gemini": { "status": "up", "responseTime": 200 }
+       "gemini": { "status": "up", "responseTime": 200 },
+       "memory": { "used": 45, "available": 211, "percentage": 17 }
      }
    }
    ```
+
+   ⚠️ If HubSpot or Gemini show `"status": "down"`, verify:
+   - `HUBSPOT_ACCESS_TOKEN` is configured in Vercel Dashboard
+   - `GEMINI_API_KEY` is configured in Vercel Dashboard
+   - External APIs are accessible from Vercel region
 
 2. **Status Endpoint**
    ```bash

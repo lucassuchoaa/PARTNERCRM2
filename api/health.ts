@@ -37,9 +37,9 @@ interface HealthCheckResult {
  * Check HubSpot API connectivity
  */
 async function checkHubSpot(): Promise<{ status: 'up' | 'down'; responseTime?: number }> {
-  const HUBSPOT_API_KEY = process.env.VITE_HUBSPOT_API_KEY;
+  const HUBSPOT_ACCESS_TOKEN = process.env.HUBSPOT_ACCESS_TOKEN;
 
-  if (!HUBSPOT_API_KEY) {
+  if (!HUBSPOT_ACCESS_TOKEN) {
     return { status: 'down' };
   }
 
@@ -48,7 +48,7 @@ async function checkHubSpot(): Promise<{ status: 'up' | 'down'; responseTime?: n
   try {
     const response = await fetch('https://api.hubapi.com/crm/v3/objects/contacts?limit=1', {
       headers: {
-        Authorization: `Bearer ${HUBSPOT_API_KEY}`,
+        Authorization: `Bearer ${HUBSPOT_ACCESS_TOKEN}`,
       },
       signal: AbortSignal.timeout(5000), // 5s timeout
     });
@@ -68,7 +68,7 @@ async function checkHubSpot(): Promise<{ status: 'up' | 'down'; responseTime?: n
  * Check Gemini API connectivity
  */
 async function checkGemini(): Promise<{ status: 'up' | 'down'; responseTime?: number }> {
-  const GEMINI_API_KEY = process.env.VITE_GEMINI_API_KEY;
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
   if (!GEMINI_API_KEY) {
     return { status: 'down' };

@@ -14,9 +14,6 @@ export default defineConfig(({ mode }) => ({
   css: {
     postcss: './postcss.config.js'
   },
-  define: {
-    'process.env': process.env
-  },
   server: {
     port: 5173,
     proxy: {
