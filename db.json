@@ -77,7 +77,8 @@
       "managerId": "5",
       "remunerationTableId": 1,
       "status": "active",
-      "createdAt": "2025-07-31T18:08:18.363Z"
+      "createdAt": "2024-01-15T10:00:00Z",
+      "lastLogin": "2024-01-20T14:30:00Z"
     },
     {
       "id": "1754016563222",
@@ -89,6 +90,19 @@
       "remunerationTableId": 1,
       "status": "active",
       "createdAt": "2025-08-01T02:49:23.222Z"
+    },
+    {
+      "id": "1760981528414",
+      "email": "gerente1@gmail.com",
+      "name": "gerente1 ",
+      "role": "manager",
+      "password": "lucas01",
+      "managerId": "",
+      "remunerationTableIds": [
+        1
+      ],
+      "status": "active",
+      "createdAt": "2025-10-20T17:32:08.414Z"
     }
   ],
   "partners": [
@@ -210,25 +224,18 @@
     },
     {
       "id": "1753985298363",
-      "name": "lucas",
       "email": "lucassuchoa@gmail.com",
+      "name": "lucas",
       "role": "partner",
+      "password": "Lucas123",
       "managerId": "5",
-      "managerName": "Ana Costa",
       "remunerationTableId": 1,
-      "company": {
-        "name": "",
-        "cnpj": "",
-        "address": "",
-        "phone": ""
-      },
-      "bankData": {
-        "bank": "",
-        "agency": "",
-        "account": "",
-        "accountType": "corrente",
-        "pix": ""
-      }
+      "status": "active",
+      "createdAt": "2024-01-15T10:00:00Z",
+      "lastLogin": "2024-01-20T14:30:00Z",
+      "remunerationTableIds": [
+        1
+      ]
     }
   ],
   "managers": [
@@ -257,6 +264,13 @@
       "id": "1754016563222",
       "name": "gerente",
       "email": "gerente@gmail.com",
+      "role": "manager",
+      "partnersIds": []
+    },
+    {
+      "id": "1760981528414",
+      "name": "gerente1 ",
+      "email": "gerente1@gmail.com",
       "role": "manager",
       "partnersIds": []
     }
@@ -593,8 +607,15 @@
       "cnpj": "2112",
       "employees": "222",
       "segment": "Tecnologia",
-      "status": "pending",
-      "partnerId": "1754016563222"
+      "status": "rejected",
+      "partnerId": "1754016563222",
+      "adminValidation": {
+        "isValidated": true,
+        "validatedBy": "Administrador Principal",
+        "validatedAt": "2025-11-09T14:28:00.904Z",
+        "notes": "Validado manualmente pelo administrador",
+        "isApproved": true
+      }
     },
     {
       "id": "1754497895906",
@@ -814,6 +835,136 @@
       "createdAt": "2025-08-01T03:35:01.903Z"
     }
   ],
+  "chat_metrics": [
+    {
+      "id": "1762434786890",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:06.890Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "bot",
+      "message": "Olá! Sou seu assistente virtual. Como posso ajudá-lo hoje?",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434826720",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:46.719Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "user",
+      "message": "🤖 Modo IA",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434826723",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:46.723Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "user",
+      "message": "🤖 Modo IA",
+      "flow": "initial",
+      "selectedOption": "🤖 Modo IA",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434827224",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:47.224Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "bot",
+      "message": "🤖 Modo IA ativado! Agora estou usando inteligência artificial avançada para responder suas perguntas. Pergunte qualquer coisa!",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434834447",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:54.447Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "user",
+      "message": "Desativar IA",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434834448",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:54.448Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "user",
+      "message": "Desativar IA",
+      "flow": "initial",
+      "selectedOption": "Desativar IA",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762434834949",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T13:13:54.949Z",
+      "sessionId": "session-1762434781481",
+      "messageType": "bot",
+      "message": "Modo IA desativado. Voltando ao menu principal.",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762458979021",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T19:56:19.021Z",
+      "sessionId": "session-1762442720916",
+      "messageType": "bot",
+      "message": "Olá! Sou seu assistente virtual. Como posso ajudá-lo hoje?",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    },
+    {
+      "id": "1762459170143",
+      "userId": "1",
+      "userName": "Administrador Principal",
+      "userRole": "admin",
+      "timestamp": "2025-11-06T19:59:30.143Z",
+      "sessionId": "session-1762459159469",
+      "messageType": "bot",
+      "message": "Olá! Sou seu assistente virtual. Como posso ajudá-lo hoje?",
+      "flow": "initial",
+      "aiGenerated": false,
+      "tokensUsed": 0,
+      "responseTime": 0
+    }
+  ],
   "support_materials": [
     {
       "id": "1",
@@ -902,6 +1053,71 @@
       "fileSize": "1.2 MB",
       "createdAt": "2024-01-22T10:00:00Z",
       "updatedAt": "2024-01-22T10:00:00Z"
+    }
+  ],
+  "pricingPlans": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "description": "Ideal para pequenas empresas começando a digitalizar seus processos",
+      "basePrice": 299.9,
+      "includedUsers": 5,
+      "additionalUserPrice": 49.9,
+      "features": [
+        "Até 5 usuários inclusos",
+        "Dashboard básico",
+        "Gestão de clientes",
+        "Indicações de parceiros",
+        "Suporte por email",
+        "Relatórios mensais"
+      ],
+      "isActive": true,
+      "order": 1
+    },
+    {
+      "id": "professional",
+      "name": "Professional",
+      "description": "Para empresas em crescimento que precisam de mais recursos",
+      "basePrice": 599.9,
+      "includedUsers": 15,
+      "additionalUserPrice": 39.9,
+      "features": [
+        "Até 15 usuários inclusos",
+        "Dashboard avançado",
+        "Gestão completa de clientes",
+        "Sistema de indicações premium",
+        "Integrações com NetSuite e HubSpot",
+        "ChatBot com IA",
+        "Suporte prioritário",
+        "Relatórios personalizados",
+        "API de integração"
+      ],
+      "isActive": true,
+      "order": 2
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise",
+      "description": "Solução completa para grandes empresas com necessidades avançadas",
+      "basePrice": 1299.9,
+      "includedUsers": 50,
+      "additionalUserPrice": 29.9,
+      "features": [
+        "Até 50 usuários inclusos",
+        "Dashboard enterprise com analytics",
+        "CRM completo com automações",
+        "Sistema de indicações multi-nível",
+        "Todas as integrações disponíveis",
+        "ChatBot com IA personalizado",
+        "Gestão de produtos e estoque",
+        "Suporte 24/7 dedicado",
+        "Relatórios em tempo real",
+        "API ilimitada",
+        "Treinamento personalizado",
+        "Gerente de conta dedicado"
+      ],
+      "isActive": true,
+      "order": 3
     }
   ]
 }

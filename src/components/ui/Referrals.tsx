@@ -3,6 +3,7 @@ import { UserPlusIcon, BuildingOfficeIcon, MagnifyingGlassIcon, CheckCircleIcon,
 // Removido: import HubSpotService from '../../services/hubspot'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
+import { fetchCNPJData, formatCNPJ, validateCNPJ, mapCNAEToSegment, estimateEmployeesByPorte } from '../../services/cnpjService'
 
 interface Prospect {
   id: string
@@ -77,6 +78,57 @@ export default function Referrals() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isSearchingCNPJ, setIsSearchingCNPJ] = useState(false)
+  const [cnpjError, setCnpjError] = useState<string>('')
+
+  // Função de busca de CNPJ
+  const handleCNPJSearch = async (cnpj: string) => {
+    // Limpar erros anteriores
+    setCnpjError('')
+
+    // Formatar CNPJ enquanto digita
+    const formatted = formatCNPJ(cnpj)
+    setNewProspect({ ...newProspect, cnpj: formatted })
+
+    // Só buscar quando CNPJ estiver completo (14 dígitos)
+    const cleanedCNPJ = cnpj.replace(/\D/g, '')
+    if (cleanedCNPJ.length !== 14) {
+      return
+    }
+
+    // Validar CNPJ
+    if (!validateCNPJ(cleanedCNPJ)) {
+      setCnpjError('CNPJ inválido')
+      return
+    }
+
+    // Buscar dados da empresa
+    setIsSearchingCNPJ(true)
+    try {
+      const data = await fetchCNPJData(cleanedCNPJ)
+
+      // Preencher campos automaticamente
+      setNewProspect({
+        ...newProspect,
+        cnpj: data.cnpj,
+        companyName: data.nomeFantasia || data.razaoSocial,
+        phone: data.telefone || newProspect.phone,
+        email: data.email || newProspect.email,
+        employeeCount: data.quantidadeFuncionarios
+          ? String(data.quantidadeFuncionarios)
+          : String(estimateEmployeesByPorte(data.porte)),
+        segment: mapCNAEToSegment(data.atividadePrincipal)
+      })
+
+      // Mostrar mensagem de sucesso
+      setCnpjError('')
+    } catch (error: any) {
+      console.error('Erro ao buscar CNPJ:', error)
+      setCnpjError(error.message || 'Erro ao consultar CNPJ. Tente novamente.')
+    } finally {
+      setIsSearchingCNPJ(false)
+    }
+  }
 
   // Funções de edição
   const startEdit = (client: PortfolioClient) => {
@@ -1098,14 +1150,44 @@ export default function Referrals() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">CNPJ</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProspect.cnpj}
-                    onChange={(e) => setNewProspect({...newProspect, cnpj: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  />
+                  <label className="block text-sm font-medium text-gray-700">
+                    CNPJ
+                    <span className="text-xs text-gray-500 ml-2">(Preenche dados automaticamente)</span>
+                  </label>
+                  <div className="mt-1 relative">
+                    <input
+                      type="text"
+                      required
+                      value={newProspect.cnpj}
+                      onChange={(e) => handleCNPJSearch(e.target.value)}
+                      placeholder="00.000.000/0000-00"
+                      maxLength={18}
+                      className={`block w-full rounded-md shadow-sm sm:text-sm pr-24 ${
+                        cnpjError
+                          ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+                      }`}
+                    />
+                    {isSearchingCNPJ && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <div className="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
+                      </div>
+                    )}
+                    {!isSearchingCNPJ && newProspect.cnpj && validateCNPJ(newProspect.cnpj) && !cnpjError && (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                      </div>
+                    )}
+                  </div>
+                  {cnpjError && (
+                    <p className="mt-1 text-sm text-red-600">{cnpjError}</p>
+                  )}
+                  {isSearchingCNPJ && (
+                    <p className="mt-1 text-sm text-indigo-600">Buscando dados da empresa...</p>
+                  )}
+                  {!isSearchingCNPJ && newProspect.cnpj && validateCNPJ(newProspect.cnpj) && !cnpjError && newProspect.companyName && (
+                    <p className="mt-1 text-sm text-green-600">✓ Dados carregados automaticamente</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Número de Funcionários</label>

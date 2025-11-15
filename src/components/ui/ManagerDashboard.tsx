@@ -7,6 +7,8 @@ import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
 import Profile from './Profile'
 import Admin from './Admin'
+import ChatBotHybrid from './ChatBotHybrid'
+import { productService } from '../../services/productService'
 
 interface Partner {
   id: string
@@ -86,6 +88,7 @@ export default function ManagerDashboard() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [prospects, setProspects] = useState<Prospect[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const [dashboardData, setDashboardData] = useState({
     totalPartners: 0,
     totalProspects: 0,
@@ -167,6 +170,12 @@ export default function ManagerDashboard() {
     }
 
     loadUserData()
+  }, [])
+
+  useEffect(() => {
+    // Carregar produtos customizáveis
+    const loadedProducts = productService.getActiveProducts()
+    setProducts(loadedProducts)
   }, [])
 
   const getStageCount = (stage: string) => {
@@ -302,6 +311,9 @@ export default function ManagerDashboard() {
 
   return (
     <div>
+      {/* ChatBot Component */}
+      <ChatBotHybrid products={products} />
+
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">

@@ -9,10 +9,14 @@ import Reports from './Reports'
 import SupportMaterials from './SupportMaterials'
 import Referrals from './Referrals'
 import Admin from './Admin'
+import ChatBotHybrid from './ChatBotHybrid'
 
 import Profile from './Profile'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
+import { productService } from '../../services/productService'
+import type { Product } from '../../types/products'
+import * as HeroIcons from '@heroicons/react/24/outline'
 
 interface Client {
   id: number
@@ -93,6 +97,7 @@ export default function Dashboard() {
     referralsGrowth: 0
   })
   const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState<Product[]>([])
 
   const getProductOpportunities = (product: string) => {
     if (product === 'all') {
@@ -175,15 +180,21 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    // Carregar produtos customizáveis
+    const loadedProducts = productService.getActiveProducts()
+    setProducts(loadedProducts)
+  }, [])
+
+  useEffect(() => {
     const loadUserAndData = async () => {
       try {
         const user = await getCurrentUser()
         if (user) {
           setCurrentUser(user)
-          
+
           // Carregar notificações do usuário
           await loadNotifications(user.id.toString())
-          
+
           // Fetch dashboard data
           const [clientsData, transactions, prospectsData] = await Promise.all([
             fetch(`${API_URL}/clients`).then(res => res.json()),
@@ -237,15 +248,14 @@ export default function Dashboard() {
 
   return (
     <div>
+      {/* ChatBot Component */}
+      <ChatBotHybrid products={products} />
+
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         {/* Sidebar component, swap this element with another sidebar if you like */}
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <img
-              className="h-8 w-auto"
-              src="/src/assets/somapay-new-logo.svg"
-              alt="Somapay"
-            />
+            <h1 className="text-2xl font-bold text-blue-600">Partners CRM</h1>
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -466,16 +476,16 @@ export default function Dashboard() {
               <Profile onUserUpdate={setCurrentUser} />
             ) : (
               <div>
-                {/* Hero Section - Inspirado na Somapay */}
+                {/* Hero Section - Dashboard Overview */}
                 <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 rounded-2xl mb-8">
                   <div className="absolute inset-0 bg-black opacity-10"></div>
                   <div className="relative px-8 py-12">
                     <div className="max-w-4xl mx-auto text-center">
                       <h1 className="text-4xl font-bold text-white mb-4">
-                        Portal do Parceiro Somapay
+                        Bem-vindo ao Portal do Parceiro
                       </h1>
                       <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-                        Conecte empresas às soluções financeiras da Somapay e gere receita com cada indicação bem-sucedida.
+                        A melhor plataforma de parceiros que sua empresa pode ter, simples e completa.
                       </p>
                       <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <button 
@@ -498,7 +508,7 @@ export default function Dashboard() {
                   <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-white opacity-5 rounded-full"></div>
                 </div>
 
-                {/* Stats Cards - Redesenhados com cores da Somapay */}
+                {/* Stats Cards - Dashboard Metrics */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-8">
                   <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow">
                     <div className="p-6">
@@ -547,11 +557,11 @@ export default function Dashboard() {
 
                 </div>
 
-                {/* Produtos Somapay - Seção com filtros */}
+                {/* Produtos - Seção customizável */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mb-8">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Produtos Somapay para Indicação</h2>
-                    <div className="flex space-x-2">
+                    <h2 className="text-2xl font-bold text-gray-900">Produtos para Indicação</h2>
+                    <div className="flex space-x-2 flex-wrap gap-2">
                       <button
                         onClick={() => setProductFilter('all')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -562,77 +572,48 @@ export default function Dashboard() {
                       >
                         Todos
                       </button>
-                      <button
-                        onClick={() => setProductFilter('folha')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          productFilter === 'folha'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Folha de Pagamento
-                      </button>
-                      <button
-                        onClick={() => setProductFilter('consignado')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          productFilter === 'consignado'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Consignado
-                      </button>
-                      <button
-                        onClick={() => setProductFilter('beneficios')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                          productFilter === 'beneficios'
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        Benefícios
-                      </button>
+                      {products.map((product) => (
+                        <button
+                          key={product.id}
+                          onClick={() => setProductFilter(product.id)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            productFilter === product.id
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {product.name}
+                        </button>
+                      ))}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Folha de Pagamento</h3>
-                      <p className="text-sm text-gray-600 mb-3">Pagamento de folha 100% digital com integração ERP</p>
-                      <div className="text-xs text-blue-600 font-medium">
-                        {getProductOpportunities('folha')} oportunidades
-                      </div>
-                    </div>
-                    
-                    <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Crédito Consignado</h3>
-                      <p className="text-sm text-gray-600 mb-3">Crédito pré-aprovado para colaboradores</p>
-                      <div className="text-xs text-green-600 font-medium">
-                        {getProductOpportunities('consignado')} oportunidades
-                      </div>
-                    </div>
-                    
-                    <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Benefícios Flexíveis</h3>
-                      <p className="text-sm text-gray-600 mb-3">Cartão de benefícios e gestão de despesas</p>
-                      <div className="text-xs text-purple-600 font-medium">
-                        {getProductOpportunities('beneficios')} oportunidades
-                      </div>
-                    </div>
+                    {products.map((product) => {
+                      const Icon = (HeroIcons as any)[product.icon] || HeroIcons.ShoppingCartIcon;
+                      const colorClasses = {
+                        blue: { bg: 'from-blue-50 to-indigo-50', iconBg: 'from-blue-500 to-purple-600', text: 'text-blue-600' },
+                        green: { bg: 'from-green-50 to-emerald-50', iconBg: 'from-green-500 to-blue-600', text: 'text-green-600' },
+                        purple: { bg: 'from-purple-50 to-pink-50', iconBg: 'from-purple-500 to-pink-600', text: 'text-purple-600' },
+                        red: { bg: 'from-red-50 to-orange-50', iconBg: 'from-red-500 to-orange-600', text: 'text-red-600' },
+                        yellow: { bg: 'from-yellow-50 to-amber-50', iconBg: 'from-yellow-500 to-amber-600', text: 'text-yellow-600' },
+                        indigo: { bg: 'from-indigo-50 to-blue-50', iconBg: 'from-indigo-500 to-blue-600', text: 'text-indigo-600' },
+                        pink: { bg: 'from-pink-50 to-rose-50', iconBg: 'from-pink-500 to-rose-600', text: 'text-pink-600' },
+                        cyan: { bg: 'from-cyan-50 to-teal-50', iconBg: 'from-cyan-500 to-teal-600', text: 'text-cyan-600' },
+                      }[product.color] || { bg: 'from-gray-50 to-slate-50', iconBg: 'from-gray-500 to-slate-600', text: 'text-gray-600' };
+
+                      return (
+                        <div key={product.id} className={`text-center p-6 bg-gradient-to-br ${colorClasses.bg} rounded-xl`}>
+                          <div className={`w-16 h-16 bg-gradient-to-br ${colorClasses.iconBg} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                            <Icon className="w-8 h-8 text-white" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
+                          <p className="text-sm text-gray-600 mb-3">{product.description}</p>
+                          <div className={`text-xs ${colorClasses.text} font-medium`}>
+                            {getProductOpportunities(product.id)} oportunidades
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 

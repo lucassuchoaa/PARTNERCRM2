@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { 
-  UsersIcon, 
-  DocumentArrowUpIcon, 
-  DocumentArrowDownIcon, 
-  TrashIcon, 
+import {
+  UsersIcon,
+  DocumentArrowUpIcon,
+  DocumentArrowDownIcon,
+  TrashIcon,
   EyeIcon,
   PlusIcon,
   PencilIcon,
@@ -15,12 +15,17 @@ import {
   CogIcon,
   BookOpenIcon,
   CurrencyDollarIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ShoppingCartIcon
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
 import { emailService } from '../../services/emailService'
 import { API_URL } from '../../config/api'
-import NetSuiteIntegration from './NetSuiteIntegration'
+import Integrations from './Integrations'
+import ProductManagement from './ProductManagement'
+import PricingManagement from './PricingManagement'
+import ChatAnalytics from './ChatAnalytics'
+import ChatBotTraining from './ChatBotTraining'
 
 interface User {
   id: number
@@ -1100,15 +1105,58 @@ export default function Admin() {
               Material de Apoio
             </button>
             <button
-              onClick={() => setActiveTab('netsuite')}
+              onClick={() => setActiveTab('integrations')}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'netsuite'
+                activeTab === 'integrations'
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               <CogIcon className="h-5 w-5 inline mr-2" />
-              NetSuite
+              Integrações
+            </button>
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'products'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <ShoppingCartIcon className="h-5 w-5 inline mr-2" />
+              Produtos
+            </button>
+            <button
+              onClick={() => setActiveTab('pricing')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'pricing'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <CurrencyDollarIcon className="h-5 w-5 inline mr-2" />
+              Preços
+            </button>
+            <button
+              onClick={() => setActiveTab('chatanalytics')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'chatanalytics'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📊 Análise ChatBot
+            </button>
+
+            <button
+              onClick={() => setActiveTab('chattraining')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'chattraining'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              🎓 Treinamento ChatBot
             </button>
           </nav>
         </div>
@@ -1116,6 +1164,22 @@ export default function Admin() {
 
       {/* Content */}
       <div className="mt-8">
+        {activeTab === 'chatanalytics' && (
+          <ChatAnalytics />
+        )}
+
+        {activeTab === 'chattraining' && (
+          <ChatBotTraining />
+        )}
+
+        {activeTab === 'products' && (
+          <ProductManagement currentUser={currentUser} />
+        )}
+
+        {activeTab === 'pricing' && (
+          <PricingManagement />
+        )}
+
         {activeTab === 'users' && (
           <div>
             {/* Users Header */}
@@ -1219,9 +1283,9 @@ export default function Admin() {
           </div>
         )}
 
-        {/* NetSuite Integration Section */}
-        {activeTab === 'netsuite' && (
-          <NetSuiteIntegration />
+        {/* Integrations Section */}
+        {activeTab === 'integrations' && (
+          <Integrations />
         )}
 
         {activeTab === 'remuneration' && (

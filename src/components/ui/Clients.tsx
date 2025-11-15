@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { UsersIcon, PencilIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { UsersIcon, PencilIcon, CheckIcon, XMarkIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 import { getCurrentUser } from '../../services/auth'
@@ -25,6 +25,7 @@ export default function Clients() {
   const [updating, setUpdating] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
   const [isManager, setIsManager] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -165,22 +166,62 @@ export default function Clients() {
     )
   }
 
+  const kanbanStages = [
+    { id: 'prospeccao', title: 'Prospecção', color: 'bg-blue-100 border-blue-300' },
+    { id: 'apresentacao', title: 'Apresentação', color: 'bg-indigo-100 border-indigo-300' },
+    { id: 'negociacao', title: 'Negociação', color: 'bg-yellow-100 border-yellow-300' },
+    { id: 'contrato_fechado', title: 'Contrato Fechado', color: 'bg-green-100 border-green-300' },
+    { id: 'perdido', title: 'Perdido', color: 'bg-red-100 border-red-300' }
+  ]
+
+  const getClientsByStage = (stage: string) => {
+    return clients.filter(client => client.stage === stage || (!client.stage && stage === 'prospeccao'))
+  }
+
   return (
     <div className="px-4 sm:px-6 lg:px-8">
-      <div className="sm:flex sm:items-center">
+      <div className="sm:flex sm:items-center sm:justify-between">
         <div className="sm:flex-auto">
           <h1 className="text-base font-semibold leading-6 text-gray-900">Clientes</h1>
           <p className="mt-2 text-sm text-gray-700">
             Lista de todos os clientes cadastrados no sistema.
           </p>
         </div>
+
+        {/* View Mode Toggle */}
+        <div className="mt-4 sm:mt-0 flex gap-2 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+              viewMode === 'list'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <ListBulletIcon className="h-5 w-5" />
+            <span className="font-medium">Lista</span>
+          </button>
+          <button
+            onClick={() => setViewMode('kanban')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+              viewMode === 'kanban'
+                ? 'bg-white text-indigo-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Squares2X2Icon className="h-5 w-5" />
+            <span className="font-medium">Kanban</span>
+          </button>
+        </div>
       </div>
-      
-      <div className="mt-8 flow-root">
-        <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-          <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <div className="mt-8 flow-root">
+          <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -259,8 +300,83 @@ export default function Clients() {
             </div>
           </div>
         </div>
-      </div>
-      
+        </div>
+      )}
+
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        <div className="mt-8">
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {kanbanStages.map(stage => (
+              <div key={stage.id} className="flex-shrink-0 w-80">
+                <div className={`rounded-lg border-2 ${stage.color} p-4`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900">{stage.title}</h3>
+                    <span className="text-sm font-medium text-gray-600 bg-white px-2 py-1 rounded-full">
+                      {getClientsByStage(stage.id).length}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {getClientsByStage(stage.id).map(client => (
+                      <div
+                        key={client.id}
+                        className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => handleEditClient(client)}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-semibold text-gray-900 text-sm">{client.name}</h4>
+                          {client.temperature && getTemperatureBadge(client.temperature)}
+                        </div>
+
+                        <p className="text-xs text-gray-600 mb-2">
+                          CNPJ: {client.cnpj}
+                        </p>
+
+                        <div className="flex items-center justify-between">
+                          {getStatusBadge(client.status)}
+
+                          {client.totalLives && (
+                            <span className="text-xs text-gray-600">
+                              {client.totalLives} vidas
+                            </span>
+                          )}
+                        </div>
+
+                        {client.contractEndDate && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Contrato: {formatDate(client.contractEndDate)}
+                          </p>
+                        )}
+
+                        {(isAdmin || isManager) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleEditClient(client)
+                            }}
+                            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors"
+                          >
+                            <PencilIcon className="h-3 w-3" />
+                            Editar
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {getClientsByStage(stage.id).length === 0 && (
+                      <div className="text-center py-8 text-gray-400">
+                        <p className="text-sm">Nenhum cliente</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {clients.length === 0 && (
         <div className="text-center py-12">
           <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />

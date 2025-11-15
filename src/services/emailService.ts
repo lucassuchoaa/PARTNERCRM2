@@ -1,8 +1,26 @@
 import { Resend } from 'resend';
 
-// Configuração do Resend
-// No frontend, usamos import.meta.env para acessar variáveis de ambiente
-const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY || 'your-resend-api-key');
+// SECURITY NOTE: API keys should NEVER be in frontend code
+// This service should be called from a backend API endpoint
+// For now, we use environment variables with proper warnings
+
+const apiKey = import.meta.env.VITE_RESEND_API_KEY;
+
+if (!apiKey) {
+  if (import.meta.env.PROD) {
+    throw new Error('VITE_RESEND_API_KEY is required in production');
+  }
+  if (import.meta.env.DEV) {
+    console.warn(
+      '⚠️  VITE_RESEND_API_KEY not set. Email service will fail. ' +
+      'Add VITE_RESEND_API_KEY to your .env.local file or move email logic to backend.'
+    );
+  }
+}
+
+// Initialize Resend with API key or placeholder for development
+// Resend constructor requires a non-empty string
+const resend = new Resend(apiKey || 're_placeholder_for_development');
 
 export interface EmailData {
   to: string | string[];
@@ -20,8 +38,8 @@ export interface NotificationEmailData {
 }
 
 class EmailService {
-  private defaultFrom = import.meta.env.VITE_DEFAULT_FROM_EMAIL || 'noreply@somapay.com';
-  private appUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+  private defaultFrom = import.meta.env.VITE_DEFAULT_FROM_EMAIL || 'noreply@partnerscrm.com';
+  private appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
 
   /**
    * Envia um email usando o Resend
@@ -39,11 +57,14 @@ class EmailService {
         success: true,
         messageId: response.data?.id,
       };
-    } catch (error: any) {
-      console.error('Erro ao enviar email:', error);
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Erro ao enviar email:', error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao enviar email';
       return {
         success: false,
-        error: error.message || 'Erro desconhecido ao enviar email',
+        error: errorMessage,
       };
     }
   }
@@ -56,7 +77,7 @@ class EmailService {
     
     return this.sendEmail({
       to: data.recipientEmail,
-      subject: `Somapay - ${data.title}`,
+      subject: `Partners CRM - ${data.title}`,
       html: emailTemplate,
     });
   }
@@ -80,7 +101,7 @@ class EmailService {
 
     return this.sendEmail({
       to: recipientEmail,
-      subject: `Somapay - Relatório ${reportMonth}/${reportYear} Disponível`,
+      subject: `Partners CRM - Relatório ${reportMonth}/${reportYear} Disponível`,
       html: emailTemplate,
     });
   }
@@ -100,7 +121,7 @@ class EmailService {
 
     return this.sendEmail({
       to: recipientEmail,
-      subject: 'Bem-vindo ao Somapay Dashboard',
+      subject: 'Bem-vindo ao Partners CRM',
       html: emailTemplate,
     });
   }
@@ -137,8 +158,8 @@ class EmailService {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">Somapay</h1>
-          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Dashboard de Parceiros</p>
+          <h1 style="color: white; margin: 0; font-size: 28px;">Partners CRM</h1>
+          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Portal de Parceiros</p>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
@@ -161,7 +182,7 @@ class EmailService {
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           
           <p style="font-size: 12px; color: #666; text-align: center; margin: 0;">
-            Este é um email automático do sistema Somapay. Não responda a este email.
+            Este é um email automático do Partners CRM. Não responda a este email.
           </p>
         </div>
       </body>
@@ -188,8 +209,8 @@ class EmailService {
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">Somapay</h1>
-          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Dashboard de Parceiros</p>
+          <h1 style="color: white; margin: 0; font-size: 28px;">Partners CRM</h1>
+          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Portal de Parceiros</p>
         </div>
         
         <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
@@ -213,7 +234,7 @@ class EmailService {
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           
           <p style="font-size: 12px; color: #666; text-align: center; margin: 0;">
-            Este é um email automático do sistema Somapay. Não responda a este email.
+            Este é um email automático do Partners CRM. Não responda a este email.
           </p>
         </div>
       </body>
@@ -234,21 +255,21 @@ class EmailService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Bem-vindo ao Somapay</title>
+        <title>Bem-vindo ao Partners CRM</title>
       </head>
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
-          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Bem-vindo ao Somapay!</h1>
-          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Dashboard de Parceiros</p>
+          <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Bem-vindo ao Partners CRM!</h1>
+          <p style="color: #f0f0f0; margin: 10px 0 0 0;">Portal de Parceiros</p>
         </div>
-        
+
         <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
           <h2 style="color: #333; margin-bottom: 15px;">Sua conta foi criada com sucesso!</h2>
-          
+
           <p style="margin-bottom: 20px;">Olá, <strong>${data.recipientName}</strong>!</p>
-          
+
           <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p style="margin: 0 0 10px 0;">Sua conta no Somapay Dashboard foi criada com sucesso. Agora você pode acessar todas as funcionalidades da plataforma.</p>
+            <p style="margin: 0 0 10px 0;">Sua conta no Partners CRM foi criada com sucesso. Agora você pode acessar todas as funcionalidades da plataforma.</p>
             ${data.temporaryPassword ? `<p style="margin: 10px 0 0 0;"><strong>Senha temporária:</strong> <code style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;">${data.temporaryPassword}</code></p><p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">⚠️ Recomendamos alterar sua senha no primeiro acesso.</p>` : ''}
           </div>
           
@@ -259,7 +280,7 @@ class EmailService {
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
           
           <p style="font-size: 12px; color: #666; text-align: center; margin: 0;">
-            Este é um email automático do sistema Somapay. Não responda a este email.
+            Este é um email automático do Partners CRM. Não responda a este email.
           </p>
         </div>
       </body>
