@@ -9,14 +9,6 @@
     "NODE_ENV": "production"
   },
 
-  "build": {
-    "env": {
-      "VITE_APP_URL": "@vite_app_url",
-      "VITE_API_URL": "@vite_api_url",
-      "VITE_SENTRY_DSN": "@vite_sentry_dsn"
-    }
-  },
-
   "headers": [
     {
       "source": "/(.*)",
