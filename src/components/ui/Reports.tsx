@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DocumentArrowDownIcon, PaperAirplaneIcon, CalendarIcon, DocumentArrowUpIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
-import { emailService } from '../../services/emailService'
+import { sendNotificationEmail } from '../../services/api/emailService'
 import { API_URL } from '../../config/api'
 
 interface MonthlyReport {
@@ -206,7 +206,7 @@ export default function Reports() {
       }
 
       // Enviar email com a nota fiscal
-      const emailResult = await emailService.sendNotificationEmail({
+      const emailResult = await sendNotificationEmail({
         recipientEmail: currentUser.email,
         recipientName: currentUser.name,
         title: `Nota Fiscal - ${month}/${year}`,

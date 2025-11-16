@@ -19,7 +19,7 @@ import {
   ShoppingCartIcon
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
-import { emailService } from '../../services/emailService'
+import { sendNotificationEmail, sendReportAvailableEmail, sendWelcomeEmail } from '../../services/api/emailService'
 import { API_URL } from '../../config/api'
 import Integrations from './Integrations'
 import ProductManagement from './ProductManagement'
@@ -670,7 +670,7 @@ export default function Admin() {
 
         // Enviar email de boas-vindas para o novo usuário
         try {
-          await emailService.sendWelcomeEmail(
+          await sendWelcomeEmail(
             userData.email,
             userData.name,
             newUser.password
@@ -786,7 +786,7 @@ export default function Admin() {
         ]
         const monthName = monthNames[parseInt(selectedMonth) - 1]
         
-        await emailService.sendReportAvailableEmail(
+        await sendReportAvailableEmail(
           selectedPartner.email,
           selectedPartner.name,
           monthName,
@@ -828,7 +828,7 @@ export default function Admin() {
         // Enviar para todos os parceiros
         const partners = users.filter(user => user.role === 'partner')
         for (const partner of partners) {
-          await emailService.sendNotificationEmail({
+          await sendNotificationEmail({
             recipientEmail: partner.email,
             recipientName: partner.name,
             title: notification.title,
@@ -840,7 +840,7 @@ export default function Admin() {
         // Enviar para parceiro específico
         const recipient = users.find(user => user.id.toString() === notification.recipientId)
         if (recipient) {
-          await emailService.sendNotificationEmail({
+          await sendNotificationEmail({
             recipientEmail: recipient.email,
             recipientName: recipient.name,
             title: notification.title,
