@@ -10,10 +10,10 @@
  */
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import SEO, { generateProductSchema, generateFAQSchema } from '../components/layout/SEO';
 
-const plans = [
+const fallbackPlans = [
   {
     name: 'Starter',
     price: 29,
@@ -106,6 +106,39 @@ const faqSchema = generateFAQSchema(faqs);
 
 export default function PricingPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [plans, setPlans] = useState<typeof fallbackPlans>(fallbackPlans);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const response = await fetch('/api/pricingPlans');
+        if (!response.ok) return;
+        const data = await response.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data
+            .filter((p: any) => p.isActive)
+            .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+            .map((p: any, index: number) => ({
+              name: p.name,
+              price: p.basePrice,
+              description: p.description,
+              features: Array.isArray(p.features) ? p.features : [],
+              cta: index === 0 ? 'Começar Grátis' : index === 1 ? 'Começar Teste Grátis' : 'Falar com Vendas',
+              popular: index === 1,
+            }));
+
+          if (mapped.length > 0) {
+            setPlans(mapped as any);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar planos de preço:', error);
+      }
+    };
+
+    fetchPlans();
+  }, []);
 
   return (
     <>

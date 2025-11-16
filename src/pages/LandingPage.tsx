@@ -3,7 +3,7 @@
  * Completely functional with demo modal and sales chat
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import SEO from '../components/layout/SEO'
 import { XMarkIcon, PlayIcon } from '@heroicons/react/24/outline'
@@ -29,6 +29,7 @@ export default function LandingPage() {
     { type: 'bot', text: '👋 Olá! Sou o assistente de vendas. Como posso ajudá-lo?' }
   ])
   const [chatInput, setChatInput] = useState('')
+  const [startingPrice, setStartingPrice] = useState<number | null>(29)
 
   const handleDemoClick = () => {
     setShowDemoModal(true)
@@ -70,6 +71,32 @@ export default function LandingPage() {
 
     setChatInput('')
   }
+
+  // Buscar menor preço ativo da API (Supabase via /api/pricingPlans)
+  useEffect(() => {
+    const fetchStartingPrice = async () => {
+      try {
+        const response = await fetch('/api/pricingPlans')
+        if (!response.ok) return
+        const data = await response.json()
+        if (Array.isArray(data) && data.length > 0) {
+          const activePlans = data.filter((p: any) => p.isActive)
+          const plansToConsider = activePlans.length > 0 ? activePlans : data
+          const minBase = plansToConsider.reduce(
+            (min: number, p: any) => (typeof p.basePrice === 'number' && p.basePrice < min ? p.basePrice : min),
+            plansToConsider[0].basePrice,
+          )
+          if (typeof minBase === 'number' && !Number.isNaN(minBase)) {
+            setStartingPrice(minBase)
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao buscar planos de preço:', error)
+      }
+    }
+
+    fetchStartingPrice()
+  }, [])
 
   return (
     <>
@@ -281,7 +308,9 @@ export default function LandingPage() {
               Pague apenas pelo que usar. Sem surpresas, sem taxas escondidas.
             </p>
             <div className="inline-flex items-baseline gap-2 mb-8">
-              <span className="text-5xl font-bold text-blue-600">R$ 29</span>
+              <span className="text-5xl font-bold text-blue-600">
+                R$ {startingPrice !== null ? startingPrice.toFixed(0) : '29'}
+              </span>
               <span className="text-2xl text-gray-500">/usuário/mês</span>
             </div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

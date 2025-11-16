@@ -1,0 +1,24 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+let supabaseAdmin = null
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  // Em ambiente local sem Supabase configurado, apenas logamos um aviso.
+  // Em produção (Vercel), essas variáveis DEVEM estar configuradas.
+  console.warn(
+    'Supabase não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nas variáveis de ambiente.'
+  )
+} else {
+  supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+    },
+  })
+}
+
+export { supabaseAdmin }
+
+
