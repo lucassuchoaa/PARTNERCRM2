@@ -30,10 +30,17 @@ export default function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const user = await getCurrentUser()
-      setIsLoggedIn(!!user)
-      setCurrentUser(user)
-      setIsLoading(false)
+      try {
+        const user = await getCurrentUser()
+        setIsLoggedIn(!!user)
+        setCurrentUser(user)
+      } catch (error) {
+        console.error('Error checking auth:', error)
+        setIsLoggedIn(false)
+        setCurrentUser(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
     checkAuth()
   }, [])
