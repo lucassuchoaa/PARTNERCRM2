@@ -41,9 +41,22 @@ export default async function handler(req, res) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching users:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
 
-      return res.status(200).json(data || []);
+      // Transformar dados para formato frontend
+      const transformedData = (data || []).map(user => ({
+        ...user,
+        remunerationTableIds: user.remuneration_table_ids || [],
+        managerId: user.manager_id,
+        createdAt: user.created_at,
+        lastLogin: user.last_login
+      }));
+
+      return res.status(200).json(transformedData);
     }
 
     if (req.method === 'POST') {
@@ -75,12 +88,24 @@ export default async function handler(req, res) {
         .single();
 
       if (error) {
+        console.error('Supabase error creating user:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
         if (error.code === '23505') { // Unique violation
           return res.status(409).json({
             success: false,
             error: 'Email já cadastrado'
           });
         }
+        
+        // Erro específico de RLS
+        if (error.message && error.message.includes('permission denied') || error.message.includes('RLS')) {
+          return res.status(500).json({
+            success: false,
+            error: 'Permissão negada. Verifique as políticas RLS no Supabase. Erro: ' + error.message
+          });
+        }
+        
         throw error;
       }
 
@@ -99,9 +124,28 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Users API error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Mensagens de erro mais específicas
+    let errorMessage = 'Erro interno do servidor';
+    
+    if (error.message) {
+      errorMessage = error.message;
+      
+      // Erros comuns do Supabase
+      if (error.message.includes('permission denied') || error.message.includes('RLS')) {
+        errorMessage = 'Permissão negada pelo Supabase. Verifique as políticas RLS (Row Level Security) no Supabase.';
+      } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
+        errorMessage = 'Tabela não encontrada no Supabase. Execute o SQL do arquivo SETUP_SUPABASE.md no SQL Editor do Supabase.';
+      } else if (error.message.includes('column') && error.message.includes('does not exist')) {
+        errorMessage = 'Coluna não encontrada na tabela. Verifique se o schema da tabela está correto no Supabase.';
+      }
+    }
+    
     return res.status(500).json({
       success: false,
-      error: error.message || 'Erro interno do servidor'
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
