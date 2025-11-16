@@ -121,7 +121,7 @@ const sendToCustomAnalytics = (metric: Metric, rating: string) => {
   });
 
   if (navigator.sendBeacon) {
-    navigator.sendBeacon(`${API_URL}/api/analytics/web-vitals`, data);
+    navigator.sendBeacon(`${API_URL}/analytics/web-vitals`, data);
   } else {
     // Fallback to fetch
     fetch(`${API_URL}/api/analytics/web-vitals`, {
