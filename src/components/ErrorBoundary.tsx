@@ -111,10 +111,10 @@ class ErrorBoundary extends Component<Props, State> {
               resolver o problema.
             </p>
 
-            {import.meta.env.DEV && this.state.error && (
+            {this.state.error && (
               <details className="mb-6 rounded-md bg-gray-50 p-4">
                 <summary className="cursor-pointer font-semibold text-gray-700">
-                  Detalhes do Erro (Dev Mode)
+                  Detalhes do Erro
                 </summary>
                 <div className="mt-2 overflow-auto">
                   <p className="mb-2 text-sm font-medium text-red-600">
