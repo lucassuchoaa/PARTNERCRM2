@@ -19,6 +19,13 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
   })
 }
 
+export function getSupabaseClient() {
+  if (!supabaseAdmin) {
+    throw new Error('Supabase client não inicializado. Verifique SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.')
+  }
+  return supabaseAdmin
+}
+
 export { supabaseAdmin }
 
 
