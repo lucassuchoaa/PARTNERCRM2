@@ -21,7 +21,9 @@ if (!supabaseUrl || !supabaseServiceRoleKey) {
 
 export function getSupabaseClient() {
   if (!supabaseAdmin) {
-    throw new Error('Supabase client não inicializado. Verifique SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY.')
+    const error = new Error('Supabase client não inicializado. Verifique SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY nas variáveis de ambiente do Vercel.')
+    error.code = 'SUPABASE_NOT_CONFIGURED'
+    throw error
   }
   return supabaseAdmin
 }

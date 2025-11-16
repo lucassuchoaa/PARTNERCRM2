@@ -20,7 +20,17 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const supabase = getSupabaseClient();
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch (configError) {
+    console.error('Supabase configuration error:', configError);
+    return res.status(500).json({
+      success: false,
+      error: configError.message || 'Supabase não configurado. Verifique as variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no Vercel.'
+    });
+  }
+
   const { id } = req.query;
 
   try {
