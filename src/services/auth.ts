@@ -40,11 +40,7 @@ export async function login({ email, password }: LoginCredentials): Promise<User
         localStorage.setItem('refreshToken', data.data.refreshToken)
       }
 
-      // Armazenar usuário
-      const user = data.data.user
-      localStorage.setItem('user', JSON.stringify(user))
-
-      return user
+      return data.data.user
     }
 
     throw new Error('Resposta inválida do servidor')

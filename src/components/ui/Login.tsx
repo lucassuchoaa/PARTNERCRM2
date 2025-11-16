@@ -17,11 +17,7 @@ export default function Login({ onLogin }: LoginProps) {
 
     try {
       const user = await login({ email, password })
-      // O login já armazena user no localStorage via auth.ts
-      // Mas garantimos que está armazenado
-      if (!localStorage.getItem('user')) {
-        localStorage.setItem('user', JSON.stringify(user))
-      }
+      localStorage.setItem('user', JSON.stringify(user))
       onLogin()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login')
