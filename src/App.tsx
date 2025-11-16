@@ -28,25 +28,26 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const hash = useHashLocation()
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await getCurrentUser()
-        if (user) {
-          setIsLoggedIn(true)
-          setCurrentUser(user)
-        } else {
-          setIsLoggedIn(false)
-          setCurrentUser(null)
-        }
-      } catch (error) {
-        console.error('Erro ao verificar autenticação:', error)
+  const checkAuth = async () => {
+    try {
+      const user = await getCurrentUser()
+      if (user) {
+        setIsLoggedIn(true)
+        setCurrentUser(user)
+      } else {
         setIsLoggedIn(false)
         setCurrentUser(null)
-      } finally {
-        setIsLoading(false)
       }
+    } catch (error) {
+      console.error('Erro ao verificar autenticação:', error)
+      setIsLoggedIn(false)
+      setCurrentUser(null)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     checkAuth()
   }, [])
 
@@ -85,7 +86,7 @@ export default function App() {
 
                 <div className="flex-1 max-w-md w-full">
                   <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white border-opacity-20">
-                    <Login onLogin={() => setIsLoggedIn(true)} />
+                    <Login onLogin={checkAuth} />
                   </div>
                 </div>
               </div>
