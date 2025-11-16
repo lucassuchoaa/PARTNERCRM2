@@ -124,7 +124,7 @@ const sendToCustomAnalytics = (metric: Metric, rating: string) => {
     navigator.sendBeacon(`${API_URL}/analytics/web-vitals`, data);
   } else {
     // Fallback to fetch
-    fetch(`${API_URL}/api/analytics/web-vitals`, {
+    fetch(`${API_URL}/analytics/web-vitals`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: data,
