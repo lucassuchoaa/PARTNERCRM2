@@ -25,7 +25,7 @@ export default function SupportMaterials() {
     const fetchMaterials = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${API_URL}/support_materials`)
+        const response = await fetch(`${API_URL}/support-materials`)
         if (response.ok) {
           const data = await response.json()
           setMaterials(data)
