@@ -65,8 +65,8 @@ export default function ProductManagement({ currentUser }: ProductManagementProp
     loadProducts();
   }, []);
 
-  const loadProducts = () => {
-    const loaded = productService.getProducts();
+  const loadProducts = async () => {
+    const loaded = await productService.getProducts();
     setProducts(loaded);
   };
 
@@ -94,14 +94,14 @@ export default function ProductManagement({ currentUser }: ProductManagementProp
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) {
       alert('Nome do produto é obrigatório');
       return;
     }
 
     if (editingProduct) {
-      productService.updateProduct(
+      await productService.updateProduct(
         editingProduct.id,
         {
           ...formData,
@@ -110,7 +110,7 @@ export default function ProductManagement({ currentUser }: ProductManagementProp
         currentUser?.email || 'admin'
       );
     } else {
-      productService.addProduct(
+      await productService.addProduct(
         {
           ...formData,
           order: products.length + 1,
@@ -119,53 +119,53 @@ export default function ProductManagement({ currentUser }: ProductManagementProp
       );
     }
 
-    loadProducts();
+    await loadProducts();
     setIsModalOpen(false);
   };
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     if (!confirm(`Tem certeza que deseja excluir "${product.name}"?`)) return;
 
-    productService.deleteProduct(product.id, currentUser?.email || 'admin');
-    loadProducts();
+    await productService.deleteProduct(product.id, currentUser?.email || 'admin');
+    await loadProducts();
   };
 
-  const handleMoveUp = (index: number) => {
+  const handleMoveUp = async (index: number) => {
     if (index === 0) return;
     const newProducts = [...products];
     [newProducts[index - 1], newProducts[index]] = [newProducts[index], newProducts[index - 1]];
-    productService.reorderProducts(
+    await productService.reorderProducts(
       newProducts.map(p => p.id),
       currentUser?.email || 'admin'
     );
-    loadProducts();
+    await loadProducts();
   };
 
-  const handleMoveDown = (index: number) => {
+  const handleMoveDown = async (index: number) => {
     if (index === products.length - 1) return;
     const newProducts = [...products];
     [newProducts[index], newProducts[index + 1]] = [newProducts[index + 1], newProducts[index]];
-    productService.reorderProducts(
+    await productService.reorderProducts(
       newProducts.map(p => p.id),
       currentUser?.email || 'admin'
     );
-    loadProducts();
+    await loadProducts();
   };
 
-  const handleToggleActive = (product: Product) => {
-    productService.updateProduct(
+  const handleToggleActive = async (product: Product) => {
+    await productService.updateProduct(
       product.id,
       { isActive: !product.isActive },
       currentUser?.email || 'admin'
     );
-    loadProducts();
+    await loadProducts();
   };
 
-  const handleResetDefaults = () => {
+  const handleResetDefaults = async () => {
     if (!confirm('Tem certeza que deseja restaurar os produtos padrão? Isso vai remover todas as customizações.')) return;
 
-    productService.resetToDefaults(currentUser?.email || 'admin');
-    loadProducts();
+    await productService.resetToDefaults(currentUser?.email || 'admin');
+    await loadProducts();
   };
 
   const getIconComponent = (iconName: string) => {

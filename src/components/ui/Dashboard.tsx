@@ -181,8 +181,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Carregar produtos customizáveis
-    const loadedProducts = productService.getActiveProducts()
-    setProducts(loadedProducts)
+    const loadProducts = async () => {
+      const loadedProducts = await productService.getActiveProducts()
+      setProducts(loadedProducts)
+    }
+    loadProducts()
   }, [])
 
   useEffect(() => {

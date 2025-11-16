@@ -265,17 +265,19 @@ export default function Admin() {
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${API_URL}/users`)
-      const usersData = await response.json()
-      
-      // Adicionar dados simulados para demonstração
-      const enhancedUsers = usersData.map((user: any) => ({
-        ...user,
-        status: 'active' as const,
-        createdAt: '2024-01-15T10:00:00Z',
-        lastLogin: '2024-01-20T14:30:00Z'
-      }))
-      
-      setUsers(enhancedUsers)
+      if (response.ok) {
+        const usersData = await response.json()
+        // Adaptar formato do banco para o formato esperado pelo frontend
+        const enhancedUsers = usersData.map((user: any) => ({
+          ...user,
+          managerId: user.manager_id,
+          remunerationTableIds: user.remuneration_table_ids || [],
+          createdAt: user.created_at,
+          lastLogin: user.last_login,
+          status: user.status || 'active'
+        }))
+        setUsers(enhancedUsers)
+      }
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
     } finally {
@@ -295,10 +297,19 @@ export default function Admin() {
 
   const fetchRemunerationTables = async () => {
     try {
-      const response = await fetch(`${API_URL}/remuneration_tables`)
+      const response = await fetch(`${API_URL}/remuneration-tables`)
       if (response.ok) {
         const data = await response.json()
-        setRemunerationTables(data)
+        // Adaptar formato do banco para o formato esperado pelo frontend
+        setRemunerationTables(data.map((table: any) => ({
+          ...table,
+          employeeRangeStart: table.employee_range_start,
+          employeeRangeEnd: table.employee_range_end,
+          finderNegotiationMargin: table.finder_negotiation_margin,
+          maxCompanyCashback: table.max_company_cashback,
+          finalFinderCashback: table.final_finder_cashback,
+          valueType: table.value_type || 'percentage'
+        })))
       }
     } catch (error) {
       console.error('Erro ao buscar tabelas de remuneração:', error)
@@ -324,10 +335,18 @@ export default function Admin() {
 
   const fetchSupportMaterials = async () => {
     try {
-      const response = await fetch(`${API_URL}/support_materials`)
+      const response = await fetch(`${API_URL}/support-materials`)
       if (response.ok) {
         const data = await response.json()
-        setSupportMaterials(data)
+        // Adaptar formato do banco para o formato esperado pelo frontend
+        setSupportMaterials(data.map((material: any) => ({
+          ...material,
+          downloadUrl: material.download_url,
+          viewUrl: material.view_url,
+          fileSize: material.file_size,
+          createdAt: material.created_at,
+          updatedAt: material.updated_at
+        })))
       }
     } catch (error) {
       console.error('Erro ao buscar materiais de apoio:', error)
@@ -343,17 +362,27 @@ export default function Admin() {
         updatedAt: new Date().toISOString()
       }
       
-      const response = await fetch(`${API_URL}/support_materials`, {
+      const response = await fetch(`${API_URL}/support-materials`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(materialToAdd)
+        body: JSON.stringify({
+          title: newMaterial.title,
+          category: newMaterial.category,
+          type: newMaterial.type,
+          description: newMaterial.description,
+          downloadUrl: newMaterial.downloadUrl,
+          viewUrl: newMaterial.viewUrl,
+          fileSize: newMaterial.fileSize,
+          duration: newMaterial.duration
+        })
       })
       
       if (response.ok) {
-        const addedMaterial = await response.json()
-        setSupportMaterials([...supportMaterials, addedMaterial])
+        const result = await response.json()
+        const addedMaterial = result.data || result
+        await fetchSupportMaterials() // Recarregar da API
         setShowMaterialModal(false)
         setNewMaterial({
           title: '',
@@ -384,19 +413,25 @@ export default function Admin() {
         updatedAt: new Date().toISOString()
       }
       
-      const response = await fetch(`${API_URL}/support_materials/${editingMaterial.id}`, {
+      const response = await fetch(`${API_URL}/support-materials/${editingMaterial.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(materialToUpdate)
+        body: JSON.stringify({
+          title: editingMaterial.title,
+          category: editingMaterial.category,
+          type: editingMaterial.type,
+          description: editingMaterial.description,
+          downloadUrl: editingMaterial.downloadUrl,
+          viewUrl: editingMaterial.viewUrl,
+          fileSize: editingMaterial.fileSize,
+          duration: editingMaterial.duration
+        })
       })
       
       if (response.ok) {
-        const updatedMaterial = await response.json()
-        setSupportMaterials(supportMaterials.map(material => 
-          material.id === updatedMaterial.id ? updatedMaterial : material
-        ))
+        await fetchSupportMaterials() // Recarregar da API
         setShowMaterialModal(false)
         setEditingMaterial(null)
         alert('Material de apoio atualizado com sucesso!')
@@ -409,15 +444,15 @@ export default function Admin() {
     }
   }
   
-  const handleDeleteMaterial = async (id: number) => {
+  const handleDeleteMaterial = async (id: string | number) => {
     if (confirm('Tem certeza que deseja excluir este material de apoio?')) {
       try {
-        const response = await fetch(`${API_URL}/support_materials/${id}`, {
+        const response = await fetch(`${API_URL}/support-materials/${id}`, {
           method: 'DELETE'
         })
         
         if (response.ok) {
-          setSupportMaterials(supportMaterials.filter(material => material.id !== id))
+          await fetchSupportMaterials() // Recarregar da API
           alert('Material de apoio excluído com sucesso!')
         } else {
           alert('Erro ao excluir material de apoio')
@@ -433,14 +468,20 @@ export default function Admin() {
     try {
       const isEditing = editingRemuneration !== null
       const url = isEditing 
-        ? `${API_URL}/remuneration_tables/${editingRemuneration.id}`
-        : `${API_URL}/remuneration_tables`
+        ? `${API_URL}/remuneration-tables/${editingRemuneration.id}`
+        : `${API_URL}/remuneration-tables`
       
       const method = isEditing ? 'PUT' : 'POST'
       
-      const body = isEditing 
-        ? { ...newRemuneration, id: editingRemuneration.id, createdAt: editingRemuneration.createdAt }
-        : { ...newRemuneration, id: Date.now(), createdAt: new Date().toISOString() }
+      const body = {
+        employeeRangeStart: newRemuneration.employeeRangeStart,
+        employeeRangeEnd: newRemuneration.employeeRangeEnd || null,
+        finderNegotiationMargin: newRemuneration.finderNegotiationMargin,
+        maxCompanyCashback: newRemuneration.maxCompanyCashback,
+        finalFinderCashback: newRemuneration.finalFinderCashback,
+        description: newRemuneration.description || null,
+        valueType: newRemuneration.valueType || 'percentage'
+      }
       
       const response = await fetch(url, {
         method,
@@ -451,7 +492,7 @@ export default function Admin() {
       })
       
       if (response.ok) {
-        fetchRemunerationTables()
+        await fetchRemunerationTables()
         setShowRemunerationModal(false)
         setEditingRemuneration(null)
         setNewRemuneration({
@@ -464,6 +505,9 @@ export default function Admin() {
           valueType: 'currency'
         })
         alert(isEditing ? 'Tabela de remuneração atualizada com sucesso!' : 'Tabela de remuneração criada com sucesso!')
+      } else {
+        const errorData = await response.json().catch(() => null)
+        alert(errorData?.error || 'Erro ao salvar tabela de remuneração')
       }
     } catch (error) {
       console.error('Erro ao salvar tabela de remuneração:', error)
@@ -488,13 +532,16 @@ export default function Admin() {
   const handleDeleteRemuneration = async (id: number) => {
     if (confirm('Tem certeza que deseja excluir esta tabela de remuneração?')) {
       try {
-        const response = await fetch(`${API_URL}/remuneration_tables/${id}`, {
+        const response = await fetch(`${API_URL}/remuneration-tables/${id}`, {
           method: 'DELETE'
         })
         
         if (response.ok) {
-          fetchRemunerationTables()
+          await fetchRemunerationTables()
           alert('Tabela de remuneração excluída com sucesso!')
+        } else {
+          const errorData = await response.json().catch(() => null)
+          alert(errorData?.error || 'Erro ao excluir tabela de remuneração')
         }
       } catch (error) {
         console.error('Erro ao excluir tabela de remuneração:', error)
@@ -558,10 +605,27 @@ export default function Admin() {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(editingUser)
+          body: JSON.stringify({
+            email: editingUser.email,
+            name: editingUser.name,
+            password: (editingUser as any).password,
+            role: editingUser.role,
+            managerId: (editingUser as any).managerId || null,
+            remunerationTableIds: (editingUser as any).remunerationTableIds || [],
+            status: editingUser.status
+          })
         })
         
-        if (response.ok && editingUser.role === 'partner') {
+        if (response.ok) {
+          await fetchUsers() // Recarregar da API
+          setShowUserModal(false)
+          setEditingUser(null)
+          setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
+          alert('Usuário atualizado com sucesso!')
+          return
+        }
+        
+        if (editingUser.role === 'partner') {
           // Atualizar também na tabela de parceiros
           const partnerResponse = await fetch(`${API_URL}/partners/${editingUser.id}`, {
             method: 'PUT',
@@ -584,22 +648,25 @@ export default function Admin() {
       }
       
       // Criar novo usuário
-      const userData = {
-        ...newUser,
-        id: Date.now(),
-        status: 'active',
-        createdAt: new Date().toISOString()
-      }
-
       const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(userData)
+        body: JSON.stringify({
+          email: newUser.email,
+          name: newUser.name,
+          password: newUser.password,
+          role: newUser.role,
+          managerId: newUser.managerId || null,
+          remunerationTableIds: newUser.remunerationTableIds || [],
+          status: 'active'
+        })
       })
       
       if (response.ok) {
+        const result = await response.json()
+        const userData = result.data || result
         // Se for um parceiro e tem gerente, criar entrada na tabela de parceiros
         if (newUser.role === 'partner' && newUser.managerId) {
           const manager = managers.find(m => m.id === newUser.managerId)
