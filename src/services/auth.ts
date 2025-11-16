@@ -1,16 +1,10 @@
-interface User {
-  id: number
-  email: string
-  name: string
-  role: string
-}
+import { API_URL } from '../config/api'
+import type { User } from '../types'
 
 interface LoginCredentials {
   email: string
   password: string
 }
-
-import { API_URL } from '../config/api'
 
 export async function login({ email, password }: LoginCredentials): Promise<User> {
   try {
@@ -40,7 +34,11 @@ export async function login({ email, password }: LoginCredentials): Promise<User
         localStorage.setItem('refreshToken', data.data.refreshToken)
       }
 
-      return data.data.user
+      // Armazenar usuário
+      const user = data.data.user
+      localStorage.setItem('user', JSON.stringify(user))
+
+      return user
     }
 
     throw new Error('Resposta inválida do servidor')
@@ -51,10 +49,25 @@ export async function login({ email, password }: LoginCredentials): Promise<User
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const userJson = localStorage.getItem('user')
-  if (!userJson) return null
+  try {
+    const userJson = localStorage.getItem('user')
+    if (!userJson) return null
 
-  return JSON.parse(userJson)
+    const user = JSON.parse(userJson)
+
+    // Validar campos mínimos
+    if (!user.id || !user.email || !user.role) {
+      console.warn('Dados de usuário incompletos, limpando localStorage')
+      logout()
+      return null
+    }
+
+    return user
+  } catch (error) {
+    console.error('Erro ao parsear usuário do localStorage:', error)
+    logout()
+    return null
+  }
 }
 
 export function setCurrentUser(user: User): void {
@@ -63,4 +76,6 @@ export function setCurrentUser(user: User): void {
 
 export function logout(): void {
   localStorage.removeItem('user')
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
 }

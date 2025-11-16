@@ -10,9 +10,11 @@ const MOCK_USERS = {
     id: '1',
     email: 'admin@partnerscrm.com',
     name: 'Admin User',
-    role: 'admin',
+    role: 'manager',
     password: 'password123',
-    isActive: true
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-01T00:00:00.000Z'
   },
   'partner@example.com': {
     id: '2',
@@ -20,7 +22,9 @@ const MOCK_USERS = {
     name: 'Partner User',
     role: 'partner',
     password: 'password123',
-    isActive: true
+    isActive: true,
+    createdAt: '2025-01-01T00:00:00.000Z',
+    updatedAt: '2025-01-01T00:00:00.000Z'
   }
 };
 
