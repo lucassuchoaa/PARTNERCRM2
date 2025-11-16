@@ -47,50 +47,82 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // Apply rate limiting
-  await authRateLimit(req, res, async () => {
-    // Validate request body
-    await validateBody(loginSchema)(req, res, async (validatedData: LoginRequest) => {
-      const { email, password } = validatedData;
+  try {
+    const { email, password } = req.body as LoginRequest;
 
-      // Find user by email
-      const user = MOCK_USERS[email.toLowerCase()];
+    // Validação básica
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email e senha são obrigatórios',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-      if (!user) {
-        return errorResponse('Invalid email or password', 401, 'INVALID_CREDENTIALS');
-      }
+    // Find user by email
+    const user = MOCK_USERS[email.toLowerCase()];
 
-      if (!user.isActive) {
-        return errorResponse('Account is inactive', 401, 'ACCOUNT_INACTIVE');
-      }
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha inválidos',
+        code: 'INVALID_CREDENTIALS',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-      // Verify password
-      // For development, also accept plain text "password123"
-      const isPasswordValid =
-        password === 'password123' || // Development fallback
-        await bcrypt.compare(password, user.password);
+    if (!user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: 'Conta inativa',
+        code: 'ACCOUNT_INACTIVE',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-      if (!isPasswordValid) {
-        return errorResponse('Invalid email or password', 401, 'INVALID_CREDENTIALS');
-      }
+    // Verify password
+    // For development, also accept plain text "password123"
+    const isPasswordValid =
+      password === 'password123' || // Development fallback
+      (user.password && await bcrypt.compare(password, user.password));
 
-      // Generate tokens
-      const accessToken = generateAccessToken(user.id, user.email, user.role);
-      const refreshToken = generateRefreshToken(user.id, user.email, user.role);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha inválidos',
+        code: 'INVALID_CREDENTIALS',
+        timestamp: new Date().toISOString()
+      });
+    }
 
-      // Remove password from user object
-      const { password: _, ...userWithoutPassword } = user;
+    // Generate tokens
+    const accessToken = generateAccessToken(user.id, user.email, user.role);
+    const refreshToken = generateRefreshToken(user.id, user.email, user.role);
 
-      const response: LoginResponse = {
-        user: userWithoutPassword,
-        accessToken,
-        refreshToken,
-        expiresIn: 3600 // 1 hour in seconds
-      };
+    // Remove password from user object
+    const { password: _, ...userWithoutPassword } = user;
 
-      res.status(200).json(successResponse(response, 'Login successful'));
+    const response: LoginResponse = {
+      user: userWithoutPassword,
+      accessToken,
+      refreshToken,
+      expiresIn: 3600 // 1 hour in seconds
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: response,
+      message: 'Login realizado com sucesso',
+      timestamp: new Date().toISOString()
     });
-  });
+  } catch (error: any) {
+    console.error('Login error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+      timestamp: new Date().toISOString()
+    });
+  }
 }
 
 export default withCORS(withErrorHandler(handler));

@@ -14,35 +14,36 @@ import { API_URL } from '../config/api'
 
 export async function login({ email, password }: LoginCredentials): Promise<User> {
   try {
-    const response = await fetch(`${API_URL}/users?email=${email}`, {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
       headers: {
-        'Accept': 'application/json'
-      }
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
     })
 
     if (!response.ok) {
-      throw new Error(`Erro ao buscar usuário: ${response.status}`)
+      const errorData = await response.json().catch(() => null)
+      throw new Error(errorData?.error || `Erro ao fazer login: ${response.status}`)
     }
 
-    // Verificar se é realmente JSON
-    const contentType = response.headers.get('content-type')
-    if (!contentType || !contentType.includes('application/json')) {
-      throw new Error('Servidor não retornou dados válidos')
+    const data = await response.json()
+
+    // O backend retorna { success: true, data: { user, accessToken, refreshToken } }
+    if (data.success && data.data) {
+      // Armazenar tokens
+      if (data.data.accessToken) {
+        localStorage.setItem('accessToken', data.data.accessToken)
+      }
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken)
+      }
+
+      return data.data.user
     }
 
-    const users = await response.json()
-
-    if (!Array.isArray(users) || users.length === 0) {
-      throw new Error('Usuário não encontrado')
-    }
-
-    const user = users[0]
-    if (user.password !== password) {
-      throw new Error('Senha incorreta')
-    }
-
-    const { password: _, ...userWithoutPassword } = user
-    return userWithoutPassword
+    throw new Error('Resposta inválida do servidor')
   } catch (error: any) {
     console.error('Erro no login:', error)
     throw new Error(error.message || 'Erro ao fazer login. Tente novamente.')
