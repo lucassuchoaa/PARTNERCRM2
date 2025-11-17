@@ -1,38 +1,4 @@
-/**
- * Support Materials API - Versão Mock (sem Supabase)
- * Para produção com Supabase real, renomeie index.js para index-supabase.js
- * e este arquivo para index.js
- */
-
-// Mock database in-memory
-let mockMaterials = [
-  {
-    id: '1',
-    title: 'Guia de Integração',
-    category: 'guides',
-    type: 'pdf',
-    description: 'Guia completo de integração com a plataforma',
-    downloadUrl: '/files/guia-integracao.pdf',
-    viewUrl: null,
-    fileSize: '2.5 MB',
-    duration: null,
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z'
-  },
-  {
-    id: '2',
-    title: 'Vídeo: Como usar o dashboard',
-    category: 'tutorials',
-    type: 'video',
-    description: 'Tutorial em vídeo sobre as funcionalidades do dashboard',
-    downloadUrl: null,
-    viewUrl: 'https://youtube.com/watch?v=example',
-    fileSize: null,
-    duration: '15:30',
-    createdAt: '2025-01-02T00:00:00.000Z',
-    updatedAt: '2025-01-02T00:00:00.000Z'
-  }
-];
+import { getSupabaseClient } from '../_lib/supabaseClient';
 
 export default async function handler(req, res) {
   const origin = req.headers.origin;
@@ -54,9 +20,27 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch (configError) {
+    console.error('Supabase configuration error:', configError);
+    return res.status(500).json({
+      success: false,
+      error: configError.message || 'Supabase não configurado. Verifique as variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no Vercel.'
+    });
+  }
+
   try {
     if (req.method === 'GET') {
-      return res.status(200).json(mockMaterials);
+      const { data, error } = await supabase
+        .from('support_materials')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return res.status(200).json(data || []);
     }
 
     if (req.method === 'POST') {
@@ -78,25 +62,26 @@ export default async function handler(req, res) {
         });
       }
 
-      const newMaterial = {
-        id: (mockMaterials.length + 1).toString(),
-        title,
-        category,
-        type,
-        description: description || null,
-        downloadUrl: downloadUrl || null,
-        viewUrl: viewUrl || null,
-        fileSize: fileSize || null,
-        duration: duration || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
+      const { data, error } = await supabase
+        .from('support_materials')
+        .insert({
+          title,
+          category,
+          type,
+          description: description || null,
+          download_url: downloadUrl || null,
+          view_url: viewUrl || null,
+          file_size: fileSize || null,
+          duration: duration || null
+        })
+        .select()
+        .single();
 
-      mockMaterials.push(newMaterial);
+      if (error) throw error;
 
       return res.status(201).json({
         success: true,
-        data: newMaterial
+        data
       });
     }
 
@@ -112,3 +97,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
