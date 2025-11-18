@@ -1,36 +1,5 @@
-/**
- * Users API - Versão Mock (sem Supabase)
- * Para produção com Supabase real, renomeie index.js para index-supabase.js
- * e este arquivo para index.js
- */
-
-// Mock database in-memory
-let mockUsers = [
-  {
-    id: '1',
-    email: 'admin@partnerscrm.com',
-    name: 'Admin User',
-    role: 'manager',
-    status: 'active',
-    managerId: null,
-    remunerationTableIds: [1, 2],
-    createdAt: '2025-01-01T00:00:00.000Z',
-    lastLogin: '2025-11-16T00:00:00.000Z',
-    permissions: ['manage_users', 'view_reports']
-  },
-  {
-    id: '2',
-    email: 'partner@example.com',
-    name: 'Partner User',
-    role: 'partner',
-    status: 'active',
-    managerId: '1',
-    remunerationTableIds: [1],
-    createdAt: '2025-01-02T00:00:00.000Z',
-    lastLogin: '2025-11-15T00:00:00.000Z',
-    permissions: ['view_own_data']
-  }
-];
+import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '../_lib/supabaseClient';
 
 export default async function handler(req, res) {
   // CORS
@@ -53,10 +22,41 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  let supabase;
+  try {
+    supabase = getSupabaseClient();
+  } catch (configError) {
+    console.error('Supabase configuration error:', configError);
+    return res.status(500).json({
+      success: false,
+      error: configError.message || 'Supabase não configurado. Verifique as variáveis de ambiente SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no Vercel.'
+    });
+  }
+
   try {
     if (req.method === 'GET') {
       // Listar usuários
-      return res.status(200).json(mockUsers);
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error fetching users:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        throw error;
+      }
+
+      // Transformar dados para formato frontend
+      const transformedData = (data || []).map(user => ({
+        ...user,
+        remunerationTableIds: user.remuneration_table_ids || [],
+        managerId: user.manager_id,
+        createdAt: user.created_at,
+        lastLogin: user.last_login
+      }));
+
+      return res.status(200).json(transformedData);
     }
 
     if (req.method === 'POST') {
@@ -70,33 +70,51 @@ export default async function handler(req, res) {
         });
       }
 
-      // Verificar email duplicado
-      const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          error: 'Email já cadastrado'
-        });
+      const id = Date.now().toString();
+
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          id,
+          email: email.toLowerCase().trim(),
+          name,
+          password, // Em produção, fazer hash!
+          role,
+          manager_id: managerId || null,
+          remuneration_table_ids: remunerationTableIds || [],
+          status
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating user:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        if (error.code === '23505') { // Unique violation
+          return res.status(409).json({
+            success: false,
+            error: 'Email já cadastrado'
+          });
+        }
+        
+        // Erro específico de RLS
+        if (error.message && error.message.includes('permission denied') || error.message.includes('RLS')) {
+          return res.status(500).json({
+            success: false,
+            error: 'Permissão negada. Verifique as políticas RLS no Supabase. Erro: ' + error.message
+          });
+        }
+        
+        throw error;
       }
 
-      const newUser = {
-        id: (mockUsers.length + 1).toString(),
-        email: email.toLowerCase().trim(),
-        name,
-        role,
-        status,
-        managerId: managerId || null,
-        remunerationTableIds: remunerationTableIds || [],
-        createdAt: new Date().toISOString(),
-        lastLogin: null,
-        permissions: role === 'manager' ? ['manage_users', 'view_reports'] : ['view_own_data']
-      };
-
-      mockUsers.push(newUser);
+      // Remover senha do retorno
+      const { password: _, ...userWithoutPassword } = data;
 
       return res.status(201).json({
         success: true,
-        data: newUser
+        data: userWithoutPassword
       });
     }
 
@@ -106,9 +124,29 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Users API error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Mensagens de erro mais específicas
+    let errorMessage = 'Erro interno do servidor';
+    
+    if (error.message) {
+      errorMessage = error.message;
+      
+      // Erros comuns do Supabase
+      if (error.message.includes('permission denied') || error.message.includes('RLS')) {
+        errorMessage = 'Permissão negada pelo Supabase. Verifique as políticas RLS (Row Level Security) no Supabase.';
+      } else if (error.message.includes('relation') && error.message.includes('does not exist')) {
+        errorMessage = 'Tabela não encontrada no Supabase. Execute o SQL do arquivo SETUP_SUPABASE.md no SQL Editor do Supabase.';
+      } else if (error.message.includes('column') && error.message.includes('does not exist')) {
+        errorMessage = 'Coluna não encontrada na tabela. Verifique se o schema da tabela está correto no Supabase.';
+      }
+    }
+    
     return res.status(500).json({
       success: false,
-      error: error.message || 'Erro interno do servidor'
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }
+
