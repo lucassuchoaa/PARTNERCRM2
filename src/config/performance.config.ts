@@ -10,10 +10,17 @@
  * - TTFB (Time to First Byte): Server response time
  */
 
-import { onCLS, onFID, onFCP, onLCP, onTTFB, Metric } from 'web-vitals';
+import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
 import * as Sentry from '@sentry/react';
 
 const ENVIRONMENT = import.meta.env.NODE_ENV || 'development';
+
+interface Metric {
+  name: string;
+  value: number;
+  id: string;
+  navigationType?: string;
+}
 
 /**
  * Performance thresholds based on Google's recommendations
