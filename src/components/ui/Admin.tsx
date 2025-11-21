@@ -553,10 +553,19 @@ export default function Admin() {
   const fetchUploadedFiles = async () => {
     try {
       const response = await fetch(`${API_URL}/uploads`)
+      
+      if (!response.ok) {
+        setUploadedFiles([])
+        return
+      }
+      
       const uploadsData = await response.json()
       
+      // Garantir que sempre seja um array
+      const uploadsArray = Array.isArray(uploadsData) ? uploadsData : []
+      
       // Mapear dados da API para o formato esperado
-      const enhancedFiles = uploadsData.map((upload: any) => ({
+      const enhancedFiles = uploadsArray.map((upload: any) => ({
         id: upload.id,
         fileName: upload.fileName,
         fileType: upload.fileType || 'PDF',
@@ -577,8 +586,17 @@ export default function Admin() {
   const fetchNfeUploads = async () => {
     try {
       const response = await fetch(`${API_URL}/nfe_uploads`)
+      
+      if (!response.ok) {
+        setNfeUploads([])
+        return
+      }
+      
       const nfeData = await response.json()
-      setNfeUploads(nfeData)
+      
+      // Garantir que sempre seja um array
+      const nfeArray = Array.isArray(nfeData) ? nfeData : []
+      setNfeUploads(nfeArray)
     } catch (error) {
       console.error('Erro ao buscar NFe uploads:', error)
       setNfeUploads([])
@@ -588,8 +606,17 @@ export default function Admin() {
   const fetchNotifications = async () => {
     try {
       const response = await fetch(`${API_URL}/notifications`)
+      
+      if (!response.ok) {
+        setNotifications([])
+        return
+      }
+      
       const notificationsData = await response.json()
-      setNotifications(notificationsData)
+      
+      // Garantir que sempre seja um array
+      const notificationsArray = Array.isArray(notificationsData) ? notificationsData : []
+      setNotifications(notificationsArray)
     } catch (error) {
       console.error('Erro ao buscar notificações:', error)
       setNotifications([])

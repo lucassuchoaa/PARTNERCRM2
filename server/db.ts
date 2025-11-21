@@ -47,4 +47,5 @@ export const getClient = async () => {
   return { query, client, release: releaseChecked };
 };
 
+export { pool };
 export default pool;

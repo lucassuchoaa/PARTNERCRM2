@@ -7,6 +7,12 @@ import productsRoutes from './routes/products';
 import pricingPlansRoutes from './routes/pricing-plans';
 import remunerationTablesRoutes from './routes/remuneration-tables';
 import supportMaterialsRoutes from './routes/support-materials';
+import clientsRoutes from './routes/clients';
+import transactionsRoutes from './routes/transactions';
+import prospectsRoutes from './routes/prospects';
+import notificationsRoutes from './routes/notifications';
+import uploadsRoutes from './routes/uploads';
+import nfeUploadsRoutes from './routes/nfe-uploads';
 
 dotenv.config();
 
@@ -94,6 +100,12 @@ app.use('/api/products', productsRoutes);
 app.use('/api/pricing-plans', pricingPlansRoutes);
 app.use('/api/remuneration-tables', remunerationTablesRoutes);
 app.use('/api/support-materials', supportMaterialsRoutes);
+app.use('/api/clients', clientsRoutes);
+app.use('/api/transactions', transactionsRoutes);
+app.use('/api/prospects', prospectsRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/uploads', uploadsRoutes);
+app.use('/api/nfe_uploads', nfeUploadsRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
