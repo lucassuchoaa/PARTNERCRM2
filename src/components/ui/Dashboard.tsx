@@ -148,14 +148,28 @@ export default function Dashboard() {
   const loadNotifications = async (userId: string) => {
     try {
       const response = await fetch(`${API_URL}/notifications?recipientId=${userId}`)
+      
+      if (!response.ok) {
+        // Se a API retornar erro, manter array vazio
+        setNotifications([])
+        setUnreadCount(0)
+        return
+      }
+      
       const notificationsData = await response.json()
-      setNotifications(notificationsData)
+      
+      // Garantir que sempre seja um array
+      const notificationsArray = Array.isArray(notificationsData) ? notificationsData : []
+      setNotifications(notificationsArray)
       
       // Contar notificações não lidas
-      const unread = notificationsData.filter((n: Notification) => !n.isRead).length
+      const unread = notificationsArray.filter((n: Notification) => !n.isRead).length
       setUnreadCount(unread)
     } catch (error) {
       console.error('Erro ao carregar notificações:', error)
+      // Em caso de erro, garantir array vazio
+      setNotifications([])
+      setUnreadCount(0)
     }
   }
 
