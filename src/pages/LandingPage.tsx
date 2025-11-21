@@ -29,7 +29,6 @@ export default function LandingPage() {
     { type: 'bot', text: '👋 Olá! Sou o assistente de vendas. Como posso ajudá-lo?' }
   ])
   const [chatInput, setChatInput] = useState('')
-  const [startingPrice, setStartingPrice] = useState<number | null>(29)
   const [pricingPlans, setPricingPlans] = useState<any[]>([])
 
   const handleDemoClick = () => {
@@ -98,20 +97,6 @@ export default function LandingPage() {
           }))
           
           setPricingPlans(formattedPlans)
-          
-          const activePlans = formattedPlans.filter((p: any) => p.isActive)
-          const plansToConsider = activePlans.length > 0 ? activePlans : formattedPlans
-          
-          if (plansToConsider.length === 0) return
-          
-          const minBase = plansToConsider.reduce(
-            (min: number, p: any) => (typeof p.basePrice === 'number' && p.basePrice < min ? p.basePrice : min),
-            plansToConsider[0].basePrice,
-          )
-          
-          if (typeof minBase === 'number' && !Number.isNaN(minBase)) {
-            setStartingPrice(minBase)
-          }
         }
       } catch (error) {
         console.error('Erro ao buscar planos de preço:', error)

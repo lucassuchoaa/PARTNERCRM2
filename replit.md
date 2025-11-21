@@ -13,6 +13,45 @@ The platform serves three primary user roles:
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Updates (Nov 21, 2025)
+
+### Admin Navigation Redesign
+- **Replaced dropdown menus** with persistent sidebar navigation (264px wide)
+- **5 organized categories**: Sistema, Conteúdo, Financeiro, ChatBot IA, Integrações
+- **Always visible** - eliminates extra clicks and improves discoverability
+- **Visual indicators**: Active items highlighted with bg-indigo-50, hover effects
+- **Heroicons** for quick identification of each section
+
+### Production Deployment Configuration (Replit Autoscale)
+- **Created `server/production.ts`**: Single server serving both static files (dist/) and API routes on port 5000
+- **Updated package.json**: Added `start` and `start:backend` scripts for production
+- **Configured server to listen on 0.0.0.0**: Required for Replit Autoscale deployments
+- **Updated deployment config**: Uses `npm run start` instead of development commands
+- **Production-ready**: Serves pre-built Vite assets with proper caching headers
+
+### Stripe Checkout Implementation
+- **Backend Routes (`/api/stripe/`):**
+  - `POST /create-payment-intent`: Creates one-time payment for pricing plans
+  - `POST /create-subscription`: Creates recurring subscriptions (future use)
+  
+- **Frontend Pages:**
+  - **Checkout.tsx**: Complete payment form with Stripe Elements
+  - **CheckoutSuccess.tsx**: Success page with auto-redirect to login
+  
+- **Integration:**
+  - Landing page "Começar Agora" buttons save selected plan to localStorage
+  - Redirects to #checkout route
+  - Payment confirmed → #checkout-success → #login (5s auto-redirect)
+  
+- **Required Environment Variables:**
+  - `VITE_STRIPE_PUBLIC_KEY`: Stripe publishable key (frontend)
+  - `STRIPE_SECRET_KEY`: Stripe secret key (backend)
+
+### Landing Page Improvements
+- **Removed non-functional links** from footer: "Sobre Nós", "Contato", "Carreiras", "Blog"
+- **Kept functional links**: Pricing, Demo, Chat, "Fale Conosco"
+- **Dynamic pricing section**: Single pricing display powered by database API (no duplicates)
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -70,6 +109,7 @@ Core endpoints organized by resource:
 - `/api/remuneration-tables/*` - Commission structure management
 - `/api/support-materials/*` - Marketing and sales materials
 - `/api/upload/*` - File upload handling
+- `/api/stripe/*` - Stripe payment processing (create-payment-intent, create-subscription)
 
 **Database Design Principles**
 - PostgreSQL relational database with normalized schema
@@ -181,10 +221,12 @@ Core endpoints organized by resource:
 - `VITE_API_URL`: API endpoint base path
 - `VITE_ENABLE_REACT_QUERY_DEVTOOLS`: Development tools toggle
 - `VITE_SENTRY_DSN`: Error tracking endpoint (optional)
+- `VITE_STRIPE_PUBLIC_KEY`: Stripe publishable key for frontend payments (required for checkout)
 
 **Backend (Server-side only - never exposed)**
 - `JWT_SECRET`: Access token signing key (required)
 - `JWT_REFRESH_SECRET`: Refresh token signing key (required)
+- `STRIPE_SECRET_KEY`: Stripe secret key for backend payment processing (required for checkout)
 - `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
 - `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`: Database credentials (auto-configured)
 - `FRONTEND_URL`: Allowed CORS origins (comma-separated, optional)

@@ -7,9 +7,7 @@ const getStripeClient = () => {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY not configured');
   }
-  return new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2024-11-20.acacia'
-  });
+  return new Stripe(process.env.STRIPE_SECRET_KEY);
 };
 
 router.post('/create-payment-intent', async (req, res) => {
@@ -81,8 +79,15 @@ router.post('/create-subscription', async (req, res) => {
       expand: ['latest_invoice.payment_intent'],
     });
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
+    const latestInvoice = subscription.latest_invoice;
+    if (!latestInvoice || typeof latestInvoice === 'string') {
+      throw new Error('Failed to create invoice');
+    }
+
+    const paymentIntent = latestInvoice.payment_intent;
+    if (!paymentIntent || typeof paymentIntent === 'string') {
+      throw new Error('Failed to create payment intent');
+    }
 
     res.json({
       success: true,
