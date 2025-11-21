@@ -84,7 +84,7 @@ app.use(express.static(distPath, {
   }
 }));
 
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({
       success: false,
@@ -93,12 +93,16 @@ app.get('*', (req, res) => {
     });
   }
   
-  res.sendFile(join(distPath, 'index.html'), (err) => {
-    if (err) {
-      console.error('Error serving index.html:', err);
-      res.status(500).send('Internal Server Error');
-    }
-  });
+  if (req.method === 'GET') {
+    res.sendFile(join(distPath, 'index.html'), (err) => {
+      if (err) {
+        console.error('Error serving index.html:', err);
+        res.status(500).send('Internal Server Error');
+      }
+    });
+  } else {
+    next();
+  }
 });
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

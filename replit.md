@@ -22,12 +22,14 @@ Preferred communication style: Simple, everyday language.
 - **Visual indicators**: Active items highlighted with bg-indigo-50, hover effects
 - **Heroicons** for quick identification of each section
 
-### Production Deployment Configuration (Replit Autoscale)
+### Production Deployment Configuration (Replit Autoscale) ✅
 - **Created `server/production.ts`**: Single server serving both static files (dist/) and API routes on port 5000
 - **Updated package.json**: Added `start` and `start:backend` scripts for production
 - **Configured server to listen on 0.0.0.0**: Required for Replit Autoscale deployments
 - **Updated deployment config**: Uses `npm run start` instead of development commands
 - **Production-ready**: Serves pre-built Vite assets with proper caching headers
+- **Fixed Express 5+ compatibility**: Replaced wildcard route syntax (`*`) with middleware approach for compatibility with newer path-to-regexp versions
+- **Verified**: Build process tested successfully, static files serve correctly from dist/ folder
 
 ### Stripe Checkout Implementation
 - **Backend Routes (`/api/stripe/`):**
