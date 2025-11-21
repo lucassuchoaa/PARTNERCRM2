@@ -517,10 +517,7 @@ export default function LandingPage() {
               <div>
                 <h4 className="font-semibold mb-4">Empresa</h4>
                 <ul className="space-y-2 text-gray-400">
-                  <li><button onClick={handleSalesClick} className="hover:text-white transition-colors">Sobre Nós</button></li>
-                  <li><button onClick={handleSalesClick} className="hover:text-white transition-colors">Contato</button></li>
-                  <li><button onClick={handleSalesClick} className="hover:text-white transition-colors">Carreiras</button></li>
-                  <li><button onClick={handleSalesClick} className="hover:text-white transition-colors">Blog</button></li>
+                  <li><button onClick={handleSalesClick} className="hover:text-white transition-colors">Fale Conosco</button></li>
                 </ul>
               </div>
               <div>
