@@ -363,7 +363,10 @@ export default function LandingPage() {
                         <p className="text-sm text-gray-500">+R$ {plan.additionalUserPrice.toFixed(2)} por usuário adicional</p>
                       </div>
                       <button
-                        onClick={() => { window.location.hash = 'login' }}
+                        onClick={() => {
+                          localStorage.setItem('selectedPlan', JSON.stringify(plan));
+                          window.location.hash = 'checkout';
+                        }}
                         className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors duration-200 ${
                           index === 1
                             ? 'bg-blue-600 text-white hover:bg-blue-700'

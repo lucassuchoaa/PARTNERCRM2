@@ -9,6 +9,8 @@ const Dashboard = lazy(() => import('./components/ui/Dashboard'))
 const ManagerDashboard = lazy(() => import('./components/ui/ManagerDashboard'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
+const Checkout = lazy(() => import('./pages/Checkout'))
+const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'))
 
 function useHashLocation() {
   const [hash, setHash] = useState(window.location.hash)
@@ -108,6 +110,38 @@ export default function App() {
           }
         >
           <PricingPage />
+        </Suspense>
+      )
+    }
+
+    // Checkout route
+    if (hash === '#checkout') {
+      return (
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-t-transparent" aria-label="Carregando"></div>
+              <span className="sr-only">Carregando checkout...</span>
+            </div>
+          }
+        >
+          <Checkout />
+        </Suspense>
+      )
+    }
+
+    // Checkout success route
+    if (hash === '#checkout-success') {
+      return (
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-t-transparent" aria-label="Carregando"></div>
+              <span className="sr-only">Carregando...</span>
+            </div>
+          }
+        >
+          <CheckoutSuccess />
         </Suspense>
       )
     }

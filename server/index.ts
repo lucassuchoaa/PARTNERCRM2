@@ -13,6 +13,7 @@ import prospectsRoutes from './routes/prospects';
 import notificationsRoutes from './routes/notifications';
 import uploadsRoutes from './routes/uploads';
 import nfeUploadsRoutes from './routes/nfe-uploads';
+import stripeRoutes from './routes/stripe';
 
 dotenv.config();
 
@@ -106,6 +107,7 @@ app.use('/api/prospects', prospectsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/nfe_uploads', nfeUploadsRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
