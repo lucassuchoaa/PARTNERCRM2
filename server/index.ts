@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : ['http://localhost:5000', /localhost/, /127\.0\.0\.1/];
+  : [/localhost/, /127\.0\.0\.1/, /172\.\d+\.\d+\.\d+/]; // Allow localhost, 127.0.0.1, and Replit IPs
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -30,7 +30,16 @@ app.use(cors({
       return;
     }
 
-    // Check if origin matches
+    // In development, allow localhost/127.0.0.1/local IPs
+    if (process.env.NODE_ENV !== 'production') {
+      const devOriginRegex = /localhost|127\.0\.0\.1|172\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+/;
+      if (devOriginRegex.test(origin)) {
+        callback(null, true);
+        return;
+      }
+    }
+
+    // Check if origin matches configured origins
     const isAllowed = allowedOrigins.some(allowed => {
       if (allowed instanceof RegExp) {
         return allowed.test(origin);
@@ -41,7 +50,7 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.log(`CORS blocked origin: ${origin}, allowed: ${allowedOrigins}`);
+      console.warn(`⚠️  CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
