@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from './client';
-import { HubSpotContactRequest, HubSpotContactResponse, HubSpotValidateProspectRequest, HubSpotValidateProspectResponse } from '../../../shared/types';
+import type { HubSpotContactRequest, HubSpotContactResponse, HubSpotValidateProspectRequest, HubSpotValidateProspectResponse } from '@shared/types';
 
 /**
  * Create or update HubSpot contact via backend API (secure)

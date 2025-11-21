@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from './client';
-import { GeminiRequest, GeminiResponse, GeminiSalesPitchRequest, GeminiSalesPitchResponse } from '../../../shared/types';
+import type { GeminiRequest, GeminiResponse, GeminiSalesPitchRequest, GeminiSalesPitchResponse } from '@shared/types';
 
 /**
  * Ask Gemini AI a question via backend API (secure)

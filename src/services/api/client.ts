@@ -4,8 +4,9 @@
  * Centralized Axios instance with authentication and error handling
  */
 
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { ApiResponse } from '../../../shared/types';
+import axios, { AxiosError } from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
+import type { ApiResponse } from '@shared/types';
 
 // API base URL - adjust for production
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';

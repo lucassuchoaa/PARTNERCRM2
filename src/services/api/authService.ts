@@ -5,7 +5,7 @@
  */
 
 import { apiClient, setStoredTokens, clearStoredTokens, getCurrentUser as getStoredUser } from './client';
-import { LoginRequest, LoginResponse, User } from '../../../shared/types';
+import type { LoginRequest, LoginResponse, User } from '@shared/types';
 
 /**
  * Login user with email and password

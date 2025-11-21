@@ -5,7 +5,7 @@
  */
 
 import { apiClient } from './client';
-import { EmailRequest, EmailResponse, NotificationEmailRequest } from '../../../shared/types';
+import type { EmailRequest, EmailResponse, NotificationEmailRequest } from '@shared/types';
 
 /**
  * Send email via backend API (secure)
