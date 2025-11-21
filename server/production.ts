@@ -16,6 +16,7 @@ import notificationsRoutes from './routes/notifications.js';
 import uploadsRoutes from './routes/uploads.js';
 import nfeUploadsRoutes from './routes/nfe-uploads.js';
 import stripeRoutes from './routes/stripe.js';
+import initRoutes from './routes/init.js';
 
 dotenv.config();
 
@@ -74,6 +75,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/nfe_uploads', nfeUploadsRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/init', initRoutes);
 
 const distPath = join(__dirname, '../dist');
 app.use(express.static(distPath, {

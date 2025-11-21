@@ -14,6 +14,7 @@ import notificationsRoutes from './routes/notifications';
 import uploadsRoutes from './routes/uploads';
 import nfeUploadsRoutes from './routes/nfe-uploads';
 import stripeRoutes from './routes/stripe';
+import initRoutes from './routes/init';
 
 dotenv.config();
 
@@ -108,6 +109,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/uploads', uploadsRoutes);
 app.use('/api/nfe_uploads', nfeUploadsRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/init', initRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
