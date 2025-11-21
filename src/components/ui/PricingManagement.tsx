@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { CurrencyDollarIcon, UsersIcon, CheckIcon, XMarkIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
 interface PricingPlan {
   id: string
@@ -27,13 +28,29 @@ export default function PricingManagement() {
 
   const fetchPlans = async () => {
     try {
-      const response = await fetch(`${API_URL}/pricingPlans`)
+      const response = await fetchWithAuth(`${API_URL}/pricing-plans`)
       if (response.ok) {
-        const data = await response.json()
-        setPlans(data.sort((a: PricingPlan, b: PricingPlan) => a.order - b.order))
+        const result = await response.json()
+        const plansData = result.success ? result.data : (Array.isArray(result) ? result : [])
+        const plansArray = Array.isArray(plansData) ? plansData : []
+        
+        const formattedPlans = plansArray.map((plan: any) => ({
+          id: plan.id,
+          name: plan.name,
+          description: plan.description,
+          basePrice: parseFloat(plan.base_price || plan.basePrice || 0),
+          includedUsers: parseInt(plan.included_users || plan.includedUsers || 0),
+          additionalUserPrice: parseFloat(plan.additional_user_price || plan.additionalUserPrice || 0),
+          features: plan.features || [],
+          isActive: plan.is_active !== undefined ? plan.is_active : plan.isActive,
+          order: plan.order || 0
+        }))
+        
+        setPlans(formattedPlans.sort((a: PricingPlan, b: PricingPlan) => a.order - b.order))
       }
     } catch (error) {
       console.error('Error fetching pricing plans:', error)
+      setPlans([])
     } finally {
       setLoading(false)
     }
@@ -49,7 +66,7 @@ export default function PricingManagement() {
 
     setSaving(true)
     try {
-      const response = await fetch(`${API_URL}/pricingPlans/${editingPlan.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/pricing-plans/${editingPlan.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -61,9 +78,14 @@ export default function PricingManagement() {
         await fetchPlans()
         setIsEditModalOpen(false)
         setEditingPlan(null)
+        alert('Plano atualizado com sucesso!')
+      } else {
+        const errorData = await response.json().catch(() => null)
+        alert(errorData?.error || 'Erro ao atualizar plano')
       }
     } catch (error) {
       console.error('Error updating pricing plan:', error)
+      alert('Erro ao atualizar plano')
     } finally {
       setSaving(false)
     }

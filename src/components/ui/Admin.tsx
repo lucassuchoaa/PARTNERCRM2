@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Menu } from '@headlessui/react'
 import {
   UsersIcon,
   DocumentArrowUpIcon,
@@ -16,7 +17,11 @@ import {
   BookOpenIcon,
   CurrencyDollarIcon,
   ArrowPathIcon,
-  ShoppingCartIcon
+  ShoppingCartIcon,
+  ChevronDownIcon,
+  Square3Stack3DIcon,
+  BanknotesIcon,
+  ChatBubbleBottomCenterTextIcon
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
 import { sendNotificationEmail, sendReportAvailableEmail, sendWelcomeEmail } from '../../services/api/emailService'
@@ -916,7 +921,7 @@ export default function Admin() {
           'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
         ]
-        const monthName = monthNames[parseInt(selectedMonth) - 1]
+        const monthName = monthNames[parseInt(selectedMonth) - 1] || selectedMonth
         
         await sendReportAvailableEmail(
           selectedPartner.email,
@@ -1166,129 +1171,217 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Navigation Menu */}
       <div className="mt-8">
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'users'
+          <nav className="-mb-px flex space-x-4 overflow-x-auto">
+            {/* Sistema Dropdown */}
+            <Menu as="div" className="relative">
+              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
+                ['users', 'notifications'].includes(activeTab)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <UsersIcon className="h-5 w-5 inline mr-2" />
-              Usuários
-            </button>
-            <button
-              onClick={() => setActiveTab('files')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'files'
+              }`}>
+                <UsersIcon className="h-5 w-5" />
+                <span>Sistema</span>
+                {['users', 'notifications'].includes(activeTab) && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
+                    {activeTab === 'users' ? 'Usuários' : 'Notificações'}
+                  </span>
+                )}
+                <ChevronDownIcon className="h-4 w-4 ml-auto" />
+              </Menu.Button>
+              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('users')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'users' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <UsersIcon className="mr-3 h-5 w-5" />
+                        Usuários
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('notifications')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <BellIcon className="mr-3 h-5 w-5" />
+                        Notificações
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Menu>
+
+            {/* Conteúdo Dropdown */}
+            <Menu as="div" className="relative">
+              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
+                ['materials', 'products', 'pricing'].includes(activeTab)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <DocumentArrowUpIcon className="h-5 w-5 inline mr-2" />
-              Arquivos
-            </button>
-            <button
-              onClick={() => setActiveTab('nfe')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'nfe'
+              }`}>
+                <Square3Stack3DIcon className="h-5 w-5" />
+                <span>Conteúdo</span>
+                {['materials', 'products', 'pricing'].includes(activeTab) && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
+                    {activeTab === 'materials' ? 'Materiais' : activeTab === 'products' ? 'Produtos' : 'Preços'}
+                  </span>
+                )}
+                <ChevronDownIcon className="h-4 w-4 ml-auto" />
+              </Menu.Button>
+              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('materials')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'materials' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <BookOpenIcon className="mr-3 h-5 w-5" />
+                        Material de Apoio
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('products')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'products' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <ShoppingCartIcon className="mr-3 h-5 w-5" />
+                        Produtos
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('pricing')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'pricing' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <CurrencyDollarIcon className="mr-3 h-5 w-5" />
+                        Preços
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Menu>
+
+            {/* Financeiro Dropdown */}
+            <Menu as="div" className="relative">
+              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
+                ['remuneration', 'files', 'nfe'].includes(activeTab)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <DocumentTextIcon className="h-5 w-5 inline mr-2" />
-              NFe Uploads
-            </button>
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'notifications'
+              }`}>
+                <BanknotesIcon className="h-5 w-5" />
+                <span>Financeiro</span>
+                {['remuneration', 'files', 'nfe'].includes(activeTab) && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
+                    {activeTab === 'remuneration' ? 'Remuneração' : activeTab === 'files' ? 'Arquivos' : 'NFe'}
+                  </span>
+                )}
+                <ChevronDownIcon className="h-4 w-4 ml-auto" />
+              </Menu.Button>
+              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('remuneration')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'remuneration' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <CurrencyDollarIcon className="mr-3 h-5 w-5" />
+                        Remuneração
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('files')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'files' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <DocumentArrowUpIcon className="mr-3 h-5 w-5" />
+                        Arquivos
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('nfe')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'nfe' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        <DocumentTextIcon className="mr-3 h-5 w-5" />
+                        NFe Uploads
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Menu>
+
+            {/* ChatBot IA Dropdown */}
+            <Menu as="div" className="relative">
+              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
+                ['chatanalytics', 'chattraining'].includes(activeTab)
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BellIcon className="h-5 w-5 inline mr-2" />
-              Notificações
-            </button>
-            <button
-              onClick={() => setActiveTab('remuneration')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'remuneration'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <DocumentArrowDownIcon className="h-5 w-5 inline mr-2" />
-              Remuneração
-            </button>
-            <button
-              onClick={() => setActiveTab('materials')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'materials'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <BookOpenIcon className="h-5 w-5 inline mr-2" />
-              Material de Apoio
-            </button>
+              }`}>
+                <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
+                <span>ChatBot IA</span>
+                {['chatanalytics', 'chattraining'].includes(activeTab) && (
+                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
+                    {activeTab === 'chatanalytics' ? 'Análise' : 'Treinamento'}
+                  </span>
+                )}
+                <ChevronDownIcon className="h-4 w-4 ml-auto" />
+              </Menu.Button>
+              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('chatanalytics')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'chatanalytics' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        📊 Análise
+                      </button>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => setActiveTab('chattraining')}
+                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'chattraining' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
+                      >
+                        🎓 Treinamento
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </Menu.Items>
+            </Menu>
+
+            {/* Integrações - Direct Button */}
             <button
               onClick={() => setActiveTab('integrations')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
                 activeTab === 'integrations'
                   ? 'border-indigo-500 text-indigo-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              <CogIcon className="h-5 w-5 inline mr-2" />
+              <CogIcon className="h-5 w-5" />
               Integrações
-            </button>
-            <button
-              onClick={() => setActiveTab('products')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'products'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <ShoppingCartIcon className="h-5 w-5 inline mr-2" />
-              Produtos
-            </button>
-            <button
-              onClick={() => setActiveTab('pricing')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'pricing'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <CurrencyDollarIcon className="h-5 w-5 inline mr-2" />
-              Preços
-            </button>
-            <button
-              onClick={() => setActiveTab('chatanalytics')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'chatanalytics'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              📊 Análise ChatBot
-            </button>
-
-            <button
-              onClick={() => setActiveTab('chattraining')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'chattraining'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              🎓 Treinamento ChatBot
             </button>
           </nav>
         </div>

@@ -30,6 +30,7 @@ export default function LandingPage() {
   ])
   const [chatInput, setChatInput] = useState('')
   const [startingPrice, setStartingPrice] = useState<number | null>(29)
+  const [pricingPlans, setPricingPlans] = useState<any[]>([])
 
   const handleDemoClick = () => {
     setShowDemoModal(true)
@@ -72,20 +73,42 @@ export default function LandingPage() {
     setChatInput('')
   }
 
-  // Buscar menor preço ativo da API (Supabase via /api/pricingPlans)
+  // Buscar menor preço ativo da API
   useEffect(() => {
     const fetchStartingPrice = async () => {
       try {
-        const response = await fetch('/api/pricingPlans')
+        const response = await fetch('/api/pricing-plans')
         if (!response.ok) return
-        const data = await response.json()
-        if (Array.isArray(data) && data.length > 0) {
-          const activePlans = data.filter((p: any) => p.isActive)
-          const plansToConsider = activePlans.length > 0 ? activePlans : data
+        
+        const result = await response.json()
+        const plansData = result.success ? result.data : (Array.isArray(result) ? result : [])
+        const plansArray = Array.isArray(plansData) ? plansData : []
+        
+        if (plansArray.length > 0) {
+          const formattedPlans = plansArray.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description,
+            basePrice: parseFloat(p.base_price || p.basePrice || 0),
+            includedUsers: parseInt(p.included_users || p.includedUsers || 0),
+            additionalUserPrice: parseFloat(p.additional_user_price || p.additionalUserPrice || 0),
+            features: p.features || [],
+            isActive: p.is_active !== undefined ? p.is_active : p.isActive,
+            order: p.order || 0
+          }))
+          
+          setPricingPlans(formattedPlans)
+          
+          const activePlans = formattedPlans.filter((p: any) => p.isActive)
+          const plansToConsider = activePlans.length > 0 ? activePlans : formattedPlans
+          
+          if (plansToConsider.length === 0) return
+          
           const minBase = plansToConsider.reduce(
             (min: number, p: any) => (typeof p.basePrice === 'number' && p.basePrice < min ? p.basePrice : min),
             plansToConsider[0].basePrice,
           )
+          
           if (typeof minBase === 'number' && !Number.isNaN(minBase)) {
             setStartingPrice(minBase)
           }
@@ -298,33 +321,91 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Teaser */}
-        <section id="pricing" className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Preços transparentes e justos
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Pague apenas pelo que usar. Sem surpresas, sem taxas escondidas.
-            </p>
-            <div className="inline-flex items-baseline gap-2 mb-8">
-              <span className="text-5xl font-bold text-blue-600">
-                R$ {startingPrice !== null ? startingPrice.toFixed(0) : '29'}
-              </span>
-              <span className="text-2xl text-gray-500">/usuário/mês</span>
+        {/* Pricing Section */}
+        <section id="pricing" className="py-24 bg-gradient-to-b from-gray-50 to-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                Preços transparentes e justos
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Pague apenas pelo que usar. Sem surpresas, sem taxas escondidas.
+              </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <button
-                onClick={() => { window.location.hash = 'login' }}
-                className="px-8 py-4 bg-blue-600 text-white rounded-lg font-semibold text-lg shadow-lg hover:bg-blue-700 transition-colors duration-200"
-              >
-                Ver Todos os Planos
-              </button>
+
+            {pricingPlans.length > 0 ? (
+              <div className="grid md:grid-cols-3 gap-8">
+                {pricingPlans.map((plan, index) => (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    className={`relative bg-white rounded-2xl shadow-xl ${index === 1 ? 'ring-2 ring-blue-600 scale-105' : ''}`}
+                  >
+                    {index === 1 && (
+                      <div className="absolute -top-5 left-0 right-0 mx-auto w-fit px-4 py-1 bg-blue-600 text-white text-sm font-semibold rounded-full">
+                        Mais Popular
+                      </div>
+                    )}
+                    <div className="p-8">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                      <p className="text-gray-600 mb-6">{plan.description}</p>
+                      <div className="mb-6">
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <span className="text-5xl font-bold text-blue-600">
+                            R$ {plan.basePrice.toFixed(0)}
+                          </span>
+                          <span className="text-gray-500">/mês</span>
+                        </div>
+                        <p className="text-sm text-gray-500">Até {plan.includedUsers} usuários inclusos</p>
+                        <p className="text-sm text-gray-500">+R$ {plan.additionalUserPrice.toFixed(2)} por usuário adicional</p>
+                      </div>
+                      <button
+                        onClick={() => { window.location.hash = 'login' }}
+                        className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors duration-200 ${
+                          index === 1
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                        }`}
+                      >
+                        Começar Agora
+                      </button>
+                      <div className="mt-8">
+                        <p className="text-sm font-semibold text-gray-900 mb-4">Recursos inclusos:</p>
+                        <ul className="space-y-3">
+                          {plan.features.map((feature: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              <span className="text-gray-600 text-sm">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Carregando planos...</p>
+              </div>
+            )}
+
+            <div className="mt-12 text-center">
+              <p className="text-gray-600 mb-4">Precisa de um plano personalizado?</p>
               <button
                 onClick={handleSalesClick}
-                className="px-8 py-4 bg-gray-100 text-gray-700 rounded-lg font-semibold text-lg hover:bg-gray-200 transition-colors duration-200"
+                className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-colors duration-200"
               >
                 Falar com Vendas
+                <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
               </button>
             </div>
           </div>
