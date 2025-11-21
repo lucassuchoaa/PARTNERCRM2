@@ -21,6 +21,7 @@ import {
 import { getCurrentUser } from '../../services/auth'
 import { sendNotificationEmail, sendReportAvailableEmail, sendWelcomeEmail } from '../../services/api/emailService'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import Integrations from './Integrations'
 import ProductManagement from './ProductManagement'
 import PricingManagement from './PricingManagement'
@@ -264,22 +265,31 @@ export default function Admin() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_URL}/users`)
-      if (response.ok) {
-        const usersData = await response.json()
-        // Adaptar formato do banco para o formato esperado pelo frontend
-        const enhancedUsers = usersData.map((user: any) => ({
-          ...user,
-          managerId: user.manager_id,
-          remunerationTableIds: user.remuneration_table_ids || [],
-          createdAt: user.created_at,
-          lastLogin: user.last_login,
-          status: user.status || 'active'
-        }))
-        setUsers(enhancedUsers)
+      const response = await fetchWithAuth(`${API_URL}/users`)
+      
+      if (!response.ok) {
+        setUsers([])
+        return
       }
+      
+      const usersData = await response.json()
+      
+      // Garantir que sempre seja um array
+      const usersArray = Array.isArray(usersData) ? usersData : (usersData?.data && Array.isArray(usersData.data) ? usersData.data : [])
+      
+      // Adaptar formato do banco para o formato esperado pelo frontend
+      const enhancedUsers = usersArray.map((user: any) => ({
+        ...user,
+        managerId: user.manager_id,
+        remunerationTableIds: user.remuneration_table_ids || [],
+        createdAt: user.created_at,
+        lastLogin: user.last_login,
+        status: user.status || 'active'
+      }))
+      setUsers(enhancedUsers)
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
+      setUsers([])
     } finally {
       setLoading(false)
     }
@@ -287,32 +297,51 @@ export default function Admin() {
 
   const fetchManagers = async () => {
     try {
-      const response = await fetch(`${API_URL}/managers`)
+      const response = await fetchWithAuth(`${API_URL}/managers`)
+      
+      if (!response.ok) {
+        setManagers([])
+        return
+      }
+      
       const managersData = await response.json()
-      setManagers(managersData)
+      
+      // Garantir que sempre seja um array
+      const managersArray = Array.isArray(managersData) ? managersData : (managersData?.data && Array.isArray(managersData.data) ? managersData.data : [])
+      setManagers(managersArray)
     } catch (error) {
       console.error('Erro ao buscar gerentes:', error)
+      setManagers([])
     }
   }
 
   const fetchRemunerationTables = async () => {
     try {
-      const response = await fetch(`${API_URL}/remuneration-tables`)
-      if (response.ok) {
-        const data = await response.json()
-        // Adaptar formato do banco para o formato esperado pelo frontend
-        setRemunerationTables(data.map((table: any) => ({
-          ...table,
-          employeeRangeStart: table.employee_range_start,
-          employeeRangeEnd: table.employee_range_end,
-          finderNegotiationMargin: table.finder_negotiation_margin,
-          maxCompanyCashback: table.max_company_cashback,
-          finalFinderCashback: table.final_finder_cashback,
-          valueType: table.value_type || 'percentage'
-        })))
+      const response = await fetchWithAuth(`${API_URL}/remuneration-tables`)
+      
+      if (!response.ok) {
+        setRemunerationTables([])
+        return
       }
+      
+      const data = await response.json()
+      
+      // Garantir que sempre seja um array
+      const dataArray = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : [])
+      
+      // Adaptar formato do banco para o formato esperado pelo frontend
+      setRemunerationTables(dataArray.map((table: any) => ({
+        ...table,
+        employeeRangeStart: table.employee_range_start,
+        employeeRangeEnd: table.employee_range_end,
+        finderNegotiationMargin: table.finder_negotiation_margin,
+        maxCompanyCashback: table.max_company_cashback,
+        finalFinderCashback: table.final_finder_cashback,
+        valueType: table.value_type || 'percentage'
+      })))
     } catch (error) {
       console.error('Erro ao buscar tabelas de remuneração:', error)
+      setRemunerationTables([])
     }
   }
 
@@ -335,21 +364,30 @@ export default function Admin() {
 
   const fetchSupportMaterials = async () => {
     try {
-      const response = await fetch(`${API_URL}/support-materials`)
-      if (response.ok) {
-        const data = await response.json()
-        // Adaptar formato do banco para o formato esperado pelo frontend
-        setSupportMaterials(data.map((material: any) => ({
-          ...material,
-          downloadUrl: material.download_url,
-          viewUrl: material.view_url,
-          fileSize: material.file_size,
-          createdAt: material.created_at,
-          updatedAt: material.updated_at
-        })))
+      const response = await fetchWithAuth(`${API_URL}/support-materials`)
+      
+      if (!response.ok) {
+        setSupportMaterials([])
+        return
       }
+      
+      const data = await response.json()
+      
+      // Garantir que sempre seja um array
+      const dataArray = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : [])
+      
+      // Adaptar formato do banco para o formato esperado pelo frontend
+      setSupportMaterials(dataArray.map((material: any) => ({
+        ...material,
+        downloadUrl: material.download_url,
+        viewUrl: material.view_url,
+        fileSize: material.file_size,
+        createdAt: material.created_at,
+        updatedAt: material.updated_at
+      })))
     } catch (error) {
       console.error('Erro ao buscar materiais de apoio:', error)
+      setSupportMaterials([])
     }
   }
   
@@ -362,7 +400,7 @@ export default function Admin() {
         updatedAt: new Date().toISOString()
       }
       
-      const response = await fetch(`${API_URL}/support-materials`, {
+      const response = await fetchWithAuth(`${API_URL}/support-materials`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -413,7 +451,7 @@ export default function Admin() {
         updatedAt: new Date().toISOString()
       }
       
-      const response = await fetch(`${API_URL}/support-materials/${editingMaterial.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/support-materials/${editingMaterial.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -447,7 +485,7 @@ export default function Admin() {
   const handleDeleteMaterial = async (id: string | number) => {
     if (confirm('Tem certeza que deseja excluir este material de apoio?')) {
       try {
-        const response = await fetch(`${API_URL}/support-materials/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/support-materials/${id}`, {
           method: 'DELETE'
         })
         
@@ -483,7 +521,7 @@ export default function Admin() {
         valueType: newRemuneration.valueType || 'percentage'
       }
       
-      const response = await fetch(url, {
+      const response = await fetchWithAuth(url, {
         method,
         headers: {
           'Content-Type': 'application/json'
@@ -532,7 +570,7 @@ export default function Admin() {
   const handleDeleteRemuneration = async (id: number) => {
     if (confirm('Tem certeza que deseja excluir esta tabela de remuneração?')) {
       try {
-        const response = await fetch(`${API_URL}/remuneration-tables/${id}`, {
+        const response = await fetchWithAuth(`${API_URL}/remuneration-tables/${id}`, {
           method: 'DELETE'
         })
         
@@ -552,7 +590,7 @@ export default function Admin() {
 
   const fetchUploadedFiles = async () => {
     try {
-      const response = await fetch(`${API_URL}/uploads`)
+      const response = await fetchWithAuth(`${API_URL}/uploads`)
       
       if (!response.ok) {
         setUploadedFiles([])
@@ -585,7 +623,7 @@ export default function Admin() {
 
   const fetchNfeUploads = async () => {
     try {
-      const response = await fetch(`${API_URL}/nfe_uploads`)
+      const response = await fetchWithAuth(`${API_URL}/nfe_uploads`)
       
       if (!response.ok) {
         setNfeUploads([])
@@ -605,7 +643,7 @@ export default function Admin() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch(`${API_URL}/notifications`)
+      const response = await fetchWithAuth(`${API_URL}/notifications`)
       
       if (!response.ok) {
         setNotifications([])
@@ -627,7 +665,7 @@ export default function Admin() {
     try {
       if (editingUser) {
         // Editar usuário existente
-        const response = await fetch(`${API_URL}/users/${editingUser.id}`, {
+        const response = await fetchWithAuth(`${API_URL}/users/${editingUser.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'
@@ -654,7 +692,7 @@ export default function Admin() {
         
         if (editingUser.role === 'partner') {
           // Atualizar também na tabela de parceiros
-          const partnerResponse = await fetch(`${API_URL}/partners/${editingUser.id}`, {
+          const partnerResponse = await fetchWithAuth(`${API_URL}/partners/${editingUser.id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -675,7 +713,7 @@ export default function Admin() {
       }
       
       // Criar novo usuário
-      const response = await fetch(`${API_URL}/users`, {
+      const response = await fetchWithAuth(`${API_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -720,7 +758,7 @@ export default function Admin() {
             }
           }
 
-          await fetch(`${API_URL}/partners`, {
+          await fetchWithAuth(`${API_URL}/partners`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -734,7 +772,7 @@ export default function Admin() {
             partnersIds: [...(manager?.partnersIds || []), userData.id.toString()]
           }
 
-          await fetch(`${API_URL}/managers/${newUser.managerId}`, {
+          await fetchWithAuth(`${API_URL}/managers/${newUser.managerId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json'
@@ -753,7 +791,7 @@ export default function Admin() {
             partnersIds: []
           }
 
-          await fetch(`${API_URL}/managers`, {
+          await fetchWithAuth(`${API_URL}/managers`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
@@ -787,7 +825,7 @@ export default function Admin() {
   const handleDeleteUser = async (userId: number) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
       try {
-        const response = await fetch(`${API_URL}/users/${userId}`, {
+        const response = await fetchWithAuth(`${API_URL}/users/${userId}`, {
           method: 'DELETE'
         })
         
@@ -854,7 +892,7 @@ export default function Admin() {
          status: 'available'
        }
 
-      await fetch(`${API_URL}/partner_reports`, {
+      await fetchWithAuth(`${API_URL}/partner_reports`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -945,7 +983,7 @@ export default function Admin() {
       }
       
       // Atualizar status de email enviado
-      await fetch(`${API_URL}/notifications/${notification.id}`, {
+      await fetchWithAuth(`${API_URL}/notifications/${notification.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
@@ -974,7 +1012,7 @@ export default function Admin() {
         emailSent: false
       }
       
-      const response = await fetch(`${API_URL}/notifications`, {
+      const response = await fetchWithAuth(`${API_URL}/notifications`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

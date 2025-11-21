@@ -17,6 +17,7 @@ import { API_URL } from '../../config/api'
 import { productService } from '../../services/productService'
 import type { Product } from '../../types/products'
 import * as HeroIcons from '@heroicons/react/24/outline'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
 interface Client {
   id: number
@@ -147,7 +148,7 @@ export default function Dashboard() {
 
   const loadNotifications = async (userId: string) => {
     try {
-      const response = await fetch(`${API_URL}/notifications?recipientId=${userId}`)
+      const response = await fetchWithAuth(`${API_URL}/notifications?recipientId=${userId}`)
       
       if (!response.ok) {
         // Se a API retornar erro, manter array vazio
@@ -175,7 +176,7 @@ export default function Dashboard() {
 
   const markAsRead = async (notificationId: number) => {
     try {
-      await fetch(`${API_URL}/notifications/${notificationId}`, {
+      await fetchWithAuth(`${API_URL}/notifications/${notificationId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'

@@ -98,17 +98,50 @@ interface StoredTokens {
 }
 
 export function getStoredTokens(): StoredTokens | null {
+  // Primeiro tenta o novo formato
   const tokensJson = localStorage.getItem('auth_tokens');
-  if (!tokensJson) return null;
-
-  try {
-    return JSON.parse(tokensJson);
-  } catch {
-    return null;
+  if (tokensJson) {
+    try {
+      return JSON.parse(tokensJson);
+    } catch {
+      // Ignora erros de parse
+    }
   }
+
+  // Fallback para o formato antigo (compatibilidade)
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
+  const userJson = localStorage.getItem('user');
+
+  if (accessToken && refreshToken) {
+    let user = null;
+    if (userJson) {
+      try {
+        user = JSON.parse(userJson);
+      } catch {
+        // Ignora erros de parse
+      }
+    }
+
+    return {
+      accessToken,
+      refreshToken,
+      user
+    };
+  }
+
+  return null;
 }
 
 export function setStoredTokens(tokens: StoredTokens): void {
+  // Armazena no formato antigo para compatibilidade
+  localStorage.setItem('accessToken', tokens.accessToken);
+  localStorage.setItem('refreshToken', tokens.refreshToken);
+  if (tokens.user) {
+    localStorage.setItem('user', JSON.stringify(tokens.user));
+  }
+  
+  // Também armazena no formato novo
   localStorage.setItem('auth_tokens', JSON.stringify(tokens));
 }
 
@@ -117,12 +150,17 @@ export function updateAccessToken(accessToken: string): void {
   if (tokens) {
     tokens.accessToken = accessToken;
     setStoredTokens(tokens);
+  } else {
+    // Se não há tokens armazenados, apenas atualiza o accessToken
+    localStorage.setItem('accessToken', accessToken);
   }
 }
 
 export function clearStoredTokens(): void {
   localStorage.removeItem('auth_tokens');
-  localStorage.removeItem('user'); // Legacy storage
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
 }
 
 /**

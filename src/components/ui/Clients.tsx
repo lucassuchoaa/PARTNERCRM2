@@ -4,6 +4,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
 interface Client {
   id: number
@@ -30,12 +31,21 @@ export default function Clients() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await fetch(`${API_URL}/clients`)
+        const response = await fetchWithAuth(`${API_URL}/clients`)
+        
+        if (!response.ok) {
+          setClients([])
+          return
+        }
+        
         const clientsData = await response.json()
         
-        setClients(clientsData)
+        // Garantir que sempre seja um array
+        const clientsArray = Array.isArray(clientsData) ? clientsData : (clientsData?.data && Array.isArray(clientsData.data) ? clientsData.data : [])
+        setClients(clientsArray)
       } catch (error) {
         console.error('Error fetching clients:', error)
+        setClients([])
       } finally {
         setLoading(false)
       }
@@ -60,7 +70,7 @@ export default function Clients() {
   const updateClient = async (clientId: number, updates: Partial<Client>) => {
     setUpdating(true)
     try {
-      const response = await fetch(`${API_URL}/clients/${clientId}`, {
+      const response = await fetchWithAuth(`${API_URL}/clients/${clientId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
