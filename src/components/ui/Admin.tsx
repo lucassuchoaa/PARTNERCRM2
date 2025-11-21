@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Menu } from '@headlessui/react'
 import {
   UsersIcon,
   DocumentArrowUpIcon,
@@ -8,7 +7,6 @@ import {
   EyeIcon,
   PlusIcon,
   PencilIcon,
-  CheckCircleIcon,
   XCircleIcon,
   BellIcon,
   DocumentTextIcon,
@@ -17,11 +15,7 @@ import {
   BookOpenIcon,
   CurrencyDollarIcon,
   ArrowPathIcon,
-  ShoppingCartIcon,
-  ChevronDownIcon,
-  Square3Stack3DIcon,
-  BanknotesIcon,
-  ChatBubbleBottomCenterTextIcon
+  ShoppingCartIcon
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
 import { sendNotificationEmail, sendReportAvailableEmail, sendWelcomeEmail } from '../../services/api/emailService'
@@ -1171,224 +1165,183 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Navigation Menu */}
-      <div className="mt-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-4 overflow-x-auto">
-            {/* Sistema Dropdown */}
-            <Menu as="div" className="relative">
-              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
-                ['users', 'notifications'].includes(activeTab)
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}>
-                <UsersIcon className="h-5 w-5" />
-                <span>Sistema</span>
-                {['users', 'notifications'].includes(activeTab) && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
-                    {activeTab === 'users' ? 'Usuários' : 'Notificações'}
-                  </span>
-                )}
-                <ChevronDownIcon className="h-4 w-4 ml-auto" />
-              </Menu.Button>
-              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('users')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'users' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <UsersIcon className="mr-3 h-5 w-5" />
-                        Usuários
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('notifications')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'notifications' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <BellIcon className="mr-3 h-5 w-5" />
-                        Notificações
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
+      {/* Sidebar + Content Layout */}
+      <div className="mt-8 flex gap-6">
+        {/* Sidebar Navigation */}
+        <aside className="w-64 flex-shrink-0">
+          <nav className="space-y-1 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sticky top-8">
+            {/* Sistema Section */}
+            <div>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Sistema
+              </div>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'users'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <UsersIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Usuários
+              </button>
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'notifications'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <BellIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Notificações
+              </button>
+            </div>
 
-            {/* Conteúdo Dropdown */}
-            <Menu as="div" className="relative">
-              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
-                ['materials', 'products', 'pricing'].includes(activeTab)
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}>
-                <Square3Stack3DIcon className="h-5 w-5" />
-                <span>Conteúdo</span>
-                {['materials', 'products', 'pricing'].includes(activeTab) && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
-                    {activeTab === 'materials' ? 'Materiais' : activeTab === 'products' ? 'Produtos' : 'Preços'}
-                  </span>
-                )}
-                <ChevronDownIcon className="h-4 w-4 ml-auto" />
-              </Menu.Button>
-              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('materials')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'materials' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <BookOpenIcon className="mr-3 h-5 w-5" />
-                        Material de Apoio
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('products')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'products' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <ShoppingCartIcon className="mr-3 h-5 w-5" />
-                        Produtos
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('pricing')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'pricing' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <CurrencyDollarIcon className="mr-3 h-5 w-5" />
-                        Preços
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-3"></div>
 
-            {/* Financeiro Dropdown */}
-            <Menu as="div" className="relative">
-              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
-                ['remuneration', 'files', 'nfe'].includes(activeTab)
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}>
-                <BanknotesIcon className="h-5 w-5" />
-                <span>Financeiro</span>
-                {['remuneration', 'files', 'nfe'].includes(activeTab) && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
-                    {activeTab === 'remuneration' ? 'Remuneração' : activeTab === 'files' ? 'Arquivos' : 'NFe'}
-                  </span>
-                )}
-                <ChevronDownIcon className="h-4 w-4 ml-auto" />
-              </Menu.Button>
-              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('remuneration')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'remuneration' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <CurrencyDollarIcon className="mr-3 h-5 w-5" />
-                        Remuneração
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('files')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'files' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <DocumentArrowUpIcon className="mr-3 h-5 w-5" />
-                        Arquivos
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('nfe')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'nfe' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        <DocumentTextIcon className="mr-3 h-5 w-5" />
-                        NFe Uploads
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
+            {/* Conteúdo Section */}
+            <div>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Conteúdo
+              </div>
+              <button
+                onClick={() => setActiveTab('products')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'products'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ShoppingCartIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Produtos
+              </button>
+              <button
+                onClick={() => setActiveTab('pricing')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'pricing'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <CurrencyDollarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Planos de Preços
+              </button>
+              <button
+                onClick={() => setActiveTab('materials')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'materials'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <BookOpenIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Materiais de Apoio
+              </button>
+            </div>
 
-            {/* ChatBot IA Dropdown */}
-            <Menu as="div" className="relative">
-              <Menu.Button className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
-                ['chatanalytics', 'chattraining'].includes(activeTab)
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}>
-                <ChatBubbleBottomCenterTextIcon className="h-5 w-5" />
-                <span>ChatBot IA</span>
-                {['chatanalytics', 'chattraining'].includes(activeTab) && (
-                  <span className="ml-1 px-1.5 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded">
-                    {activeTab === 'chatanalytics' ? 'Análise' : 'Treinamento'}
-                  </span>
-                )}
-                <ChevronDownIcon className="h-4 w-4 ml-auto" />
-              </Menu.Button>
-              <Menu.Items className="absolute left-0 mt-2 w-56 origin-top-left bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('chatanalytics')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'chatanalytics' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        📊 Análise
-                      </button>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={() => setActiveTab('chattraining')}
-                        className={`${active ? 'bg-gray-100' : ''} ${activeTab === 'chattraining' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700'} group flex items-center px-4 py-2 text-sm w-full`}
-                      >
-                        🎓 Treinamento
-                      </button>
-                    )}
-                  </Menu.Item>
-                </div>
-              </Menu.Items>
-            </Menu>
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-3"></div>
 
-            {/* Integrações - Direct Button */}
-            <button
-              onClick={() => setActiveTab('integrations')}
-              className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-1 ${
-                activeTab === 'integrations'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <CogIcon className="h-5 w-5" />
-              Integrações
-            </button>
+            {/* Financeiro Section */}
+            <div>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Financeiro
+              </div>
+              <button
+                onClick={() => setActiveTab('remuneration')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'remuneration'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <CurrencyDollarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Tabela de Remuneração
+              </button>
+              <button
+                onClick={() => setActiveTab('files')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'files'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <DocumentTextIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Relatórios de Parceiros
+              </button>
+              <button
+                onClick={() => setActiveTab('nfe')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'nfe'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <DocumentArrowUpIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Upload de NFe
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-3"></div>
+
+            {/* ChatBot IA Section */}
+            <div>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                ChatBot IA
+              </div>
+              <button
+                onClick={() => setActiveTab('chatanalytics')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'chatanalytics'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <FunnelIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Análise de Conversas
+              </button>
+              <button
+                onClick={() => setActiveTab('chattraining')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'chattraining'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <CogIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Treinamento do Bot
+              </button>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-3"></div>
+
+            {/* Integrações Section */}
+            <div>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Integrações
+              </div>
+              <button
+                onClick={() => setActiveTab('integrations')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'integrations'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ArrowPathIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Configurações
+              </button>
+            </div>
           </nav>
-        </div>
-      </div>
+        </aside>
 
-      {/* Content */}
-      <div className="mt-8">
+        {/* Main Content Area */}
+        <div className="flex-1 min-w-0">
         {activeTab === 'chatanalytics' && (
           <ChatAnalytics />
         )}
@@ -2834,6 +2787,7 @@ export default function Admin() {
           </div>
         </div>
       )}
-    </div>
+        </div>
+      </div>
   )
 }
