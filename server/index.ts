@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3001;
 
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
-  : [/localhost/, /127\.0\.0\.1/, /172\.\d+\.\d+\.\d+/]; // Allow localhost, 127.0.0.1, and Replit IPs
+  : [/localhost/, /127\.0\.0\.1/, /172\.\d+\.\d+\.\d+/, /replit\.dev$/]; // Allow localhost, 127.0.0.1, Replit IPs and Replit domains
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -30,9 +30,9 @@ app.use(cors({
       return;
     }
 
-    // In development, allow localhost/127.0.0.1/local IPs
+    // In development, allow localhost/127.0.0.1/local IPs/Replit domains
     if (process.env.NODE_ENV !== 'production') {
-      const devOriginRegex = /localhost|127\.0\.0\.1|172\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+/;
+      const devOriginRegex = /localhost|127\.0\.0\.1|172\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|replit\.dev$/;
       if (devOriginRegex.test(origin)) {
         callback(null, true);
         return;
