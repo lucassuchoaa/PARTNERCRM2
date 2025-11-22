@@ -59,20 +59,6 @@ export const pricingPlans = pgTable('pricing_plans', {
   order: integer('order').default(1),
 });
 
-export const users = pgTable('users', {
-  id: text('id').primaryKey(),
-  email: text('email').unique().notNull(),
-  name: text('name').notNull(),
-  password: text('password').notNull(),
-  role: text('role').notNull(),
-  status: text('status').default('active'),
-  managerId: text('manager_id'),
-  remunerationTableIds: integer('remuneration_table_ids').array().default(sql`'{}'`),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  lastLogin: timestamp('last_login', { withTimezone: true }),
-  permissions: text('permissions').array().default(sql`'{}'`),
-});
-
 export const remunerationTables = pgTable('remuneration_tables', {
   id: serial('id').primaryKey(),
   employeeRangeStart: text('employee_range_start').notNull(),
