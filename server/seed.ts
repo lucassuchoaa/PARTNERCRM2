@@ -18,7 +18,7 @@ async function seed() {
     if (existingAdmin.rows.length === 0) {
       await query(
         `INSERT INTO users (id, email, name, password, role, status, permissions)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
         [
           crypto.randomUUID(),
           adminEmail,
@@ -187,15 +187,23 @@ async function seed() {
 
     // Criar os 3 usuários com senha hasheada
     await query(`
-    INSERT INTO users (email, name, role, password, status)
+    INSERT INTO users (id, email, name, role, password, status, permissions)
     VALUES 
-      ('admin@teste.com', 'Administrador', 'admin', $1, 'active'),
-      ('admin@partnerscrm.com', 'Admin User', 'admin', $1, 'active'),
-      ('partner@example.com', 'Partner User', 'partner', $1, 'active')
+      ($1, 'admin@teste.com', 'Administrador', 'admin', $2, 'active', $3::jsonb),
+      ($4, 'admin@partnerscrm.com', 'Admin User', 'admin', $2, 'active', $3::jsonb),
+      ($5, 'partner@example.com', 'Partner User', 'partner', $2, 'active', $6::jsonb)
     ON CONFLICT (email) DO UPDATE SET
       password = EXCLUDED.password,
-      status = EXCLUDED.status
-  `, [hashedPasswordForExampleUsers]);
+      status = EXCLUDED.status,
+      permissions = EXCLUDED.permissions
+  `, [
+      crypto.randomUUID(),
+      hashedPasswordForExampleUsers,
+      JSON.stringify({ all: true }),
+      crypto.randomUUID(),
+      crypto.randomUUID(),
+      JSON.stringify({})
+    ]);
 
     console.log('[SEED] Users created/updated successfully');
 
