@@ -27,6 +27,7 @@ router.post('/login', async (req: Request, res: Response) => {
     console.log('[AUTH] User found:', result.rows.length > 0 ? 'YES' : 'NO');
     
     if (result.rows.length === 0) {
+      console.log('[AUTH] User not found for email:', email);
       return res.status(401).json({
         success: false,
         error: 'Email ou senha inválidos',
@@ -36,6 +37,8 @@ router.post('/login', async (req: Request, res: Response) => {
     }
     
     const user = result.rows[0];
+    console.log('[AUTH] User status:', user.status);
+    console.log('[AUTH] Password hash exists:', !!user.password);
     
     if (user.status !== 'active') {
       return res.status(401).json({
@@ -46,19 +49,18 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
     
-    // Em desenvolvimento, aceitar senha em texto plano "password123"
-    // Em produção, sempre usar bcrypt
+    // Verificar hash bcrypt
     let isPasswordValid = false;
     
-    if (password === 'password123') {
-      // Fallback para desenvolvimento
-      isPasswordValid = true;
-    } else if (user.password) {
-      // Verificar hash bcrypt
+    if (user.password) {
       isPasswordValid = await bcrypt.compare(password, user.password);
+      console.log('[AUTH] Password valid:', isPasswordValid);
+    } else {
+      console.log('[AUTH] No password hash in database');
     }
     
     if (!isPasswordValid) {
+      console.log('[AUTH] Password validation failed');
       return res.status(401).json({
         success: false,
         error: 'Email ou senha inválidos',

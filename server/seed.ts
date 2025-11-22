@@ -186,26 +186,30 @@ async function seed() {
     console.log('[SEED] Creating users with hashed password');
 
     // Criar os 3 usuários com senha hasheada
+    const adminPerms = JSON.stringify({ all: true });
+    const partnerPerms = JSON.stringify({});
+
     await query(`
-    INSERT INTO users (id, email, name, role, password, status, permissions)
-    VALUES 
-      ($1, 'admin@teste.com', 'Administrador', 'admin', $2, 'active', $3::jsonb),
-      ($4, 'admin@partnerscrm.com', 'Admin User', 'admin', $2, 'active', $3::jsonb),
-      ($5, 'partner@example.com', 'Partner User', 'partner', $2, 'active', $6::jsonb)
-    ON CONFLICT (email) DO UPDATE SET
-      password = EXCLUDED.password,
-      status = EXCLUDED.status,
-      permissions = EXCLUDED.permissions
-  `, [
+      INSERT INTO users (id, email, name, role, password, status, permissions)
+      VALUES 
+        ($1, 'admin@teste.com', 'Administrador', 'admin', $2, 'active', $3::jsonb),
+        ($4, 'admin@partnerscrm.com', 'Admin User', 'admin', $2, 'active', $3::jsonb),
+        ($5, 'partner@example.com', 'Partner User', 'partner', $2, 'active', $6::jsonb)
+      ON CONFLICT (email) DO UPDATE SET
+        password = EXCLUDED.password,
+        status = EXCLUDED.status,
+        permissions = EXCLUDED.permissions
+    `, [
       crypto.randomUUID(),
       hashedPasswordForExampleUsers,
-      JSON.stringify({ all: true }),
+      adminPerms,
       crypto.randomUUID(),
       crypto.randomUUID(),
-      JSON.stringify({})
+      partnerPerms
     ]);
 
     console.log('[SEED] Users created/updated successfully');
+    console.log('[SEED] Passwords are hashed with bcrypt');
 
     console.log('\n🎉 Seed concluído com sucesso!');
     console.log('\n📋 Credenciais de acesso:');
