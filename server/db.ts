@@ -20,8 +20,13 @@ export const query = async (text: string, params?: any[]) => {
     const duration = Date.now() - start;
     console.log('Executed query', { text, duration, rows: res.rowCount });
     return res;
-  } catch (error) {
-    console.error('Database query error:', error);
+  } catch (error: any) {
+    console.error('❌ Database query error:', error);
+    console.error('Query text:', text);
+    console.error('Query params:', params);
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Error detail:', error.detail);
     throw error;
   }
 };

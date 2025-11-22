@@ -90,10 +90,13 @@ router.post('/login', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
     return res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined,
       timestamp: new Date().toISOString()
     });
   }
