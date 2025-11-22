@@ -1,5 +1,47 @@
-import { pgTable, serial, text, integer, numeric, boolean, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, numeric, boolean, timestamp, varchar, jsonb, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+
+// ============================================================================
+// Replit Auth Tables (OBRIGATÓRIAS)
+// ============================================================================
+
+// Session storage table for express-session
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table adapted for Replit Auth + existing fields
+export const users = pgTable('users', {
+  // Replit Auth required fields
+  id: varchar('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email').unique(),
+  firstName: varchar('first_name'),
+  lastName: varchar('last_name'),
+  profileImageUrl: varchar('profile_image_url'),
+  
+  // Legacy/additional fields for CRM functionality
+  name: text('name'),
+  password: text('password'),
+  role: text('role').default('partner'),
+  status: text('status').default('active'),
+  managerId: text('manager_id'),
+  remunerationTableIds: integer('remuneration_table_ids').array().default(sql`'{}'`),
+  lastLogin: timestamp('last_login', { withTimezone: true }),
+  permissions: text('permissions').array().default(sql`'{}'`),
+  
+  // Timestamps
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+});
+
+export type User = typeof users.$inferSelect;
+export type UpsertUser = typeof users.$inferInsert;
 
 // ============================================================================
 // Tabelas Existentes
