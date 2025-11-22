@@ -185,9 +185,11 @@ async function seed() {
 
     console.log('[SEED] Creating users with hashed password');
 
+    // Criar os 3 usuários com senha hasheada
     await query(`
     INSERT INTO users (email, name, role, password, status)
     VALUES 
+      ('admin@teste.com', 'Administrador', 'admin', $1, 'active'),
       ('admin@partnerscrm.com', 'Admin User', 'admin', $1, 'active'),
       ('partner@example.com', 'Partner User', 'partner', $1, 'active')
     ON CONFLICT (email) DO UPDATE SET
