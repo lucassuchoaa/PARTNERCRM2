@@ -1,19 +1,20 @@
 import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import { query } from './db.js';
+import crypto from 'crypto';
 
 async function seed() {
   console.log('🌱 Iniciando seed do banco de dados...');
-  
+
   try {
     // 1. Criar usuário admin
     console.log('👤 Criando usuário admin...');
     const adminEmail = 'admin@teste.com';
     const adminPassword = 'admin123';
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
-    
+
     const existingAdmin = await query('SELECT id FROM users WHERE email = $1', [adminEmail]);
-    
+
     if (existingAdmin.rows.length === 0) {
       await query(
         `INSERT INTO users (id, email, name, password, role, status, permissions)
@@ -37,7 +38,7 @@ async function seed() {
 
     // 2. Criar planos de preço
     console.log('\n💰 Criando planos de preço...');
-    
+
     const plans = [
       {
         id: crypto.randomUUID(),
@@ -97,7 +98,7 @@ async function seed() {
 
     for (const plan of plans) {
       const existing = await query('SELECT id FROM pricing_plans WHERE name = $1', [plan.name]);
-      
+
       if (existing.rows.length === 0) {
         await query(
           `INSERT INTO pricing_plans (
@@ -125,7 +126,7 @@ async function seed() {
 
     // 3. Criar produtos exemplo
     console.log('\n📦 Criando produtos exemplo...');
-    
+
     const products = [
       {
         id: crypto.randomUUID(),
@@ -158,7 +159,7 @@ async function seed() {
 
     for (const product of products) {
       const existing = await query('SELECT id FROM products WHERE name = $1', [product.name]);
-      
+
       if (existing.rows.length === 0) {
         await query(
           `INSERT INTO products (id, name, description, price, category, is_active, "order")
@@ -179,11 +180,33 @@ async function seed() {
       }
     }
 
+    // Criar usuários de exemplo com senha "password123"
+    const hashedPasswordForExampleUsers = await bcrypt.hash('password123', 10);
+
+    console.log('[SEED] Creating users with hashed password');
+
+    await query(`
+    INSERT INTO users (email, name, role, password, status)
+    VALUES 
+      ('admin@partnerscrm.com', 'Admin User', 'admin', $1, 'active'),
+      ('partner@example.com', 'Partner User', 'partner', $1, 'active')
+    ON CONFLICT (email) DO UPDATE SET
+      password = EXCLUDED.password,
+      status = EXCLUDED.status
+  `, [hashedPasswordForExampleUsers]);
+
+    console.log('[SEED] Users created/updated successfully');
+
     console.log('\n🎉 Seed concluído com sucesso!');
     console.log('\n📋 Credenciais de acesso:');
     console.log(`   Email: admin@teste.com`);
     console.log(`   Senha: admin123`);
-    
+    console.log(`   Email: admin@partnerscrm.com`);
+    console.log(`   Senha: password123`);
+    console.log(`   Email: partner@example.com`);
+    console.log(`   Senha: password123`);
+
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Erro durante o seed:', error);
