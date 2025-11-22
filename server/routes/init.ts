@@ -4,6 +4,182 @@ import { query } from '../db.js';
 
 const router = express.Router();
 
+// GET para facilitar acesso via navegador
+router.get('/setup', async (req, res) => {
+  try {
+    console.log('🌱 Inicializando banco de dados...');
+    
+    // Verificar se já foi inicializado
+    const existingAdmin = await query('SELECT id FROM users WHERE email = $1', ['admin@teste.com']);
+    
+    if (existingAdmin.rows.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Banco já foi inicializado. Usuário admin já existe.'
+      });
+    }
+
+    // 1. Criar usuário admin
+    const adminPassword = 'admin123';
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    
+    await query(
+      `INSERT INTO users (id, email, name, password, role, status, permissions)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        crypto.randomUUID(),
+        'admin@teste.com',
+        'Administrador',
+        hashedPassword,
+        'admin',
+        'active',
+        JSON.stringify({ all: true })
+      ]
+    );
+
+    // 2. Criar planos de preço
+    const plans = [
+      {
+        id: crypto.randomUUID(),
+        name: 'Starter',
+        description: 'Ideal para pequenas equipes começando',
+        base_price: 299.90,
+        billing_type: 'monthly',
+        included_users: 5,
+        additional_user_price: 49.90,
+        features: JSON.stringify([
+          'Até 5 usuários',
+          'CRM básico',
+          'Relatórios mensais',
+          'Suporte por email'
+        ]),
+        is_active: true,
+        order: 1
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Professional',
+        description: 'Para equipes em crescimento',
+        base_price: 599.90,
+        billing_type: 'monthly',
+        included_users: 15,
+        additional_user_price: 39.90,
+        features: JSON.stringify([
+          'Até 15 usuários',
+          'CRM completo',
+          'Relatórios semanais',
+          'Suporte prioritário',
+          'Integrações HubSpot'
+        ]),
+        is_active: true,
+        order: 2
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Enterprise',
+        description: 'Solução completa para grandes empresas',
+        base_price: 1299.90,
+        billing_type: 'monthly',
+        included_users: 50,
+        additional_user_price: 29.90,
+        features: JSON.stringify([
+          'Até 50 usuários',
+          'CRM Enterprise',
+          'Relatórios personalizados',
+          'Suporte 24/7',
+          'Todas as integrações',
+          'ChatBot IA personalizado'
+        ]),
+        is_active: true,
+        order: 3
+      }
+    ];
+
+    for (const plan of plans) {
+      await query(
+        `INSERT INTO pricing_plans (
+          id, name, description, base_price, billing_type,
+          included_users, additional_user_price, features, is_active, "order"
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [
+          plan.id,
+          plan.name,
+          plan.description,
+          plan.base_price,
+          plan.billing_type,
+          plan.included_users,
+          plan.additional_user_price,
+          plan.features,
+          plan.is_active,
+          plan.order
+        ]
+      );
+    }
+
+    // 3. Criar produtos exemplo
+    const products = [
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto A',
+        description: 'Produto exemplo A',
+        price: 100.00,
+        category: 'Categoria 1',
+        is_active: true,
+        order: 1
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto B',
+        description: 'Produto exemplo B',
+        price: 200.00,
+        category: 'Categoria 2',
+        is_active: true,
+        order: 2
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto C',
+        description: 'Produto exemplo C',
+        price: 300.00,
+        category: 'Categoria 3',
+        is_active: true,
+        order: 3
+      }
+    ];
+
+    for (const product of products) {
+      await query(
+        `INSERT INTO products (id, name, description, price, category, is_active, "order")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          product.id,
+          product.name,
+          product.description,
+          product.price,
+          product.category,
+          product.is_active,
+          product.order
+        ]
+      );
+    }
+
+    res.json({
+      success: true,
+      message: 'Banco inicializado com sucesso!',
+      credentials: {
+        email: 'admin@teste.com',
+        password: 'admin123'
+      }
+    });
+  } catch (error: any) {
+    console.error('Erro ao inicializar banco:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Rota para inicializar banco de dados em produção
 // Apenas executar UMA VEZ após o primeiro deploy
 router.post('/setup', async (req, res) => {
