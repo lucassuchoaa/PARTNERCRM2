@@ -32,12 +32,11 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-const replitAuthEnvVars = ['ISSUER_URL', 'REPL_ID'];
-const missingAuthVars = replitAuthEnvVars.filter(varName => !process.env[varName]);
-const replitAuthEnabled = missingAuthVars.length === 0;
+// ISSUER_URL has a fallback to https://replit.com/oidc, so we only need REPL_ID
+const replitAuthEnabled = !!process.env.REPL_ID;
 
 if (!replitAuthEnabled) {
-  console.warn(`⚠️  WARNING: Replit Auth is DISABLED - Missing: ${missingAuthVars.join(', ')}`);
+  console.warn('⚠️  WARNING: Replit Auth is DISABLED - Missing REPL_ID');
   console.warn('⚠️  Server will start without authentication. This is NOT recommended for production.');
 }
 
