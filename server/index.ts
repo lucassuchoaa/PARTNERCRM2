@@ -19,9 +19,21 @@ import initRoutes from './routes/init';
 
 dotenv.config();
 
-if (!process.env.SESSION_SECRET) {
-  console.error('❌ FATAL: SESSION_SECRET must be set in environment variables');
+const requiredEnvVars = ['SESSION_SECRET', 'DATABASE_URL'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`❌ FATAL: Missing required environment variables: ${missingEnvVars.join(', ')}`);
   process.exit(1);
+}
+
+if (process.env.NODE_ENV === 'production') {
+  const prodEnvVars = ['ISSUER_URL', 'REPL_ID'];
+  const missingProdVars = prodEnvVars.filter(varName => !process.env[varName]);
+  if (missingProdVars.length > 0) {
+    console.error(`❌ FATAL: Missing required production environment variables: ${missingProdVars.join(', ')}`);
+    process.exit(1);
+  }
 }
 
 async function startServer() {

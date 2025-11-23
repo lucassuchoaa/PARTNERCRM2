@@ -24,8 +24,11 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-if (!process.env.SESSION_SECRET) {
-  console.error('❌ FATAL: SESSION_SECRET must be set in environment variables');
+const requiredEnvVars = ['SESSION_SECRET', 'DATABASE_URL', 'ISSUER_URL', 'REPL_ID'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`❌ FATAL: Missing required environment variables: ${missingEnvVars.join(', ')}`);
   process.exit(1);
 }
 
