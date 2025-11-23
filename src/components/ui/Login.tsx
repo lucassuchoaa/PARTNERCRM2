@@ -1,28 +1,8 @@
-import { useState } from 'react'
-import { login } from '../../services/auth'
-import logo from '../../assets/somapay-logo.svg'
-
-interface LoginProps {
-  onLogin: () => void
-}
-
-export default function Login({ onLogin }: LoginProps) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-
-    try {
-      await login({ email, password })
-      // auth.ts já armazena user no localStorage
-      onLogin()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao fazer login')
-    }
-  }
+export default function Login() {
+  const handleLogin = () => {
+    // Redirect to Replit Auth login page
+    window.location.href = '/api/login';
+  };
 
   return (
     <div className="w-full">
@@ -31,70 +11,25 @@ export default function Login({ onLogin }: LoginProps) {
           Acesse sua conta
         </h2>
         <p className="text-blue-100 text-sm">
-          Entre com suas credenciais de parceiro
+          Faça login com sua conta Replit
         </p>
       </div>
 
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 bg-white bg-opacity-90 placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all sm:text-sm"
-            placeholder="seu@email.com"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
-            Senha
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="block w-full rounded-lg border-0 py-3 px-4 text-gray-900 bg-white bg-opacity-90 placeholder:text-gray-500 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all sm:text-sm"
-            placeholder="••••••••"
-          />
-        </div>
-
-        {error && (
-          <div className="rounded-lg bg-red-500 bg-opacity-20 border border-red-400 border-opacity-30 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-100">{error}</h3>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <button
-            type="submit"
-            className="flex w-full justify-center rounded-lg bg-white text-blue-600 px-4 py-3 text-sm font-semibold shadow-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 transition-colors"
-          >
-            Entrar no Portal
-          </button>
-          
-          <div className="text-center">
-            <a href="#" className="text-sm text-blue-100 hover:text-white transition-colors">
-              Esqueceu sua senha?
-            </a>
-          </div>
-        </div>
-      </form>
+      <div className="space-y-4">
+        <button
+          onClick={handleLogin}
+          className="flex w-full justify-center items-center gap-3 rounded-lg bg-white text-blue-600 px-4 py-3 text-sm font-semibold shadow-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-600 transition-colors"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+          </svg>
+          Entrar com Replit
+        </button>
+        
+        <p className="text-center text-xs text-blue-100">
+          Login seguro via Google, GitHub, X (Twitter), Apple ou Email
+        </p>
+      </div>
     </div>
   )
 }

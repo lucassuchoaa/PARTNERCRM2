@@ -1,8 +1,8 @@
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import Login from './components/ui/Login'
 import ErrorBoundary from './components/ErrorBoundary'
-import { getCurrentUser } from './services/auth'
-import type { User } from './types'
+import { useAuth } from './hooks/useAuth'
+import { useEffect } from 'react'
 
 // Lazy load dashboard and page components for better performance
 const Dashboard = lazy(() => import('./components/ui/Dashboard'))
@@ -25,33 +25,8 @@ function useHashLocation() {
 }
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const { user, isLoading, isAuthenticated } = useAuth()
   const hash = useHashLocation()
-
-  const checkAuth = async () => {
-    try {
-      const user = await getCurrentUser()
-      if (user) {
-        setIsLoggedIn(true)
-        setCurrentUser(user)
-      } else {
-        setIsLoggedIn(false)
-        setCurrentUser(null)
-      }
-    } catch (error) {
-      console.error('Erro ao verificar autenticação:', error)
-      setIsLoggedIn(false)
-      setCurrentUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    checkAuth()
-  }, [])
 
   if (isLoading) {
     return (
@@ -88,7 +63,7 @@ export default function App() {
 
                 <div className="flex-1 max-w-md w-full">
                   <div className="bg-white bg-opacity-10 backdrop-blur-lg rounded-2xl p-8 shadow-2xl border border-white border-opacity-20">
-                    <Login onLogin={checkAuth} />
+                    <Login />
                   </div>
                 </div>
               </div>
@@ -164,7 +139,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="bg-white">
-      {!isLoggedIn ? (
+      {!isAuthenticated ? (
         renderPublicPages()
       ) : (
         <Suspense
@@ -175,7 +150,7 @@ export default function App() {
             </div>
           }
         >
-          {currentUser?.role === 'manager' ? <ManagerDashboard /> : <Dashboard />}
+          {user?.role === 'manager' ? <ManagerDashboard /> : <Dashboard />}
         </Suspense>
       )}
     </div>
