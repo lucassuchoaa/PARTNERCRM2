@@ -27,13 +27,13 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-if (process.env.NODE_ENV === 'production') {
-  const prodEnvVars = ['ISSUER_URL', 'REPL_ID'];
-  const missingProdVars = prodEnvVars.filter(varName => !process.env[varName]);
-  if (missingProdVars.length > 0) {
-    console.error(`❌ FATAL: Missing required production environment variables: ${missingProdVars.join(', ')}`);
-    process.exit(1);
-  }
+const replitAuthEnvVars = ['ISSUER_URL', 'REPL_ID'];
+const missingAuthVars = replitAuthEnvVars.filter(varName => !process.env[varName]);
+const replitAuthEnabled = missingAuthVars.length === 0;
+
+if (!replitAuthEnabled) {
+  console.warn(`⚠️  WARNING: Replit Auth is DISABLED - Missing: ${missingAuthVars.join(', ')}`);
+  console.warn('⚠️  Authentication features will not be available.');
 }
 
 async function startServer() {
@@ -90,20 +90,38 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Setup Replit Auth
-  await setupAuth(app);
-
-  // Auth route - get current user
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Setup Replit Auth (conditional)
+  if (replitAuthEnabled) {
+    await setupAuth(app);
+    console.log('🔑 Replit Auth enabled');
+    
+    // Auth route - get current user
+    app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+      try {
+        const userId = req.user.claims.sub;
+        const user = await storage.getUser(userId);
+        res.json(user);
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ message: "Failed to fetch user" });
+      }
+    });
+  } else {
+    // Fallback routes when auth is disabled
+    app.get('/api/auth/user', (req, res) => {
+      res.status(503).json({ 
+        error: 'Authentication service unavailable',
+        message: 'Replit Auth is not configured. Set ISSUER_URL and REPL_ID environment variables.'
+      });
+    });
+    
+    app.get('/api/login', (req, res) => {
+      res.status(503).json({ 
+        error: 'Authentication service unavailable',
+        message: 'Replit Auth is not configured.'
+      });
+    });
+  }
 
   app.get('/health', (req, res) => {
     res.json({

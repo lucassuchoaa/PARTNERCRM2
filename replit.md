@@ -13,7 +13,28 @@ The platform serves three primary user roles:
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Updates (Nov 21, 2025)
+## Recent Updates (Nov 23, 2025)
+
+### Replit Auth Migration (Complete) ✅
+- **Migrated from JWT to Replit Auth**: Full authentication system now uses Replit's native authentication
+- **Conditional Authentication**: Server can start without auth configured (shows warnings)
+- **Backend Changes**:
+  - Created `server/replitAuth.ts`: Passport.js + OpenID Connect integration
+  - Created `server/storage.ts`: Database user operations (getUser, upsertUser)
+  - Updated `server/middleware/auth.ts`: Reads session claims, populates req.user from database
+  - Made authentication setup conditional based on ISSUER_URL and REPL_ID availability
+- **Frontend Changes**:
+  - Created `src/hooks/useAuth.ts`: React Query hook for authentication state
+  - Updated `src/App.tsx`: Uses useAuth() instead of localStorage
+  - Simplified Login component: Redirects to `/api/login` for Replit Auth
+- **Database Schema**:
+  - Added `sessions` table for express-session storage
+  - Modified `users` table: Added firstName, lastName, profileImageUrl (Replit Auth fields)
+  - Changed user ID from `serial` to `varchar` (UUID-based for Replit Auth)
+- **Production Ready**: Server starts gracefully without auth vars, shows clear warnings
+- **Note**: ISSUER_URL and REPL_ID are automatically provided by Replit in production deployments
+
+## Previous Updates (Nov 21, 2025)
 
 ### Admin Navigation Redesign
 - **Replaced dropdown menus** with persistent sidebar navigation (264px wide)
@@ -218,19 +239,24 @@ Core endpoints organized by resource:
 
 ### Environment Variables
 
+**Required for All Environments**
+- `SESSION_SECRET`: Secret key for session encryption (required)
+- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
+- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`: Database credentials (auto-configured)
+
+**Replit Auth (Optional - Required for Authentication)**
+- `ISSUER_URL`: Replit Auth issuer URL (automatically provided in Replit deployments)
+- `REPL_ID`: Unique Repl identifier (automatically provided in Replit deployments)
+
 **Frontend (VITE_* prefix - exposed in bundle)**
 - `VITE_APP_URL`: Application base URL
 - `VITE_API_URL`: API endpoint base path
 - `VITE_ENABLE_REACT_QUERY_DEVTOOLS`: Development tools toggle
 - `VITE_SENTRY_DSN`: Error tracking endpoint (optional)
-- `VITE_STRIPE_PUBLIC_KEY`: Stripe publishable key for frontend payments (required for checkout)
+- `VITE_STRIPE_PUBLIC_KEY`: Stripe publishable key for frontend payments (optional, required for checkout)
 
 **Backend (Server-side only - never exposed)**
-- `JWT_SECRET`: Access token signing key (required)
-- `JWT_REFRESH_SECRET`: Refresh token signing key (required)
-- `STRIPE_SECRET_KEY`: Stripe secret key for backend payment processing (required for checkout)
-- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
-- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`: Database credentials (auto-configured)
+- `STRIPE_SECRET_KEY`: Stripe secret key for backend payment processing (optional, required for checkout)
 - `FRONTEND_URL`: Allowed CORS origins (comma-separated, optional)
 - `VITE_HUBSPOT_ACCESS_TOKEN`: HubSpot API token (optional)
 - `VITE_GEMINI_API_KEY`: Google AI API key (optional)
