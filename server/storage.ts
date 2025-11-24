@@ -29,11 +29,11 @@ export class DatabaseStorage implements IStorage {
   // Upsert user (create or update)
   async upsertUser(userData: UpsertUser): Promise<User> {
     const result = await query(
-      `INSERT INTO users (id, email, first_name, last_name, profile_image_url, updated_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO users (id, email, first_name, last_name, profile_image_url, role, status, updated_at)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'partner'), COALESCE($7, 'active'), NOW())
        ON CONFLICT (id) 
        DO UPDATE SET 
-         email = EXCLUDED.email,
+         email = COALESCE(EXCLUDED.email, users.email),
          first_name = EXCLUDED.first_name,
          last_name = EXCLUDED.last_name,
          profile_image_url = EXCLUDED.profile_image_url,
@@ -49,6 +49,8 @@ export class DatabaseStorage implements IStorage {
         userData.firstName,
         userData.lastName,
         userData.profileImageUrl,
+        userData.role || 'partner',
+        userData.status || 'active',
       ]
     );
 
