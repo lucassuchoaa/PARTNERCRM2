@@ -95,7 +95,7 @@ export async function setupAuth(app: Express) {
       const strategy = new Strategy(
         {
           name: strategyName,
-          config,
+          client: config,
           scope: "openid email profile offline_access",
           callbackURL: `https://${domain}/api/callback`,
         },
