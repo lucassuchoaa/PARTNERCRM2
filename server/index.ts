@@ -159,7 +159,10 @@ async function startServer() {
 
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error('Error:', err);
+    console.error('❌ [Server Error] Path:', req.path);
+    console.error('❌ [Server Error] Method:', req.method);
+    console.error('❌ [Server Error] Message:', err.message);
+    console.error('❌ [Server Error] Stack:', err.stack);
     res.status(err.status || 500).json({
       success: false,
       error: err.message || 'Erro interno do servidor',
