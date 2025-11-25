@@ -72,15 +72,23 @@ export async function setupAuth(app: Express) {
     verified: passport.AuthenticateCallback
   ) => {
     try {
+      const claims = tokens.claims();
       console.log('🔐 [Auth] Verify callback started');
+      console.log('🔐 [Auth] Claims:', JSON.stringify(claims, null, 2));
+      console.log('🔐 [Auth] User ID (sub):', claims.sub);
+      console.log('🔐 [Auth] Email:', claims.email);
+      
       const user = {};
       updateUserSession(user, tokens);
       console.log('🔐 [Auth] User session updated');
-      await upsertUser(tokens.claims());
-      console.log('🔐 [Auth] User upserted to database');
+      
+      await upsertUser(claims);
+      console.log('🔐 [Auth] User upserted to database with ID:', claims.sub);
+      
       verified(null, user);
     } catch (error) {
       console.error('❌ [Auth] Error in verify callback:', error);
+      console.error('❌ [Auth] Stack:', (error as Error).stack);
       verified(error as Error);
     }
   };
