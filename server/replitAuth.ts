@@ -59,6 +59,16 @@ async function upsertUser(claims: any) {
   });
 }
 
+function getBaseUrl(): string {
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  }
+  if (process.env.REPLIT_DOMAINS) {
+    return `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`;
+  }
+  return 'http://localhost:5000';
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -66,6 +76,11 @@ export async function setupAuth(app: Express) {
   app.use(passport.session());
 
   const config = await getOidcConfig();
+  const baseUrl = getBaseUrl();
+  const callbackURL = `${baseUrl}/api/callback`;
+  
+  console.log('🔐 [Auth] Base URL:', baseUrl);
+  console.log('🔐 [Auth] Callback URL:', callbackURL);
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
@@ -74,7 +89,6 @@ export async function setupAuth(app: Express) {
     try {
       const claims = tokens.claims();
       console.log('🔐 [Auth] Verify callback started');
-      console.log('🔐 [Auth] Claims:', JSON.stringify(claims, null, 2));
       console.log('🔐 [Auth] User ID (sub):', claims.sub);
       console.log('🔐 [Auth] Email:', claims.email);
       
@@ -93,42 +107,31 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  // Keep track of registered strategies
-  const registeredStrategies = new Set<string>();
-
-  // Helper function to ensure strategy exists for a domain
-  const ensureStrategy = (domain: string) => {
-    const strategyName = `replitauth:${domain}`;
-    if (!registeredStrategies.has(strategyName)) {
-      const strategy = new Strategy(
-        {
-          name: strategyName,
-          config,
-          scope: "openid email profile offline_access",
-          callbackURL: `https://${domain}/api/callback`,
-        },
-        verify,
-      );
-      passport.use(strategy);
-      registeredStrategies.add(strategyName);
-    }
-  };
+  const strategy = new Strategy(
+    {
+      name: "replitauth",
+      config,
+      scope: "openid email profile offline_access",
+      callbackURL,
+    },
+    verify,
+  );
+  passport.use(strategy);
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    console.log('🔐 [Auth] Login request from:', req.hostname);
+    passport.authenticate("replitauth", {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    console.log('🔐 [Auth] Callback received, hostname:', req.hostname);
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    console.log('🔐 [Auth] Callback received from:', req.hostname);
+    passport.authenticate("replitauth", {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
@@ -139,7 +142,7 @@ export async function setupAuth(app: Express) {
       res.redirect(
         client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          post_logout_redirect_uri: baseUrl,
         }).href
       );
     });
