@@ -11,7 +11,8 @@
     "npm": ">=10.0.0"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "tsx server/dev.ts",
+    "dev:vite": "vite",
     "dev:backend": "tsx server/index.ts",
     "dev:backend:watch": "nodemon --watch server --exec tsx server/index.ts",
     "build": "tsc && vite build",
