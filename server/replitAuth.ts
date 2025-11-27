@@ -60,12 +60,22 @@ async function upsertUser(claims: any) {
 }
 
 function getCanonicalHost(): string {
+  // Priority 1: Use REPLIT_APP_URL if available (published app)
+  if (process.env.REPLIT_APP_URL) {
+    const url = new URL(process.env.REPLIT_APP_URL);
+    return url.host;
+  }
+  
+  // Priority 2: Build from REPL_SLUG and REPL_OWNER (public repl.co domain)
+  if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+    return `${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.repl.co`;
+  }
+  
+  // Priority 3: Fall back to REPLIT_DEV_DOMAIN
   if (process.env.REPLIT_DEV_DOMAIN) {
     return process.env.REPLIT_DEV_DOMAIN;
   }
-  if (process.env.REPLIT_DOMAINS) {
-    return process.env.REPLIT_DOMAINS.split(',')[0];
-  }
+  
   return 'localhost:5000';
 }
 
