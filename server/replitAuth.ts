@@ -67,8 +67,9 @@ function getCanonicalHost(): string {
   }
   
   // Priority 2: Build from REPL_SLUG and REPL_OWNER (public repl.co domain)
+  // IMPORTANT: Replit uses DOUBLE hyphen -- between slug and owner
   if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-    return `${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.repl.co`;
+    return `${process.env.REPL_SLUG}--${process.env.REPL_OWNER}.repl.co`;
   }
   
   // Priority 3: Fall back to REPLIT_DEV_DOMAIN
