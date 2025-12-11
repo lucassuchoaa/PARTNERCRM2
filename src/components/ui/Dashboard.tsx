@@ -12,7 +12,7 @@ import Admin from './Admin'
 import ChatBotHybrid from './ChatBotHybrid'
 
 import Profile from './Profile'
-import { getCurrentUser } from '../../services/auth'
+import { useAuth } from '../../hooks/useAuth'
 import { API_URL } from '../../config/api'
 import { productService } from '../../services/productService'
 import type { Product } from '../../types/products'
@@ -81,6 +81,7 @@ function classNames(...classes: string[]) {
 }
 
 export default function Dashboard() {
+  const { user: authUser, isLoading: authLoading } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [currentView, setCurrentView] = useState('dashboard')
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -206,12 +207,11 @@ export default function Dashboard() {
   useEffect(() => {
     const loadUserAndData = async () => {
       try {
-        const user = await getCurrentUser()
-        if (user) {
-          setCurrentUser(user)
+        if (authUser) {
+          setCurrentUser(authUser)
 
           // Carregar notificações do usuário
-          await loadNotifications(user.id.toString())
+          await loadNotifications(authUser.id.toString())
 
           // Fetch dashboard data
           const [clientsData, transactions, prospectsData] = await Promise.all([
@@ -261,8 +261,10 @@ export default function Dashboard() {
       }
     }
 
-    loadUserAndData()
-  }, [])
+    if (!authLoading && authUser) {
+      loadUserAndData()
+    }
+  }, [authUser, authLoading])
 
   return (
     <div>
