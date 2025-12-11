@@ -25,10 +25,16 @@ export default function SupportMaterials() {
     const fetchMaterials = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${API_URL}/support-materials`)
+        const response = await fetch(`${API_URL}/support-materials`, {
+          credentials: 'include'
+        })
         if (response.ok) {
           const data = await response.json()
-          setMaterials(data)
+          if (data.success && Array.isArray(data.data)) {
+            setMaterials(data.data)
+          } else if (Array.isArray(data)) {
+            setMaterials(data)
+          }
         } else {
           console.error('Erro ao buscar materiais de apoio')
         }
