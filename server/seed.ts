@@ -198,6 +198,7 @@ async function seed() {
       ON CONFLICT (email) DO UPDATE SET
         password = EXCLUDED.password,
         status = EXCLUDED.status,
+        role = EXCLUDED.role,
         permissions = EXCLUDED.permissions
     `, [
       crypto.randomUUID(),
