@@ -3,7 +3,7 @@ import { Dialog, Menu } from '@headlessui/react'
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import { ChartBarIcon, FolderIcon, HomeIcon, UsersIcon, BookOpenIcon, UserPlusIcon } from '@heroicons/react/24/outline'
 import { UserIcon, ArrowRightOnRectangleIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/20/solid'
-import { getCurrentUser } from '../../services/auth'
+import { getCurrentUser, logout } from '../../services/auth'
 import { API_URL } from '../../config/api'
 import Profile from './Profile'
 import Admin from './Admin'
@@ -406,8 +406,8 @@ export default function ManagerDashboard() {
                           'flex items-center px-3 py-1.5 text-sm leading-6 text-gray-900'
                         )}
                         onClick={() => {
-                          localStorage.removeItem('user')
-                          window.location.href = '/'
+                          logout()
+                          window.location.href = '/#login'
                         }}
                       >
                         <ArrowRightOnRectangleIcon className="mr-2 h-5 w-5 text-gray-400" />

@@ -10,7 +10,7 @@ const MOCK_USERS = {
     id: '1',
     email: 'admin@partnerscrm.com',
     name: 'Admin User',
-    role: 'manager',
+    role: 'admin',
     password: 'password123',
     isActive: true,
     createdAt: '2025-01-01T00:00:00.000Z',

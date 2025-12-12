@@ -18,6 +18,7 @@ import { productService } from '../../services/productService'
 import type { Product } from '../../types/products'
 import * as HeroIcons from '@heroicons/react/24/outline'
 import { fetchWithAuth } from '../../services/api/fetch-with-auth'
+import { logout } from '../../services/auth'
 
 interface Client {
   id: number
@@ -549,8 +550,8 @@ export default function Dashboard() {
                           'flex items-center px-3 py-1.5 text-sm leading-6 text-gray-900'
                         )}
                         onClick={() => {
-                          localStorage.removeItem('user')
-                          window.location.href = '/'
+                          logout()
+                          window.location.href = '/#login'
                         }}
                       >
                         <ArrowRightOnRectangleIcon className="mr-2 h-5 w-5 text-gray-400" />
