@@ -16,7 +16,7 @@
     "dev:backend": "tsx server/index.ts",
     "dev:backend:watch": "nodemon --watch server --exec tsx server/index.ts",
     "build": "tsc && vite build",
-    "start": "tsx server/init-prod.ts && tsx server/production.ts",
+    "start": "NODE_ENV=production tsx server/production.ts",
     "start:backend": "NODE_ENV=production tsx server/production.ts",
     "seed": "tsx server/seed.ts",
     "seed:prod": "NODE_ENV=production tsx server/seed.ts",

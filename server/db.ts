@@ -5,30 +5,50 @@ const pool = new Pool({
   ssl: false,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000, // Increased from 2s to 30s for production stability
 });
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  // Don't exit in production - allow graceful recovery
+  if (process.env.NODE_ENV !== 'production') {
+    process.exit(-1);
+  }
 });
 
-export const query = async (text: string, params?: any[]) => {
+export const query = async (text: string, params?: any[], retries = 3) => {
   const start = Date.now();
-  try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
-    return res;
-  } catch (error: any) {
-    console.error('❌ Database query error:', error);
-    console.error('Query text:', text);
-    console.error('Query params:', params);
-    console.error('Error message:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Error detail:', error.detail);
-    throw error;
+  let lastError: any;
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await pool.query(text, params);
+      const duration = Date.now() - start;
+      console.log('Executed query', { text, duration, rows: res.rowCount });
+      return res;
+    } catch (error: any) {
+      lastError = error;
+      const isConnectionError = error.message?.includes('Connection terminated') ||
+                                error.message?.includes('timeout') ||
+                                error.code === 'ECONNRESET';
+      
+      if (isConnectionError && attempt < retries) {
+        console.warn(`⚠️ Database connection error (attempt ${attempt}/${retries}), retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        continue;
+      }
+      
+      console.error('❌ Database query error:', error);
+      console.error('Query text:', text);
+      console.error('Query params:', params);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Error detail:', error.detail);
+      throw error;
+    }
   }
+  
+  throw lastError;
 };
 
 export const getClient = async () => {
