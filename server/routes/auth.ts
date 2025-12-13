@@ -2,6 +2,15 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../db';
 
+// Generate UUID without crypto import
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 const router = Router();
 
 // Helper to create token (format: access_<base64(userId)>_<timestamp>)
@@ -302,6 +311,113 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/auth/register - Registro público para parceiros
+router.post('/register', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    console.log('📝 Registration attempt for:', email);
+
+    // Validação básica
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nome, email e senha são obrigatórios',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validar formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Formato de email inválido',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Validar tamanho da senha
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'A senha deve ter no mínimo 6 caracteres',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Verificar se email já existe
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Este email já está cadastrado',
+        code: 'EMAIL_EXISTS',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Hash da senha
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Gerar ID único
+    const newId = generateUUID();
+
+    // Criar usuário como parceiro (usando apenas colunas que existem na tabela)
+    const result = await pool.query(
+      `INSERT INTO users (id, email, name, password, role, status, permissions)
+       VALUES ($1, $2, $3, $4, 'partner', 'active', $5)
+       RETURNING id, email, name, role, status, created_at, updated_at`,
+      [newId, email.toLowerCase(), name, hashedPassword, JSON.stringify({})]
+    );
+
+    const newUser = result.rows[0];
+
+    // Gerar tokens
+    const accessToken = createToken('access', newUser.id);
+    const refreshToken = createToken('refresh', newUser.id);
+
+    console.log('✅ User registered successfully:', newUser.email, 'as partner');
+
+    // Retornar usuário criado
+    const userResponse = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: newUser.role,
+      status: newUser.status,
+      isActive: newUser.status === 'active',
+      createdAt: newUser.created_at,
+      updatedAt: newUser.updated_at
+    };
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        user: userResponse,
+        accessToken,
+        refreshToken,
+        expiresIn: 3600
+      },
+      message: 'Cadastro realizado com sucesso! Bem-vindo ao Partners CRM.',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Registration error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Erro interno do servidor',
+      details: error.code || error.detail || 'No details',
       timestamp: new Date().toISOString()
     });
   }

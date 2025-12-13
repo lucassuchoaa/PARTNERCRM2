@@ -61,7 +61,7 @@ export default function LandingPage() {
         botResponse = '🆘 Nosso suporte está disponível 24/7 por chat, email e telefone. Todos os planos incluem suporte prioritário!'
       } else if (lower.includes('sim') || lower.includes('quero') || lower.includes('gostaria')) {
         botResponse = '🎉 Perfeito! Vou te redirecionar para a página de cadastro. Um momento...'
-        setTimeout(() => { window.location.hash = 'login' }, 2000)
+        setTimeout(() => { window.location.hash = 'signup' }, 2000)
       } else {
         botResponse = 'Entendo! Posso te ajudar com informações sobre:\n\n💰 Preços e planos\n🎯 Demonstração gratuita\n✨ Funcionalidades\n🆘 Suporte\n\nSobre o que você gostaria de saber?'
       }
@@ -165,7 +165,7 @@ export default function LandingPage() {
                 className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
               >
                 <button
-                  onClick={() => { window.location.hash = 'login' }}
+                  onClick={() => { window.location.hash = 'signup' }}
                   className="group w-full sm:w-auto px-8 py-4 bg-white text-blue-600 rounded-lg font-semibold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2"
                 >
                   Começar Gratuitamente
@@ -468,7 +468,7 @@ export default function LandingPage() {
               Junte-se a milhares de empresas que já confiam na nossa plataforma
             </p>
             <button
-              onClick={() => { window.location.hash = 'login' }}
+              onClick={() => { window.location.hash = 'signup' }}
               className="inline-block px-10 py-5 bg-white text-blue-600 rounded-lg font-bold text-lg shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-200"
             >
               Começar Teste Gratuito de 14 Dias
@@ -499,7 +499,7 @@ export default function LandingPage() {
                   <li><a href="#features" className="hover:text-white transition-colors">Funcionalidades</a></li>
                   <li><a href="#pricing" className="hover:text-white transition-colors">Preços</a></li>
                   <li><button onClick={handleDemoClick} className="hover:text-white transition-colors">Demonstração</button></li>
-                  <li><button onClick={() => { window.location.hash = 'login' }} className="hover:text-white transition-colors">Teste Grátis</button></li>
+                  <li><button onClick={() => { window.location.hash = 'signup' }} className="hover:text-white transition-colors">Teste Grátis</button></li>
                 </ul>
               </div>
               <div>
@@ -655,7 +655,7 @@ export default function LandingPage() {
                     <button
                       onClick={() => {
                         setShowDemoModal(false)
-                        window.location.hash = 'login'
+                        window.location.hash = 'signup'
                       }}
                       className="flex-1 bg-blue-600 text-white px-6 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >

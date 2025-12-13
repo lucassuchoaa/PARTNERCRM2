@@ -97,7 +97,10 @@ export default function Dashboard() {
     totalTransactions: 0,
     currentMonthReferrals: 0,
     previousMonthReferrals: 0,
-    referralsGrowth: 0
+    referralsGrowth: 0,
+    currentMonthCommissions: 0,
+    previousMonthCommissions: 0,
+    commissionsGrowth: 0
   })
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -242,16 +245,40 @@ export default function Dashboard() {
             return submittedDate.getMonth() === previousMonth && submittedDate.getFullYear() === previousYear
           }).length
 
-          const referralsGrowth = previousMonthReferrals > 0 
+          const referralsGrowth = previousMonthReferrals > 0
             ? ((currentMonthReferrals - previousMonthReferrals) / previousMonthReferrals) * 100
             : currentMonthReferrals > 0 ? 100 : 0
+
+          // Calcular comissões do mês atual e anterior
+          const currentMonthCommissions = transactions
+            .filter((t: Transaction) => {
+              if (!t.date) return false
+              const transactionDate = new Date(t.date)
+              return transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear
+            })
+            .reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
+
+          const previousMonthCommissions = transactions
+            .filter((t: Transaction) => {
+              if (!t.date) return false
+              const transactionDate = new Date(t.date)
+              return transactionDate.getMonth() === previousMonth && transactionDate.getFullYear() === previousYear
+            })
+            .reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
+
+          const commissionsGrowth = previousMonthCommissions > 0
+            ? ((currentMonthCommissions - previousMonthCommissions) / previousMonthCommissions) * 100
+            : currentMonthCommissions > 0 ? 100 : 0
 
           setDashboardData({
             totalClients: clientsData.length,
             totalTransactions: totalTransactionsAmount,
             currentMonthReferrals,
             previousMonthReferrals,
-            referralsGrowth
+            referralsGrowth,
+            currentMonthCommissions,
+            previousMonthCommissions,
+            commissionsGrowth
           })
           
           setClients(clientsData)
@@ -655,7 +682,11 @@ export default function Dashboard() {
                               currency: 'BRL'
                             }).format(dashboardData.totalTransactions)}
                           </p>
-                          <p className="text-sm text-green-600 font-medium">+8% este mês</p>
+                          {dashboardData.commissionsGrowth !== 0 && (
+                          <p className={`text-sm font-medium ${dashboardData.commissionsGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {dashboardData.commissionsGrowth >= 0 ? '+' : ''}{dashboardData.commissionsGrowth.toFixed(0)}% este mês
+                          </p>
+                        )}
                         </div>
                       </div>
                     </div>

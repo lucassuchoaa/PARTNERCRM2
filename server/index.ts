@@ -17,6 +17,7 @@ import uploadsRoutes from './routes/uploads';
 import nfeUploadsRoutes from './routes/nfe-uploads';
 import stripeRoutes from './routes/stripe';
 import initRoutes from './routes/init';
+import emailRoutes from './routes/email';
 
 dotenv.config();
 
@@ -158,6 +159,7 @@ async function startServer() {
   app.use('/api/nfe_uploads', nfeUploadsRoutes);
   app.use('/api/stripe', stripeRoutes);
   app.use('/api/init', initRoutes);
+  app.use('/api/email', emailRoutes);
 
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

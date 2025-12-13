@@ -273,6 +273,20 @@ export default function PricingPage() {
                   </div>
 
                   <button
+                    onClick={() => {
+                      if (plan.name === 'Enterprise') {
+                        // Para Enterprise, abre chat de vendas ou contato
+                        window.location.href = 'mailto:vendas@partnerscrm.com?subject=Interesse no Plano Enterprise'
+                      } else {
+                        // Salva o plano selecionado e redireciona para signup
+                        localStorage.setItem('selectedPlan', JSON.stringify({
+                          id: plan.name.toLowerCase(),
+                          name: plan.name,
+                          basePrice: plan.price
+                        }))
+                        window.location.hash = 'signup'
+                      }
+                    }}
                     className={`w-full py-3 rounded-lg font-semibold mb-8 transition-all ${
                       plan.popular
                         ? 'bg-white text-blue-600 hover:bg-gray-50'

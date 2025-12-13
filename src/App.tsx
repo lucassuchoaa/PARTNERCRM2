@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./components/ui/Dashboard'))
 const ManagerDashboard = lazy(() => import('./components/ui/ManagerDashboard'))
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const PricingPage = lazy(() => import('./pages/PricingPage'))
+const SignupPage = lazy(() => import('./pages/SignupPage'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'))
 
@@ -70,6 +71,22 @@ export default function App() {
             </div>
           </div>
         </div>
+      )
+    }
+
+    // Signup page route
+    if (hash === '#signup' || hash === '#cadastro') {
+      return (
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-t-transparent" aria-label="Carregando"></div>
+              <span className="sr-only">Carregando página...</span>
+            </div>
+          }
+        >
+          <SignupPage />
+        </Suspense>
       )
     }
 
