@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { setupAuth, isAuthenticated } from './replitAuth';
 import { storage } from './storage';
+import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
 import productsRoutes from './routes/products';
 import pricingPlansRoutes from './routes/pricing-plans';
@@ -109,6 +110,7 @@ async function startProductionServer() {
   });
 
   // API Routes
+  app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);
   app.use('/api/products', productsRoutes);
   app.use('/api/pricing-plans', pricingPlansRoutes);
