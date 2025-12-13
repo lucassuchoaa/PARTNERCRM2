@@ -4,7 +4,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const defaultFrom = process.env.DEFAULT_FROM_EMAIL || 'noreply@partnerscrm.com';
 const appUrl = process.env.FRONTEND_URL || process.env.VERCEL_URL || 'https://partnerscrm.com';
 
