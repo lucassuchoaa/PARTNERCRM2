@@ -32,6 +32,163 @@ const MOCK_USERS = {
   }
 };
 
+// Helper to verify token
+function verifyToken(token: string): { userId: string; timestamp: number } | null {
+  if (!token) return null;
+
+  // Parse simple token format: access_<userId>_<timestamp>
+  const match = token.match(/^(access|refresh)_(\d+)_(\d+)$/);
+  if (!match) return null;
+
+  return {
+    userId: match[2],
+    timestamp: parseInt(match[3], 10)
+  };
+}
+
+// GET /api/auth/me - Get current user
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token não fornecido',
+        code: 'NO_TOKEN',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = verifyToken(token);
+
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token inválido',
+        code: 'INVALID_TOKEN',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Check token expiration (1 hour = 3600000ms)
+    const now = Date.now();
+    if (now - decoded.timestamp > 3600000) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token expirado',
+        code: 'TOKEN_EXPIRED',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find user by ID
+    const user = Object.values(MOCK_USERS).find(u => u.id === decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'Usuário não encontrado',
+        code: 'USER_NOT_FOUND',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    return res.status(200).json({
+      success: true,
+      data: userWithoutPassword,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Get user error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// POST /api/auth/refresh - Refresh access token
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        error: 'Refresh token não fornecido',
+        code: 'NO_REFRESH_TOKEN',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Parse refresh token
+    const match = refreshToken.match(/^refresh_(\d+)_(\d+)$/);
+    if (!match) {
+      return res.status(401).json({
+        success: false,
+        error: 'Refresh token inválido',
+        code: 'INVALID_REFRESH_TOKEN',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const userId = match[1];
+    const tokenTimestamp = parseInt(match[2], 10);
+
+    // Check refresh token expiration (7 days = 604800000ms)
+    const now = Date.now();
+    if (now - tokenTimestamp > 604800000) {
+      return res.status(401).json({
+        success: false,
+        error: 'Refresh token expirado',
+        code: 'REFRESH_TOKEN_EXPIRED',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Find user
+    const user = Object.values(MOCK_USERS).find(u => u.id === userId);
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário inválido ou inativo',
+        code: 'INVALID_USER',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Generate new tokens
+    const newTimestamp = Date.now();
+    const newAccessToken = `access_${userId}_${newTimestamp}`;
+    const newRefreshToken = `refresh_${userId}_${newTimestamp}`;
+
+    console.log('✅ Tokens refreshed for user:', userId);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+        expiresIn: 3600
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Refresh token error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   try {
