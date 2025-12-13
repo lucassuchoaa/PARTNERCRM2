@@ -26,6 +26,7 @@ import ProductManagement from './ProductManagement'
 import PricingManagement from './PricingManagement'
 import ChatAnalytics from './ChatAnalytics'
 import ChatBotTraining from './ChatBotTraining'
+import RoleManagement from './RoleManagement'
 
 interface User {
   id: number
@@ -1195,7 +1196,18 @@ export default function Admin() {
                 }`}
               >
                 <BellIcon className="mr-3 h-5 w-5 flex-shrink-0" />
-                Notificações
+                Notificacoes
+              </button>
+              <button
+                onClick={() => setActiveTab('roles')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'roles'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <CogIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Funcoes e Permissoes
               </button>
             </div>
 
@@ -1356,6 +1368,10 @@ export default function Admin() {
 
         {activeTab === 'pricing' && (
           <PricingManagement />
+        )}
+
+        {activeTab === 'roles' && (
+          <RoleManagement />
         )}
 
         {activeTab === 'users' && (

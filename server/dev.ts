@@ -20,6 +20,7 @@ import nfeUploadsRoutes from "./routes/nfe-uploads";
 import stripeRoutes from "./routes/stripe";
 import initRoutes from "./routes/init";
 import emailRoutes from "./routes/email";
+import rolesRoutes from "./routes/roles";
 
 dotenv.config();
 
@@ -135,6 +136,7 @@ async function createDevServer() {
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/init", initRoutes);
   app.use("/api/email", emailRoutes);
+  app.use("/api/roles", rolesRoutes);
 
   app.use(
     (

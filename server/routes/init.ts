@@ -4,6 +4,113 @@ import { query } from '../db.js';
 
 const router = express.Router();
 
+// Rota para criar/migrar tabela de roles
+router.get('/setup-roles', async (req, res) => {
+  try {
+    console.log('🔧 Criando tabela de roles...');
+
+    // Criar tabela de roles se não existir
+    await query(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        permissions JSONB DEFAULT '[]'::jsonb,
+        is_system BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    // Verificar se já existem roles
+    const existingRoles = await query('SELECT COUNT(*) FROM roles');
+
+    if (parseInt(existingRoles.rows[0].count) === 0) {
+      // Criar roles padrão do sistema
+      const defaultRoles = [
+        {
+          name: 'Admin',
+          description: 'Administrador com acesso total ao sistema',
+          permissions: JSON.stringify([
+            'dashboard.view', 'dashboard.analytics',
+            'clients.view', 'clients.create', 'clients.edit', 'clients.delete',
+            'referrals.view', 'referrals.create', 'referrals.validate', 'referrals.approve',
+            'reports.view', 'reports.export', 'reports.all_partners',
+            'support.view', 'support.manage',
+            'admin.access', 'admin.users', 'admin.roles', 'admin.products', 'admin.pricing', 'admin.notifications', 'admin.integrations', 'admin.files',
+            'commissions.view', 'commissions.manage',
+            'chatbot.view', 'chatbot.train'
+          ]),
+          is_system: true
+        },
+        {
+          name: 'Parceiro',
+          description: 'Parceiro comercial com acesso básico',
+          permissions: JSON.stringify([
+            'dashboard.view',
+            'clients.view', 'clients.create', 'clients.edit',
+            'referrals.view', 'referrals.create',
+            'reports.view',
+            'support.view',
+            'commissions.view'
+          ]),
+          is_system: true
+        },
+        {
+          name: 'Gerente de Parceiros',
+          description: 'Gerente responsável por acompanhar parceiros',
+          permissions: JSON.stringify([
+            'dashboard.view', 'dashboard.analytics',
+            'clients.view', 'clients.create', 'clients.edit',
+            'referrals.view', 'referrals.create', 'referrals.validate',
+            'reports.view', 'reports.export', 'reports.all_partners',
+            'support.view',
+            'commissions.view'
+          ]),
+          is_system: true
+        },
+        {
+          name: 'Analista',
+          description: 'Analista com acesso a relatórios e validação',
+          permissions: JSON.stringify([
+            'dashboard.view', 'dashboard.analytics',
+            'clients.view',
+            'referrals.view', 'referrals.validate',
+            'reports.view', 'reports.export',
+            'support.view',
+            'commissions.view'
+          ]),
+          is_system: true
+        }
+      ];
+
+      for (const role of defaultRoles) {
+        await query(
+          `INSERT INTO roles (name, description, permissions, is_system, is_active)
+           VALUES ($1, $2, $3, $4, true)`,
+          [role.name, role.description, role.permissions, role.is_system]
+        );
+      }
+
+      console.log('✅ Roles padrão criadas com sucesso');
+    }
+
+    res.json({
+      success: true,
+      message: 'Tabela de roles criada/atualizada com sucesso',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao criar tabela de roles:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // GET para facilitar acesso via navegador
 router.get('/setup', async (req, res) => {
   try {
