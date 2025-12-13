@@ -1,49 +1,36 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { pool } from '../db';
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key-change-in-production';
-
-// Mock users for development (same as in /api/auth/login.js)
-const MOCK_USERS = {
-  'admin@partnerscrm.com': {
-    id: '1',
-    email: 'admin@partnerscrm.com',
-    name: 'Admin User',
-    role: 'admin',
-    password: 'password123',
-    isActive: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z'
-  },
-  'partner@example.com': {
-    id: '2',
-    email: 'partner@example.com',
-    name: 'Partner User',
-    role: 'partner',
-    password: 'password123',
-    isActive: true,
-    createdAt: '2025-01-01T00:00:00.000Z',
-    updatedAt: '2025-01-01T00:00:00.000Z'
-  }
-};
+// Helper to create token (format: access_<base64(userId)>_<timestamp>)
+function createToken(type: 'access' | 'refresh', userId: string): string {
+  const timestamp = Date.now();
+  const encodedUserId = Buffer.from(userId).toString('base64url');
+  return `${type}_${encodedUserId}_${timestamp}`;
+}
 
 // Helper to verify token
-function verifyToken(token: string): { userId: string; timestamp: number } | null {
+function verifyToken(token: string): { userId: string; timestamp: number; type: string } | null {
   if (!token) return null;
 
-  // Parse simple token format: access_<userId>_<timestamp>
-  const match = token.match(/^(access|refresh)_(\d+)_(\d+)$/);
-  if (!match) return null;
+  // Parse token format: <type>_<base64(userId)>_<timestamp>
+  const parts = token.split('_');
+  if (parts.length < 3) return null;
 
-  return {
-    userId: match[2],
-    timestamp: parseInt(match[3], 10)
-  };
+  const type = parts[0];
+  const timestamp = parseInt(parts[parts.length - 1], 10);
+  const encodedUserId = parts.slice(1, -1).join('_');
+
+  if (!type || !encodedUserId || isNaN(timestamp)) return null;
+
+  try {
+    const userId = Buffer.from(encodedUserId, 'base64url').toString('utf8');
+    return { userId, timestamp, type };
+  } catch {
+    return null;
+  }
 }
 
 // GET /api/auth/me - Get current user
@@ -63,7 +50,7 @@ router.get('/me', async (req, res) => {
     const token = authHeader.substring(7);
     const decoded = verifyToken(token);
 
-    if (!decoded) {
+    if (!decoded || decoded.type !== 'access') {
       return res.status(401).json({
         success: false,
         error: 'Token inválido',
@@ -83,10 +70,15 @@ router.get('/me', async (req, res) => {
       });
     }
 
-    // Find user by ID
-    const user = Object.values(MOCK_USERS).find(u => u.id === decoded.userId);
+    // Find user in database
+    const result = await pool.query(
+      `SELECT id, email, name, first_name, last_name, role, status,
+              profile_image_url, created_at, updated_at
+       FROM users WHERE id = $1`,
+      [decoded.userId]
+    );
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Usuário não encontrado',
@@ -95,11 +87,23 @@ router.get('/me', async (req, res) => {
       });
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    const user = result.rows[0];
 
     return res.status(200).json({
       success: true,
-      data: userWithoutPassword,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        status: user.status,
+        isActive: user.status === 'active',
+        profileImageUrl: user.profile_image_url,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -126,9 +130,9 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Parse refresh token
-    const match = refreshToken.match(/^refresh_(\d+)_(\d+)$/);
-    if (!match) {
+    const decoded = verifyToken(refreshToken);
+
+    if (!decoded || decoded.type !== 'refresh') {
       return res.status(401).json({
         success: false,
         error: 'Refresh token inválido',
@@ -137,12 +141,9 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    const userId = match[1];
-    const tokenTimestamp = parseInt(match[2], 10);
-
     // Check refresh token expiration (7 days = 604800000ms)
     const now = Date.now();
-    if (now - tokenTimestamp > 604800000) {
+    if (now - decoded.timestamp > 604800000) {
       return res.status(401).json({
         success: false,
         error: 'Refresh token expirado',
@@ -151,10 +152,13 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Find user
-    const user = Object.values(MOCK_USERS).find(u => u.id === userId);
+    // Find user in database
+    const result = await pool.query(
+      'SELECT id, status FROM users WHERE id = $1',
+      [decoded.userId]
+    );
 
-    if (!user || !user.isActive) {
+    if (result.rows.length === 0 || result.rows[0].status !== 'active') {
       return res.status(401).json({
         success: false,
         error: 'Usuário inválido ou inativo',
@@ -163,12 +167,13 @@ router.post('/refresh', async (req, res) => {
       });
     }
 
-    // Generate new tokens
-    const newTimestamp = Date.now();
-    const newAccessToken = `access_${userId}_${newTimestamp}`;
-    const newRefreshToken = `refresh_${userId}_${newTimestamp}`;
+    const user = result.rows[0];
 
-    console.log('✅ Tokens refreshed for user:', userId);
+    // Generate new tokens
+    const newAccessToken = createToken('access', user.id);
+    const newRefreshToken = createToken('refresh', user.id);
+
+    console.log('✅ Tokens refreshed for user:', user.id);
 
     return res.status(200).json({
       success: true,
@@ -205,10 +210,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Buscar usuário (usando mock users por enquanto)
-    const user = MOCK_USERS[email.toLowerCase() as keyof typeof MOCK_USERS];
+    // Buscar usuário no banco de dados
+    const result = await pool.query(
+      `SELECT id, email, name, first_name, last_name, password, role, status,
+              profile_image_url, created_at, updated_at
+       FROM users WHERE LOWER(email) = LOWER($1)`,
+      [email]
+    );
 
-    if (!user) {
+    if (result.rows.length === 0) {
       console.error('❌ User not found:', email);
       return res.status(401).json({
         success: false,
@@ -218,7 +228,9 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (!user.isActive) {
+    const user = result.rows[0];
+
+    if (user.status !== 'active') {
       return res.status(401).json({
         success: false,
         error: 'Conta inativa',
@@ -227,8 +239,10 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Verificar senha (comparação simples para desenvolvimento)
-    if (user.password !== password) {
+    // Verificar senha com bcrypt
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
       console.error('❌ Password mismatch for user:', email);
       return res.status(401).json({
         success: false,
@@ -245,20 +259,37 @@ router.post('/login', async (req, res) => {
       role: user.role
     });
 
-    // Gerar tokens simples (em produção, usar JWT real)
-    const timestamp = Date.now();
-    const accessToken = `access_${user.id}_${timestamp}`;
-    const refreshToken = `refresh_${user.id}_${timestamp}`;
+    // Gerar tokens
+    const accessToken = createToken('access', user.id);
+    const refreshToken = createToken('refresh', user.id);
+
+    // Atualizar last_login
+    await pool.query(
+      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      [user.id]
+    );
 
     console.log('✅ Tokens generated for role:', user.role);
 
-    // Remover senha do retorno
-    const { password: _, ...userWithoutPassword } = user;
+    // Retornar usuário sem senha
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      firstName: user.first_name,
+      lastName: user.last_name,
+      role: user.role,
+      status: user.status,
+      isActive: user.status === 'active',
+      profileImageUrl: user.profile_image_url,
+      createdAt: user.created_at,
+      updatedAt: user.updated_at
+    };
 
     return res.status(200).json({
       success: true,
       data: {
-        user: userWithoutPassword,
+        user: userResponse,
         accessToken,
         refreshToken,
         expiresIn: 3600

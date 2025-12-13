@@ -4,7 +4,9 @@
       "Bash(netstat:*)",
       "Bash(ss:*)",
       "Bash(curl:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(psql:*)",
+      "Bash(node -e:*)"
     ],
     "deny": [],
     "ask": []
