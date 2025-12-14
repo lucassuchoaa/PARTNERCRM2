@@ -134,7 +134,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// PATCH - Validar prospecto
+// PATCH - Validar prospecto e criar cliente se aprovado
 router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -163,7 +163,36 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
       return res.status(404).json({ error: 'Prospecto não encontrado' });
     }
     
-    res.json(result.rows[0]);
+    const prospect = result.rows[0];
+    
+    // Se aprovado, criar cliente automaticamente
+    if (isApproved === true && status === 'approved') {
+      try {
+        await pool.query(`
+          INSERT INTO clients (
+            name, email, phone, cnpj, status, stage, temperature,
+            total_lives, partner_id, notes, created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+          ON CONFLICT (email) DO NOTHING
+        `, [
+          prospect.contactName || prospect.companyName,
+          prospect.email,
+          prospect.phone,
+          prospect.cnpj,
+          'ativo',
+          'prospeccao',
+          'quente',
+          1,
+          prospect.partnerId,
+          validationNotes || ''
+        ]);
+        console.log(`✅ Cliente criado automaticamente a partir do prospecto ${id}`);
+      } catch (error) {
+        console.error('Aviso: Erro ao criar cliente automático:', error);
+      }
+    }
+    
+    res.json(prospect);
   } catch (error) {
     console.error('Error validating prospect:', error);
     res.status(500).json({ error: 'Erro ao validar prospecto' });
