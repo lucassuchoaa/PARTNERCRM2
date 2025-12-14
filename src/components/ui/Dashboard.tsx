@@ -579,6 +579,7 @@ export default function Dashboard() {
                         onClick={() => {
                           logout()
                           window.location.href = '/#login'
+                          window.location.reload()
                         }}
                       >
                         <ArrowRightOnRectangleIcon className="mr-2 h-5 w-5 text-gray-400" />

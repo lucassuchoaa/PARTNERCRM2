@@ -151,6 +151,7 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...editingClient,
           currentProducts: editingClient.currentProducts,
@@ -298,6 +299,7 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...selectedClient,
           customRecommendations: editingRecommendations
@@ -332,7 +334,9 @@ export default function Referrals() {
         setCurrentUser(user)
 
         // Carregar prospects
-        const response = await fetch(`${API_URL}/prospects`)
+        const response = await fetch(`${API_URL}/prospects`, {
+          credentials: 'include'
+        })
         if (response.ok) {
           const data = await response.json()
           
@@ -346,7 +350,9 @@ export default function Referrals() {
         }
 
         // Carregar clientes da carteira
-        const clientsResponse = await fetch(`${API_URL}/clients`)
+        const clientsResponse = await fetch(`${API_URL}/clients`, {
+          credentials: 'include'
+        })
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
           // Converter clientes para formato de análise de carteira
@@ -395,6 +401,7 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(prospect)
       })
       
@@ -439,11 +446,12 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Indicação de ${prospect.companyName} validada com sucesso! Agora seguirá para análise de carteira.`)
@@ -471,11 +479,12 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
       }
@@ -497,6 +506,7 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -525,6 +535,7 @@ export default function Referrals() {
           headers: {
             'Content-Type': 'application/json'
           },
+          credentials: 'include',
           body: JSON.stringify(newClient)
         })
 
@@ -553,11 +564,12 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Prospect ${prospect.companyName} rejeitado.`)
@@ -624,6 +636,7 @@ export default function Referrals() {
             headers: {
               'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(prospect)
           })
           
