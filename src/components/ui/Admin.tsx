@@ -266,17 +266,18 @@ export default function Admin() {
   const fetchUsers = async () => {
     try {
       const response = await fetchWithAuth(`${API_URL}/users`)
-      
+
       if (!response.ok) {
-        setUsers([])
+        console.error('Erro ao buscar usuários: resposta não OK')
+        // Não limpar os usuários existentes em caso de erro
         return
       }
-      
+
       const usersData = await response.json()
-      
+
       // Garantir que sempre seja um array
       const usersArray = Array.isArray(usersData) ? usersData : (usersData?.data && Array.isArray(usersData.data) ? usersData.data : [])
-      
+
       // Adaptar formato do banco para o formato esperado pelo frontend
       const enhancedUsers = usersArray.map((user: any) => ({
         ...user,
@@ -289,7 +290,7 @@ export default function Admin() {
       setUsers(enhancedUsers)
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
-      setUsers([])
+      // Não limpar os usuários existentes em caso de erro
     } finally {
       setLoading(false)
     }
@@ -828,10 +829,13 @@ export default function Admin() {
         const response = await fetchWithAuth(`${API_URL}/users/${userId}`, {
           method: 'DELETE'
         })
-        
+
         if (response.ok) {
-          fetchUsers()
+          // Atualizar o estado local removendo apenas o usuário deletado
+          setUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
           alert('Usuário excluído com sucesso!')
+        } else {
+          alert('Erro ao excluir usuário')
         }
       } catch (error) {
         console.error('Erro ao excluir usuário:', error)

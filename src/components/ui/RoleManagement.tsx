@@ -68,7 +68,7 @@ export default function RoleManagement() {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/roles`)
+      const response = await fetchWithAuth(`${API_URL}/roles`)
       const data = await response.json()
       if (data.success) {
         setRoles(data.data)
@@ -83,7 +83,7 @@ export default function RoleManagement() {
 
   const fetchPermissions = async () => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/roles/permissions`)
+      const response = await fetchWithAuth(`${API_URL}/roles/permissions`)
       const data = await response.json()
       if (data.success) {
         setPermissions(data.data.permissions)
@@ -169,8 +169,8 @@ export default function RoleManagement() {
 
     try {
       const url = editingRole
-        ? `${API_URL}/api/roles/${editingRole.id}`
-        : `${API_URL}/api/roles`
+        ? `${API_URL}/roles/${editingRole.id}`
+        : `${API_URL}/roles`
 
       const method = editingRole ? 'PUT' : 'POST'
 
@@ -199,7 +199,7 @@ export default function RoleManagement() {
 
   const handleDelete = async (roleId: string) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/roles/${roleId}`, {
+      const response = await fetchWithAuth(`${API_URL}/roles/${roleId}`, {
         method: 'DELETE'
       })
 

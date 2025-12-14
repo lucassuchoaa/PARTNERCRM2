@@ -84,6 +84,79 @@ CREATE TABLE IF NOT EXISTS public.products (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+-- 6. Prospects (Indicações)
+CREATE TABLE IF NOT EXISTS public.prospects (
+  id SERIAL PRIMARY KEY,
+  company_name TEXT NOT NULL,
+  contact_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  cnpj TEXT NOT NULL,
+  employees TEXT NOT NULL,
+  segment TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'validated', 'in-analysis', 'approved', 'rejected')),
+  partner_id TEXT,
+  submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  validated_at TIMESTAMP WITH TIME ZONE,
+  validated_by TEXT,
+  validation_notes TEXT,
+  is_approved BOOLEAN DEFAULT false,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_prospects_partner_id ON public.prospects(partner_id);
+CREATE INDEX IF NOT EXISTS idx_prospects_status ON public.prospects(status);
+CREATE INDEX IF NOT EXISTS idx_prospects_created_at ON public.prospects(created_at);
+CREATE INDEX IF NOT EXISTS idx_prospects_cnpj ON public.prospects(cnpj);
+
+-- 7. Roles (Funções)
+CREATE TABLE IF NOT EXISTS public.roles (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  permissions JSONB DEFAULT '[]'::jsonb,
+  is_system BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_roles_name ON public.roles(name);
+CREATE INDEX IF NOT EXISTS idx_roles_is_system ON public.roles(is_system);
+CREATE INDEX IF NOT EXISTS idx_roles_is_active ON public.roles(is_active);
+
+-- 8. Clients
+CREATE TABLE IF NOT EXISTS public.clients (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  cnpj TEXT,
+  status TEXT DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'pending')),
+  stage TEXT DEFAULT 'prospeccao' CHECK (stage IN ('prospeccao', 'negociacao', 'fechamento', 'ativo', 'inativo')),
+  temperature TEXT DEFAULT 'frio' CHECK (temperature IN ('frio', 'morno', 'quente')),
+  total_lives INTEGER DEFAULT 0,
+  contract_end_date TEXT,
+  last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  partner_id TEXT,
+  contact_name TEXT,
+  email TEXT,
+  phone TEXT,
+  employees TEXT,
+  segment TEXT,
+  company_name TEXT,
+  employee_count INTEGER,
+  current_products TEXT[] DEFAULT '{}',
+  viability_score INTEGER DEFAULT 50,
+  potential_products TEXT[] DEFAULT '{}',
+  last_analysis TEXT,
+  potential_products_with_values JSONB,
+  custom_recommendations TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_clients_partner_id ON public.clients(partner_id);
+CREATE INDEX IF NOT EXISTS idx_clients_status ON public.clients(status);
+CREATE INDEX IF NOT EXISTS idx_clients_cnpj ON public.clients(cnpj);
+
 -- =============================================================================
 -- PARTE 2: INSERIR DADOS PADRÃO
 -- =============================================================================
@@ -107,6 +180,20 @@ VALUES
    '{Até 50 usuários inclusos,Dashboard enterprise com analytics,CRM completo com automações,Sistema de indicações multi-nível,Todas as integrações disponíveis,ChatBot com IA personalizado,Gestão de produtos e estoque,Suporte 24/7 dedicado,Relatórios em tempo real,API ilimitada,Treinamento personalizado,Gerente de conta dedicado}', true, 3)
 ON CONFLICT (id) DO NOTHING;
 
+-- Inserir funções padrão
+INSERT INTO public.roles (id, name, description, permissions, is_system, is_active)
+VALUES
+  ('role_admin', 'Administrador', 'Acesso total ao sistema com todas as permissões',
+   '["dashboard.view","dashboard.analytics","clients.view","clients.create","clients.edit","clients.delete","referrals.view","referrals.create","referrals.validate","referrals.approve","reports.view","reports.export","reports.all_partners","support.view","support.manage","admin.access","admin.users","admin.roles","admin.products","admin.pricing","admin.notifications","admin.integrations","admin.files","commissions.view","commissions.manage","chatbot.view","chatbot.train"]'::jsonb,
+   true, true),
+  ('role_manager', 'Gerente', 'Gerente de parceiros com permissões de supervisão',
+   '["dashboard.view","dashboard.analytics","clients.view","clients.create","clients.edit","referrals.view","referrals.create","referrals.validate","reports.view","reports.export","reports.all_partners","support.view","commissions.view","chatbot.view"]'::jsonb,
+   true, true),
+  ('role_partner', 'Parceiro', 'Parceiro padrão com permissões básicas',
+   '["dashboard.view","clients.view","referrals.view","referrals.create","reports.view","support.view","commissions.view","chatbot.view"]'::jsonb,
+   true, true)
+ON CONFLICT (id) DO NOTHING;
+
 -- =============================================================================
 -- PARTE 3: DESABILITAR RLS (Row Level Security)
 -- =============================================================================
@@ -118,6 +205,9 @@ ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.remuneration_tables DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_materials DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prospects DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clients DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.roles DISABLE ROW LEVEL SECURITY;
 
 -- =============================================================================
 -- PARTE 4: CONFIGURAR STORAGE (Upload de Arquivos)
