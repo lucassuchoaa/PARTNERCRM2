@@ -89,7 +89,7 @@ export default function NetSuiteIntegration() {
       setCurrentUser(user)
 
       // Carregar parceiros
-      const partnersResponse = await fetch(`${API_URL}/partners`)
+      const partnersResponse = await fetch(`${API_URL}/partners`, { credentials: 'include' })
       if (partnersResponse.ok) {
         const partnersData = await partnersResponse.json()
         setPartners(partnersData)
@@ -99,7 +99,7 @@ export default function NetSuiteIntegration() {
       }
 
       // Carregar relatórios existentes
-      const reportsResponse = await fetch(`${API_URL}/partner_reports`)
+      const reportsResponse = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
       if (reportsResponse.ok) {
         const reportsData = await reportsResponse.json()
         setReports(reportsData)

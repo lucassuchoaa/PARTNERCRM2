@@ -107,12 +107,12 @@ export default function ManagerDashboard() {
           setCurrentUser(user)
           
           // Buscar dados do gerente
-          const managerResponse = await fetch(`${API_URL}/managers/${user.id}`)
+          const managerResponse = await fetch(`${API_URL}/managers/${user.id}`, { credentials: 'include' })
           if (managerResponse.ok) {
             const managerData = await managerResponse.json()
             
             // Buscar parceiros vinculados ao gerente
-            const partnersResponse = await fetch(`${API_URL}/partners`)
+            const partnersResponse = await fetch(`${API_URL}/partners`, { credentials: 'include' })
             if (partnersResponse.ok) {
               const allPartners = await partnersResponse.json()
               const myPartners = allPartners.filter((partner: Partner) => 
@@ -121,7 +121,7 @@ export default function ManagerDashboard() {
               setPartners(myPartners)
               
               // Buscar prospects dos parceiros
-              const prospectsResponse = await fetch(`${API_URL}/prospects`)
+              const prospectsResponse = await fetch(`${API_URL}/prospects`, { credentials: 'include' })
               let myProspects: Prospect[] = []
               if (prospectsResponse.ok) {
                 const allProspects = await prospectsResponse.json()
@@ -132,7 +132,7 @@ export default function ManagerDashboard() {
               }
               
               // Buscar clientes dos parceiros
-              const clientsResponse = await fetch(`${API_URL}/clients`)
+              const clientsResponse = await fetch(`${API_URL}/clients`, { credentials: 'include' })
               let myClients: Client[] = []
               if (clientsResponse.ok) {
                 const allClients = await clientsResponse.json()
@@ -143,7 +143,7 @@ export default function ManagerDashboard() {
               }
               
               // Buscar relatórios dos parceiros
-              const reportsResponse = await fetch(`${API_URL}/partner_reports`)
+              const reportsResponse = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
               if (reportsResponse.ok) {
                 const allReports = await reportsResponse.json()
                 const myReports = allReports.filter((report: any) => 
@@ -231,11 +231,12 @@ export default function ManagerDashboard() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Indicação de ${prospect.companyName} validada com sucesso!`)
@@ -267,11 +268,12 @@ export default function ManagerDashboard() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Indicação de ${prospect.companyName} rejeitada.`)
@@ -294,11 +296,12 @@ export default function ManagerDashboard() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
       if (response.ok) {
-        setProspects(prev => prev.map(p => 
+        setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Status da indicação ${prospect.companyName} alterado para ${getStatusBadge(newStatus).props.children}.`)

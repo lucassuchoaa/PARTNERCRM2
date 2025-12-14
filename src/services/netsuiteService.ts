@@ -110,7 +110,7 @@ class NetSuiteService {
   async generateFinancialReport(partnerId: number, startDate: string, endDate: string): Promise<NetSuiteReport> {
     try {
       // Buscar dados do parceiro no sistema local
-      const partnerResponse = await fetch(`${API_URL}/partners/${partnerId}`)
+      const partnerResponse = await fetch(`${API_URL}/partners/${partnerId}`, { credentials: 'include' })
       const partner = await partnerResponse.json()
 
       if (!partner) {
@@ -147,7 +147,7 @@ class NetSuiteService {
    */
   async generateOperationalReport(partnerId: number, startDate: string, endDate: string): Promise<NetSuiteReport> {
     try {
-      const partnerResponse = await fetch(`${API_URL}/partners/${partnerId}`)
+      const partnerResponse = await fetch(`${API_URL}/partners/${partnerId}`, { credentials: 'include' })
       const partner = await partnerResponse.json()
 
       if (!partner) {
@@ -203,6 +203,7 @@ class NetSuiteService {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           reportId,
           fileName,
@@ -255,7 +256,7 @@ class NetSuiteService {
   async syncReports(): Promise<void> {
     try {
       // Buscar relatórios locais não sincronizados
-      const localReportsResponse = await fetch(`${API_URL}/partner_reports?synced=false`)
+      const localReportsResponse = await fetch(`${API_URL}/partner_reports?synced=false`, { credentials: 'include' })
       const localReports = await localReportsResponse.json()
 
       // Buscar relatórios do NetSuite
@@ -278,6 +279,7 @@ class NetSuiteService {
             await fetch(`${API_URL}/partner_reports/${report.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({
                 ...report,
                 netsuiteId: uploadResult.reportId,
@@ -304,6 +306,7 @@ class NetSuiteService {
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify({
         id: report.id,
         fileName: report.name,

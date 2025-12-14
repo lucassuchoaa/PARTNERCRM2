@@ -14,6 +14,7 @@ export async function login({ email, password }: LoginCredentials): Promise<User
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify({ email, password })
     })
 

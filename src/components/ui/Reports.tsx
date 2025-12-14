@@ -159,7 +159,7 @@ export default function Reports() {
 
   const fetchPartnerReports = async (partnerId: number) => {
     try {
-      const response = await fetch(`${API_URL}/partner_reports`)
+      const response = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
       const allReports = await response.json()
       
       // Filtrar relatórios apenas do parceiro logado

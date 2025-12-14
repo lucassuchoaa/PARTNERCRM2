@@ -52,6 +52,7 @@ export async function logChatMetric(metric: Omit<ChatMetric, 'id'>): Promise<voi
       headers: {
         'Content-Type': 'application/json'
       },
+      credentials: 'include',
       body: JSON.stringify(metricWithId)
     })
   } catch (error) {
@@ -65,7 +66,7 @@ export async function logChatMetric(metric: Omit<ChatMetric, 'id'>): Promise<voi
  */
 export async function getAllMetrics(): Promise<ChatMetric[]> {
   try {
-    const response = await fetch(`${API_URL}/chat_metrics`)
+    const response = await fetch(`${API_URL}/chat_metrics`, { credentials: 'include' })
     if (!response.ok) throw new Error('Erro ao buscar métricas')
     return await response.json()
   } catch (error) {

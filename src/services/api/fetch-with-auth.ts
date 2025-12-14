@@ -39,9 +39,10 @@ export async function fetchWithAuth(
     headers.set('Authorization', `Bearer ${accessToken}`)
   }
   
-  // Fazer requisição com headers atualizados
+  // Fazer requisição com headers atualizados e credentials para enviar cookies
   return fetch(url, {
     ...options,
-    headers
+    headers,
+    credentials: 'include'
   })
 }

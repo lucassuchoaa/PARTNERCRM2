@@ -60,7 +60,7 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
         const user = await getCurrentUser()
         if (user) {
           // Buscar dados completos do parceiro
-          const response = await fetch(`${API_URL}/partners/${user.id}`)
+          const response = await fetch(`${API_URL}/partners/${user.id}`, { credentials: 'include' })
           if (response.ok) {
             const partnerData = await response.json()
             setCurrentUser(partnerData)
@@ -98,7 +98,7 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
   const handleSave = async () => {
     try {
       // Verificar se o parceiro já existe no banco de dados
-      const checkResponse = await fetch(`${API_URL}/partners/${currentUser?.id}`)
+      const checkResponse = await fetch(`${API_URL}/partners/${currentUser?.id}`, { credentials: 'include' })
       const partnerExists = checkResponse.ok
       
       const method = partnerExists ? 'PUT' : 'POST'
@@ -111,6 +111,7 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(dataToSave)
       })
 
@@ -180,6 +181,7 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
            headers: {
              'Content-Type': 'application/json'
            },
+           credentials: 'include',
            body: JSON.stringify(updatedUser)
          })
 

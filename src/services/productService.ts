@@ -18,7 +18,7 @@ class ProductService {
    */
   async getProducts(): Promise<Product[]> {
     try {
-      const response = await fetch(`${API_URL}/products`);
+      const response = await fetch(`${API_URL}/products`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         // Adaptar formato do banco para o formato esperado pelo frontend
@@ -108,6 +108,7 @@ class ProductService {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: product.name,
           description: product.description,
@@ -156,6 +157,7 @@ class ProductService {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: updates.name,
           description: updates.description,
@@ -203,7 +205,8 @@ class ProductService {
   async deleteProduct(id: string, updatedBy: string): Promise<boolean> {
     try {
       const response = await fetch(`${API_URL}/products/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
 
       if (response.ok) {
