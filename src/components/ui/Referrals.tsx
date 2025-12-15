@@ -3,6 +3,7 @@ import { UserPlusIcon, BuildingOfficeIcon, MagnifyingGlassIcon, CheckCircleIcon,
 // Removido: import HubSpotService from '../../services/hubspot'
 import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { fetchCNPJData, formatCNPJ, validateCNPJ, mapCNAEToSegment, estimateEmployeesByPorte } from '../../services/cnpjService'
 
 interface Prospect {
@@ -393,18 +394,17 @@ export default function Referrals() {
       status: 'pending',
       partnerId: currentUser?.id.toString() || '0'
     }
-    
+
     try {
-      // Salvar no backend
-      const response = await fetch(`${API_URL}/prospects`, {
+      // Salvar no backend usando fetchWithAuth
+      const response = await fetchWithAuth(`${API_URL}/prospects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(prospect)
       })
-      
+
       if (response.ok) {
         const savedProspect = await response.json()
         setProspects([...prospects, savedProspect])
@@ -419,11 +419,12 @@ export default function Referrals() {
         })
         alert('Prospect indicado com sucesso!')
       } else {
-        throw new Error('Erro ao salvar prospect')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erro ao salvar prospect')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar prospect:', error)
-      alert('Erro ao salvar indicação. Tente novamente.')
+      alert(`Erro ao salvar indicação: ${error.message}. Tente novamente.`)
     }
   }
 

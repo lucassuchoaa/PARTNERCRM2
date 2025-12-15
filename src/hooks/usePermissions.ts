@@ -72,7 +72,7 @@ export function usePermissions() {
       // Buscar roles do servidor
       if (!rolesCache) {
         try {
-          const response = await fetchWithAuth(`${API_URL}/api/roles`)
+          const response = await fetchWithAuth(`${API_URL}/roles`)
           const data = await response.json()
           if (data.success) {
             rolesCache = data.data

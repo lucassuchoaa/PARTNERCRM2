@@ -5,6 +5,8 @@ import { setupAuth, isAuthenticated } from './replitAuth';
 import { storage } from './storage';
 import authRoutes from './routes/auth';
 import usersRoutes from './routes/users';
+import managersRoutes from './routes/managers';
+import partnersRoutes from './routes/partners';
 import productsRoutes from './routes/products';
 import pricingPlansRoutes from './routes/pricing-plans';
 import remunerationTablesRoutes from './routes/remuneration-tables';
@@ -13,6 +15,7 @@ import clientsRoutes from './routes/clients';
 import transactionsRoutes from './routes/transactions';
 import prospectsRoutes from './routes/prospects';
 import notificationsRoutes from './routes/notifications';
+import uploadRoutes from './routes/upload';
 import uploadsRoutes from './routes/uploads';
 import nfeUploadsRoutes from './routes/nfe-uploads';
 import stripeRoutes from './routes/stripe';
@@ -148,6 +151,8 @@ async function startServer() {
   // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);
+  app.use('/api/managers', managersRoutes);
+  app.use('/api/partners', partnersRoutes);
   app.use('/api/products', productsRoutes);
   app.use('/api/pricing-plans', pricingPlansRoutes);
   app.use('/api/remuneration-tables', remunerationTablesRoutes);
@@ -156,6 +161,7 @@ async function startServer() {
   app.use('/api/transactions', transactionsRoutes);
   app.use('/api/prospects', prospectsRoutes);
   app.use('/api/notifications', notificationsRoutes);
+  app.use('/api/upload', uploadRoutes);
   app.use('/api/uploads', uploadsRoutes);
   app.use('/api/nfe_uploads', nfeUploadsRoutes);
   app.use('/api/stripe', stripeRoutes);
