@@ -5,6 +5,7 @@ import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
 import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { fetchCNPJData, formatCNPJ, validateCNPJ, mapCNAEToSegment, estimateEmployeesByPorte } from '../../services/cnpjService'
+import toast from 'react-hot-toast'
 
 interface Prospect {
   id: string
@@ -171,11 +172,11 @@ export default function Referrals() {
         setSelectedClient(editingClient)
         setIsEditMode(false)
         setEditingClient(null)
-        alert('Alterações salvas com sucesso!')
+        toast.success('Alterações salvas com sucesso!')
       }
     } catch (error) {
       console.error('Erro ao salvar alterações:', error)
-      alert('Erro ao salvar alterações')
+      toast.error('Erro ao salvar alterações')
     }
   }
 
@@ -318,11 +319,11 @@ export default function Referrals() {
         setSelectedClient(updatedClient)
         setIsEditingRecommendations(false)
         setEditingRecommendations('')
-        alert('Recomendações salvas com sucesso!')
+        toast.success('Recomendações salvas com sucesso!')
       }
     } catch (error) {
       console.error('Erro ao salvar recomendações:', error)
-      alert('Erro ao salvar recomendações')
+      toast.error('Erro ao salvar recomendações')
     }
   }
 
@@ -424,7 +425,7 @@ export default function Referrals() {
       }
     } catch (error: any) {
       console.error('Erro ao salvar prospect:', error)
-      alert(`Erro ao salvar indicação: ${error.message}. Tente novamente.`)
+      toast.error(`Erro ao salvar indicação: ${error.message}`)
     }
   }
 
@@ -455,7 +456,7 @@ export default function Referrals() {
         setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
-        alert(`Indicação de ${prospect.companyName} validada com sucesso! Agora seguirá para análise de carteira.`)
+        toast.success(`${prospect.companyName} validada com sucesso!`)
         
         // Automaticamente mover para análise após validação
         setTimeout(() => {
@@ -519,7 +520,7 @@ export default function Referrals() {
           p.id === prospect.id ? { ...updatedProspect, id: prospect.id } : p
         ))
 
-        alert(`✅ Prospect ${prospect.companyName} aprovado!\n\nO cliente foi criado automaticamente na área de clientes.`)
+        toast.success(`${prospect.companyName} aprovado! Cliente criado automaticamente.`)
       } else {
         // Tratar erros específicos
         const errorData = await response.json()

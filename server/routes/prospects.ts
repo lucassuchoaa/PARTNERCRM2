@@ -1,6 +1,14 @@
 import { Router, Response } from 'express';
 import { pool, getClient } from '../db';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth-secure';
+import { createProspectSchema, updateProspectSchema, validateProspectSchema } from '../utils/validation';
+
+// Whitelist de colunas permitidas para UPDATE (proteção SQL injection)
+const ALLOWED_PROSPECT_COLUMNS = new Set([
+  'company_name', 'contact_name', 'email', 'phone',
+  'cnpj', 'employees', 'segment', 'status', 'partner_id',
+  'is_approved', 'validated_by', 'validated_at', 'validation_notes'
+]);
 
 const router = Router();
 
@@ -31,27 +39,37 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // POST - Criar novo prospecto
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Validar input com Zod
+    const validated = createProspectSchema.parse(req.body);
+
     const {
       companyName, contactName, email, phone, cnpj,
       employees, segment, partnerId
-    } = req.body;
-    
+    } = validated;
+
     const result = await pool.query(`
       INSERT INTO prospects (
         company_name, contact_name, email, phone, cnpj,
         employees, segment, partner_id
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING 
+      RETURNING
         id, company_name as "companyName", contact_name as "contactName",
         email, phone, cnpj, employees, segment, status,
         partner_id as "partnerId",
         submitted_at as "submittedAt",
         created_at as "createdAt"
     `, [companyName, contactName, email, phone, cnpj, employees, segment, partnerId]);
-    
+
     res.status(201).json(result.rows[0]);
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return res.status(400).json({
+        error: 'Dados inválidos',
+        details: error.errors
+      });
+    }
+
     console.error('Error creating prospect:', error);
     res.status(500).json({ error: 'Erro ao criar prospecto' });
   }
@@ -66,20 +84,90 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       employees, segment, status, partnerId, adminValidation
     } = req.body;
 
-    // Build dynamic update query
+    // Build dynamic update query com whitelist de segurança
     const updates: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
-    if (companyName !== undefined) { updates.push(`company_name = $${paramIndex++}`); values.push(companyName); }
-    if (contactName !== undefined) { updates.push(`contact_name = $${paramIndex++}`); values.push(contactName); }
-    if (email !== undefined) { updates.push(`email = $${paramIndex++}`); values.push(email); }
-    if (phone !== undefined) { updates.push(`phone = $${paramIndex++}`); values.push(phone); }
-    if (cnpj !== undefined) { updates.push(`cnpj = $${paramIndex++}`); values.push(cnpj); }
-    if (employees !== undefined) { updates.push(`employees = $${paramIndex++}`); values.push(employees); }
-    if (segment !== undefined) { updates.push(`segment = $${paramIndex++}`); values.push(segment); }
-    if (status !== undefined) { updates.push(`status = $${paramIndex++}`); values.push(status); }
-    if (partnerId !== undefined) { updates.push(`partner_id = $${paramIndex++}`); values.push(partnerId); }
+    // Verificar colunas contra whitelist (proteção SQL injection)
+    const columnMapping: Record<string, string> = {
+      companyName: 'company_name',
+      contactName: 'contact_name',
+      email: 'email',
+      phone: 'phone',
+      cnpj: 'cnpj',
+      employees: 'employees',
+      segment: 'segment',
+      status: 'status',
+      partnerId: 'partner_id'
+    };
+
+    if (companyName !== undefined) {
+      const col = columnMapping.companyName;
+      if (!ALLOWED_PROSPECT_COLUMNS.has(col)) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`${col} = $${paramIndex++}`);
+      values.push(companyName);
+    }
+    if (contactName !== undefined) {
+      const col = columnMapping.contactName;
+      if (!ALLOWED_PROSPECT_COLUMNS.has(col)) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`${col} = $${paramIndex++}`);
+      values.push(contactName);
+    }
+    if (email !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('email')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`email = $${paramIndex++}`);
+      values.push(email);
+    }
+    if (phone !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('phone')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`phone = $${paramIndex++}`);
+      values.push(phone);
+    }
+    if (cnpj !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('cnpj')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`cnpj = $${paramIndex++}`);
+      values.push(cnpj);
+    }
+    if (employees !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('employees')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`employees = $${paramIndex++}`);
+      values.push(employees);
+    }
+    if (segment !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('segment')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`segment = $${paramIndex++}`);
+      values.push(segment);
+    }
+    if (status !== undefined) {
+      if (!ALLOWED_PROSPECT_COLUMNS.has('status')) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`status = $${paramIndex++}`);
+      values.push(status);
+    }
+    if (partnerId !== undefined) {
+      const col = columnMapping.partnerId;
+      if (!ALLOWED_PROSPECT_COLUMNS.has(col)) {
+        return res.status(400).json({ error: 'Coluna inválida detectada' });
+      }
+      updates.push(`${col} = $${paramIndex++}`);
+      values.push(partnerId);
+    }
 
     // Handle adminValidation object
     if (adminValidation) {

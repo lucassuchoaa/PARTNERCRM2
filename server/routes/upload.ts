@@ -3,7 +3,7 @@ import formidable from 'formidable';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth-secure';
 
 const router = Router();
 

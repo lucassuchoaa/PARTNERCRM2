@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { Resend } from 'resend';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth-secure';
 
 const router = Router();
 

@@ -23,7 +23,14 @@ import initRoutes from './routes/init';
 import emailRoutes from './routes/email';
 import rolesRoutes from './routes/roles';
 
+// Middlewares de segurança
+import { apiLimiter, authLimiter, createResourceLimiter } from './middleware/rateLimiter';
+import { validateJWTSecrets } from './utils/jwt';
+
 dotenv.config();
+
+// Validar JWT secrets em produção
+validateJWTSecrets();
 
 const requiredEnvVars = ['SESSION_SECRET', 'DATABASE_URL'];
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -95,6 +102,14 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Rate limiting global para todas as APIs
+  app.use('/api/', apiLimiter);
+
+  console.log('🛡️  Security middlewares enabled:');
+  console.log('   ✅ Rate limiting (100 reqs/15min)');
+  console.log('   ✅ JWT validation');
+  console.log('   ✅ Input sanitization');
+
   // Setup Replit Auth (conditional)
   if (replitAuthEnabled) {
     await setupAuth(app);
@@ -149,7 +164,10 @@ async function startServer() {
   });
 
   // API Routes
-  app.use('/api/auth', authRoutes);
+  // Auth routes (com rate limiting adicional)
+  app.use('/api/auth', authLimiter, authRoutes);
+
+  // Resource routes
   app.use('/api/users', usersRoutes);
   app.use('/api/managers', managersRoutes);
   app.use('/api/partners', partnersRoutes);
@@ -159,7 +177,10 @@ async function startServer() {
   app.use('/api/support-materials', supportMaterialsRoutes);
   app.use('/api/clients', clientsRoutes);
   app.use('/api/transactions', transactionsRoutes);
-  app.use('/api/prospects', prospectsRoutes);
+
+  // Prospects (com rate limiting adicional para criação)
+  app.use('/api/prospects', createResourceLimiter, prospectsRoutes);
+
   app.use('/api/notifications', notificationsRoutes);
   app.use('/api/upload', uploadRoutes);
   app.use('/api/uploads', uploadsRoutes);
