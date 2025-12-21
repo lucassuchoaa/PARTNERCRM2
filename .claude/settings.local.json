@@ -18,7 +18,9 @@
       "Bash(npm run type-check:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(chmod:*)",
+      "Bash(./setup-replit-secrets.sh)"
     ],
     "deny": [],
     "ask": []
