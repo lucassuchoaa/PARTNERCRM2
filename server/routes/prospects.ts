@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { pool } from '../db';
+import { pool, getClient } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -136,11 +136,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
 // PATCH - Validar prospecto e criar cliente se aprovado
 router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Response) => {
+  const { client, release } = await getClient();
+
   try {
     const { id } = req.params;
     const { isApproved, validatedBy, validationNotes, status } = req.body;
-    
-    const result = await pool.query(`
+
+    // Iniciar transação para garantir consistência
+    await client.query('BEGIN');
+
+    // 1. Atualizar prospect
+    const result = await client.query(`
       UPDATE prospects SET
         is_approved = $1,
         validated_by = $2,
@@ -148,7 +154,7 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
         validated_at = NOW(),
         status = $4
       WHERE id = $5
-      RETURNING 
+      RETURNING
         id, company_name as "companyName", contact_name as "contactName",
         email, phone, cnpj, employees, segment, status,
         partner_id as "partnerId",
@@ -158,22 +164,25 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
         validation_notes as "validationNotes",
         is_approved as "isApproved"
     `, [isApproved, validatedBy, validationNotes, status, id]);
-    
+
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Prospecto não encontrado' });
     }
-    
+
     const prospect = result.rows[0];
-    
-    // Se aprovado, criar cliente automaticamente
+
+    // 2. Se aprovado, criar cliente automaticamente
     if (isApproved === true && status === 'approved') {
       try {
-        await pool.query(`
+        // Tentar criar cliente com prospect_id para rastreamento
+        const clientResult = await client.query(`
           INSERT INTO clients (
             name, email, phone, cnpj, status, stage, temperature,
-            total_lives, partner_id, notes, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
-          ON CONFLICT (email) DO NOTHING
+            total_lives, partner_id, notes, prospect_id,
+            created_at, updated_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+          RETURNING id
         `, [
           prospect.contactName || prospect.companyName,
           prospect.email,
@@ -184,18 +193,71 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
           'quente',
           1,
           prospect.partnerId,
-          validationNotes || ''
+          validationNotes || '',
+          id  // prospect_id para rastreamento
         ]);
-        console.log(`✅ Cliente criado automaticamente a partir do prospecto ${id}`);
-      } catch (error) {
-        console.error('Aviso: Erro ao criar cliente automático:', error);
+
+        if (clientResult.rows.length === 0) {
+          throw new Error('Cliente não foi criado (possível email duplicado)');
+        }
+
+        const clientId = clientResult.rows[0].id;
+        console.log(`✅ Cliente ${clientId} criado automaticamente do prospect ${id}`);
+
+        // Commit da transação - sucesso total
+        await client.query('COMMIT');
+
+        res.json({
+          ...prospect,
+          clientId: clientId,
+          message: 'Prospect aprovado e cliente criado com sucesso'
+        });
+
+      } catch (clientError: any) {
+        // Erro ao criar cliente - fazer rollback
+        await client.query('ROLLBACK');
+
+        console.error('❌ ERRO ao criar cliente automático:', clientError);
+        console.error('   Prospect ID:', id);
+        console.error('   Email:', prospect.email);
+        console.error('   Detalhes:', clientError.message);
+
+        // Verificar se é duplicata
+        const isDuplicate = clientError.message?.includes('duplicate') ||
+                           clientError.code === '23505';
+
+        if (isDuplicate) {
+          return res.status(409).json({
+            error: 'Cliente com este email já existe',
+            details: 'Um cliente com este email já está cadastrado no sistema',
+            prospectId: id,
+            email: prospect.email
+          });
+        }
+
+        // Outro tipo de erro
+        return res.status(500).json({
+          error: 'Erro ao criar cliente automaticamente',
+          details: clientError.message,
+          prospectId: id,
+          message: 'O prospect não foi aprovado devido a erro na criação do cliente'
+        });
       }
+    } else {
+      // Prospect validado mas não aprovado, ou status diferente
+      await client.query('COMMIT');
+      res.json(prospect);
     }
-    
-    res.json(prospect);
-  } catch (error) {
-    console.error('Error validating prospect:', error);
-    res.status(500).json({ error: 'Erro ao validar prospecto' });
+
+  } catch (error: any) {
+    await client.query('ROLLBACK');
+    console.error('❌ Erro ao validar prospect:', error);
+    res.status(500).json({
+      error: 'Erro ao validar prospecto',
+      details: error.message
+    });
+  } finally {
+    release();
   }
 });
 

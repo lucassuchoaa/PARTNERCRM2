@@ -496,60 +496,45 @@ export default function Referrals() {
 
   const approveProspect = async (prospect: Prospect) => {
     try {
-      // Atualizar status do prospect para aprovado
-      const updatedProspect = {
-        ...prospect,
-        status: 'approved' as const
-      }
-
-      const prospectResponse = await fetch(`${API_URL}/prospects/${prospect.id}`, {
-        method: 'PUT',
+      // Usar endpoint PATCH /validate que cria cliente automaticamente
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(updatedProspect)
+        body: JSON.stringify({
+          isApproved: true,
+          validatedBy: currentUser?.name || 'Admin',
+          validationNotes: 'Aprovado pelo parceiro',
+          status: 'approved'
+        })
       })
 
-      if (prospectResponse.ok) {
-        // Criar cliente baseado no prospect aprovado
-        const newClient = {
-          id: Date.now().toString(),
-          name: prospect.companyName,
-          cnpj: prospect.cnpj,
-          status: 'active',
-          stage: 'prospeccao',
-          temperature: 'morno',
-          totalLives: 0,
-          contractEndDate: '',
-          lastUpdated: new Date().toISOString(),
-          partnerId: prospect.partnerId,
-          contactName: prospect.contactName,
-          email: prospect.email,
-          phone: prospect.phone,
-          employees: prospect.employees,
-          segment: prospect.segment
-        }
+      if (response.ok) {
+        const updatedProspect = await response.json()
 
-        const clientResponse = await fetch(`${API_URL}/clients`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include',
-          body: JSON.stringify(newClient)
-        })
+        // Atualizar lista de prospects
+        setProspects(prev => prev.map(p =>
+          p.id === prospect.id ? { ...updatedProspect, id: prospect.id } : p
+        ))
 
-        if (clientResponse.ok) {
-          setProspects(prev => prev.map(p => 
-            p.id === prospect.id ? updatedProspect : p
-          ))
-          alert(`Prospect ${prospect.companyName} aprovado e movido para área de clientes!`)
+        alert(`✅ Prospect ${prospect.companyName} aprovado!\n\nO cliente foi criado automaticamente na área de clientes.`)
+      } else {
+        // Tratar erros específicos
+        const errorData = await response.json()
+
+        if (response.status === 409) {
+          // Cliente duplicado
+          alert(`⚠️ Atenção: ${errorData.error}\n\n${errorData.details}`)
+        } else {
+          // Outro erro
+          alert(`❌ Erro ao aprovar prospect:\n${errorData.error}\n\n${errorData.details || ''}`)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao aprovar prospect:', error)
-      alert('Erro ao aprovar prospect. Tente novamente.')
+      alert(`❌ Erro ao aprovar prospect: ${error.message || 'Tente novamente.'}`)
     }
   }
 
