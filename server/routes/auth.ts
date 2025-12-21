@@ -1,85 +1,238 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../db';
-
-// Generate UUID without crypto import
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
+import { createToken, verifyToken, extractTokenFromHeader } from '../utils/jwt';
+import { loginSchema, refreshTokenSchema, createUserSchema } from '../utils/validation';
+import { authLimiter } from '../middleware/rateLimiter';
+import crypto from 'crypto';
 
 const router = Router();
 
-// Helper to create token (format: access_<base64(userId)>_<timestamp>)
-function createToken(type: 'access' | 'refresh', userId: string): string {
-  const timestamp = Date.now();
-  const encodedUserId = Buffer.from(userId).toString('base64url');
-  return `${type}_${encodedUserId}_${timestamp}`;
-}
-
-// Helper to verify token
-function verifyToken(token: string): { userId: string; timestamp: number; type: string } | null {
-  if (!token) return null;
-
-  // Parse token format: <type>_<base64(userId)>_<timestamp>
-  const parts = token.split('_');
-  if (parts.length < 3) return null;
-
-  const type = parts[0];
-  const timestamp = parseInt(parts[parts.length - 1], 10);
-  const encodedUserId = parts.slice(1, -1).join('_');
-
-  if (!type || !encodedUserId || isNaN(timestamp)) return null;
-
+/**
+ * POST /api/auth/login
+ * Login com email e senha
+ * Rate limited: 5 tentativas por 15 minutos
+ */
+router.post('/login', authLimiter, async (req: Request, res: Response) => {
   try {
-    const userId = Buffer.from(encodedUserId, 'base64url').toString('utf8');
-    return { userId, timestamp, type };
-  } catch {
-    return null;
+    // Validar input
+    const validated = loginSchema.parse(req.body);
+    const { email, password } = validated;
+
+    console.log(`[AUTH] Tentativa de login para: ${email}`);
+
+    // Buscar usuário no banco
+    const result = await pool.query(
+      `SELECT id, email, name, first_name, last_name, role, status, password
+       FROM users WHERE email = $1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      console.warn(`[AUTH] ⚠️  Login falhou: usuário não encontrado (${email})`);
+
+      // Não revelar se email existe ou não (segurança)
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha incorretos',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Verificar se usuário está ativo
+    if (user.status !== 'active') {
+      console.warn(`[AUTH] ⚠️  Login falhou: usuário inativo (${email})`);
+
+      return res.status(403).json({
+        success: false,
+        error: 'Conta inativa. Entre em contato com o administrador.',
+        code: 'ACCOUNT_INACTIVE'
+      });
+    }
+
+    // Verificar senha com bcrypt
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      console.warn(`[AUTH] ⚠️  Login falhou: senha incorreta (${email})`);
+
+      return res.status(401).json({
+        success: false,
+        error: 'Email ou senha incorretos',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+
+    // Login bem-sucedido! Gerar tokens JWT
+    const accessToken = createToken('access', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    const refreshToken = createToken('refresh', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    // Atualizar last_login
+    await pool.query(
+      'UPDATE users SET last_login = NOW() WHERE id = $1',
+      [user.id]
+    );
+
+    console.log(`[AUTH] ✅ Login bem-sucedido: ${email} (role: ${user.role})`);
+
+    // Retornar tokens e dados do usuário (SEM senha)
+    res.json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || user.first_name,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        status: user.status
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+        expiresIn: 3600 // 1 hora em segundos
+      }
+    });
+
+  } catch (error: any) {
+    // Erro de validação Zod
+    if (error.name === 'ZodError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Dados inválidos',
+        details: error.errors,
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    console.error('[AUTH] ❌ Erro no login:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno no servidor',
+      code: 'INTERNAL_ERROR'
+    });
   }
-}
+});
 
-// GET /api/auth/me - Get current user
-router.get('/me', async (req, res) => {
+/**
+ * POST /api/auth/refresh
+ * Renovar access token usando refresh token
+ */
+router.post('/refresh', async (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
+    // Validar input
+    const validated = refreshTokenSchema.parse(req.body);
+    const { refreshToken } = validated;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Verificar refresh token
+    let decoded;
+    try {
+      decoded = verifyToken(refreshToken, 'refresh');
+    } catch (error: any) {
+      return res.status(401).json({
+        success: false,
+        error: error.message,
+        code: 'INVALID_REFRESH_TOKEN'
+      });
+    }
+
+    // Buscar usuário atualizado no banco
+    const result = await pool.query(
+      'SELECT id, email, name, role, status FROM users WHERE id = $1',
+      [decoded.userId]
+    );
+
+    if (result.rows.length === 0 || result.rows[0].status !== 'active') {
+      return res.status(401).json({
+        success: false,
+        error: 'Usuário inválido ou inativo',
+        code: 'INVALID_USER'
+      });
+    }
+
+    const user = result.rows[0];
+
+    // Gerar novo access token
+    const newAccessToken = createToken('access', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
+
+    console.log(`[AUTH] 🔄 Token renovado para: ${user.email}`);
+
+    res.json({
+      success: true,
+      message: 'Token renovado com sucesso',
+      tokens: {
+        accessToken: newAccessToken,
+        refreshToken, // Manter mesmo refresh token
+        expiresIn: 3600
+      }
+    });
+
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Dados inválidos',
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    console.error('[AUTH] ❌ Erro no refresh:', error);
+
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno no servidor',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
+/**
+ * GET /api/auth/me
+ * Obter dados do usuário autenticado
+ */
+router.get('/me', async (req: Request, res: Response) => {
+  try {
+    // Extrair token do header
+    const token = extractTokenFromHeader(req.headers.authorization);
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         error: 'Token não fornecido',
-        code: 'NO_TOKEN',
-        timestamp: new Date().toISOString()
+        code: 'NO_TOKEN'
       });
     }
 
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-
-    if (!decoded || decoded.type !== 'access') {
+    // Verificar token
+    let decoded;
+    try {
+      decoded = verifyToken(token, 'access');
+    } catch (error: any) {
       return res.status(401).json({
         success: false,
-        error: 'Token inválido',
-        code: 'INVALID_TOKEN',
-        timestamp: new Date().toISOString()
+        error: error.message,
+        code: 'INVALID_TOKEN'
       });
     }
 
-    // Check token expiration (1 hour = 3600000ms)
-    const now = Date.now();
-    if (now - decoded.timestamp > 3600000) {
-      return res.status(401).json({
-        success: false,
-        error: 'Token expirado',
-        code: 'TOKEN_EXPIRED',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Find user in database
+    // Buscar usuário no banco
     const result = await pool.query(
       `SELECT id, email, name, first_name, last_name, role, status,
               profile_image_url, created_at, updated_at
@@ -91,336 +244,159 @@ router.get('/me', async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Usuário não encontrado',
-        code: 'USER_NOT_FOUND',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const user = result.rows[0];
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        id: user.id,
-        email: user.email,
-        name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-        firstName: user.first_name,
-        lastName: user.last_name,
-        role: user.role,
-        status: user.status,
-        isActive: user.status === 'active',
-        profileImageUrl: user.profile_image_url,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Get user error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// POST /api/auth/refresh - Refresh access token
-router.post('/refresh', async (req, res) => {
-  try {
-    const { refreshToken } = req.body;
-
-    if (!refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Refresh token não fornecido',
-        code: 'NO_REFRESH_TOKEN',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const decoded = verifyToken(refreshToken);
-
-    if (!decoded || decoded.type !== 'refresh') {
-      return res.status(401).json({
-        success: false,
-        error: 'Refresh token inválido',
-        code: 'INVALID_REFRESH_TOKEN',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Check refresh token expiration (7 days = 604800000ms)
-    const now = Date.now();
-    if (now - decoded.timestamp > 604800000) {
-      return res.status(401).json({
-        success: false,
-        error: 'Refresh token expirado',
-        code: 'REFRESH_TOKEN_EXPIRED',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Find user in database
-    const result = await pool.query(
-      'SELECT id, status FROM users WHERE id = $1',
-      [decoded.userId]
-    );
-
-    if (result.rows.length === 0 || result.rows[0].status !== 'active') {
-      return res.status(401).json({
-        success: false,
-        error: 'Usuário inválido ou inativo',
-        code: 'INVALID_USER',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    const user = result.rows[0];
-
-    // Generate new tokens
-    const newAccessToken = createToken('access', user.id);
-    const newRefreshToken = createToken('refresh', user.id);
-
-    console.log('✅ Tokens refreshed for user:', user.id);
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-        expiresIn: 3600
-      },
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Refresh token error:', error);
-    return res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor',
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// POST /api/auth/login
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    console.log('🔐 Login attempt for:', email);
-
-    // Validação básica
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email e senha são obrigatórios',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Buscar usuário no banco de dados
-    const result = await pool.query(
-      `SELECT id, email, name, first_name, last_name, password, role, status,
-              profile_image_url, created_at, updated_at
-       FROM users WHERE LOWER(email) = LOWER($1)`,
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      console.error('❌ User not found:', email);
-      return res.status(401).json({
-        success: false,
-        error: 'Email ou senha inválidos',
-        code: 'INVALID_CREDENTIALS',
-        timestamp: new Date().toISOString()
+        code: 'USER_NOT_FOUND'
       });
     }
 
     const user = result.rows[0];
 
     if (user.status !== 'active') {
-      return res.status(401).json({
+      return res.status(403).json({
         success: false,
-        error: 'Conta inativa',
-        code: 'ACCOUNT_INACTIVE',
-        timestamp: new Date().toISOString()
+        error: 'Usuário inativo',
+        code: 'USER_INACTIVE'
       });
     }
 
-    // Verificar senha com bcrypt
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      console.error('❌ Password mismatch for user:', email);
-      return res.status(401).json({
-        success: false,
-        error: 'Email ou senha inválidos',
-        code: 'INVALID_CREDENTIALS',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    console.log('✅ Password verified successfully');
-    console.log('📋 User data:', {
-      id: user.id,
-      email: user.email,
-      role: user.role
-    });
-
-    // Gerar tokens
-    const accessToken = createToken('access', user.id);
-    const refreshToken = createToken('refresh', user.id);
-
-    // Atualizar last_login
-    await pool.query(
-      'UPDATE users SET last_login = NOW() WHERE id = $1',
-      [user.id]
-    );
-
-    console.log('✅ Tokens generated for role:', user.role);
-
-    // Retornar usuário sem senha
-    const userResponse = {
-      id: user.id,
-      email: user.email,
-      name: user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      status: user.status,
-      isActive: user.status === 'active',
-      profileImageUrl: user.profile_image_url,
-      createdAt: user.created_at,
-      updatedAt: user.updated_at
-    };
-
-    return res.status(200).json({
+    res.json({
       success: true,
-      data: {
-        user: userResponse,
-        accessToken,
-        refreshToken,
-        expiresIn: 3600
-      },
-      message: 'Login realizado com sucesso',
-      timestamp: new Date().toISOString()
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || user.first_name,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        status: user.status,
+        profileImageUrl: user.profile_image_url,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at
+      }
     });
+
   } catch (error: any) {
-    console.error('❌ Login error:', error);
-    return res.status(500).json({
+    console.error('[AUTH] ❌ Erro no /me:', error);
+
+    res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor',
-      timestamp: new Date().toISOString()
+      error: 'Erro interno no servidor',
+      code: 'INTERNAL_ERROR'
     });
   }
 });
 
-// POST /api/auth/register - Registro público para parceiros
-router.post('/register', async (req, res) => {
+/**
+ * POST /api/auth/register
+ * Registro público para novos usuários (role: partner)
+ * Rate limited
+ */
+router.post('/register', authLimiter, async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    // Validar input
+    const validated = createUserSchema.parse({
+      ...req.body,
+      role: 'partner' // Força role como partner para registro público
+    });
 
-    console.log('📝 Registration attempt for:', email);
-
-    // Validação básica
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Nome, email e senha são obrigatórios',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Validar formato do email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Formato de email inválido',
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    // Validar tamanho da senha
-    if (password.length < 6) {
-      return res.status(400).json({
-        success: false,
-        error: 'A senha deve ter no mínimo 6 caracteres',
-        timestamp: new Date().toISOString()
-      });
-    }
+    const { email, name, password } = validated;
 
     // Verificar se email já existe
     const existingUser = await pool.query(
-      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
+      'SELECT id FROM users WHERE email = $1',
       [email]
     );
 
     if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
-        error: 'Este email já está cadastrado',
-        code: 'EMAIL_EXISTS',
-        timestamp: new Date().toISOString()
+        error: 'Email já cadastrado',
+        code: 'EMAIL_EXISTS'
       });
     }
 
-    // Hash da senha
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash da senha com bcrypt (salt rounds = 12)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Gerar ID único
-    const newId = generateUUID();
+    // Criar usuário
+    const userId = crypto.randomUUID();
 
-    // Criar usuário como parceiro (usando apenas colunas que existem na tabela)
     const result = await pool.query(
-      `INSERT INTO users (id, email, name, password, role, status, permissions)
-       VALUES ($1, $2, $3, $4, 'partner', 'active', $5)
-       RETURNING id, email, name, role, status, created_at, updated_at`,
-      [newId, email.toLowerCase(), name, hashedPassword, JSON.stringify({})]
+      `INSERT INTO users (id, email, name, password, role, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       RETURNING id, email, name, role, status, created_at`,
+      [userId, email, name, hashedPassword, 'partner', 'active']
     );
 
-    const newUser = result.rows[0];
+    const user = result.rows[0];
 
-    // Gerar tokens
-    const accessToken = createToken('access', newUser.id);
-    const refreshToken = createToken('refresh', newUser.id);
+    console.log(`[AUTH] ✅ Novo usuário registrado: ${email}`);
 
-    console.log('✅ User registered successfully:', newUser.email, 'as partner');
+    // Auto-login: gerar tokens
+    const accessToken = createToken('access', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
 
-    // Retornar usuário criado
-    const userResponse = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: newUser.role,
-      status: newUser.status,
-      isActive: newUser.status === 'active',
-      createdAt: newUser.created_at,
-      updatedAt: newUser.updated_at
-    };
+    const refreshToken = createToken('refresh', {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    });
 
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
-      data: {
-        user: userResponse,
+      message: 'Usuário cadastrado com sucesso',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        status: user.status,
+        createdAt: user.created_at
+      },
+      tokens: {
         accessToken,
         refreshToken,
         expiresIn: 3600
-      },
-      message: 'Cadastro realizado com sucesso! Bem-vindo ao Partners CRM.',
-      timestamp: new Date().toISOString()
+      }
     });
+
   } catch (error: any) {
-    console.error('❌ Registration error:', error);
-    return res.status(500).json({
+    if (error.name === 'ZodError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Dados inválidos',
+        details: error.errors.map((e: any) => ({
+          field: e.path.join('.'),
+          message: e.message
+        })),
+        code: 'VALIDATION_ERROR'
+      });
+    }
+
+    console.error('[AUTH] ❌ Erro no registro:', error);
+
+    res.status(500).json({
       success: false,
-      error: error.message || 'Erro interno do servidor',
-      details: error.code || error.detail || 'No details',
-      timestamp: new Date().toISOString()
+      error: 'Erro interno no servidor',
+      code: 'INTERNAL_ERROR'
     });
   }
+});
+
+/**
+ * POST /api/auth/logout
+ * Logout (invalidação de token no futuro com blacklist)
+ */
+router.post('/logout', async (req: Request, res: Response) => {
+  // TODO: Implementar blacklist de tokens se necessário
+  // Por enquanto, apenas confirma logout (cliente deve deletar tokens)
+
+  res.json({
+    success: true,
+    message: 'Logout realizado com sucesso'
+  });
 });
 
 export default router;
