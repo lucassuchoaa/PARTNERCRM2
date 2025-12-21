@@ -7,6 +7,46 @@ import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { fetchCNPJData, formatCNPJ, validateCNPJ, mapCNAEToSegment, estimateEmployeesByPorte } from '../../services/cnpjService'
 import toast from 'react-hot-toast'
 
+// Helper para tratar erros de API de forma consistente
+const handleApiError = async (response: Response, context: string) => {
+  console.error(`[${context}] Response status:`, response.status)
+
+  let errorData = null
+  try {
+    errorData = await response.json()
+  } catch (e) {
+    console.error(`[${context}] Erro ao parsear JSON de erro:`, e)
+  }
+
+  console.error(`[${context}] Erro da API:`, errorData)
+
+  // Erro de autenticação
+  if (response.status === 401) {
+    toast.error('Sessão expirada. Faça login novamente.')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
+    setTimeout(() => {
+      window.location.href = '/login'
+    }, 2000)
+    throw new Error('Sessão expirada')
+  }
+
+  // Erro de validação
+  if (response.status === 400 && errorData?.details && Array.isArray(errorData.details)) {
+    const validationErrors = errorData.details
+      .map((detail: any) => `• ${detail.field}: ${detail.message}`)
+      .join('\n')
+    toast.error(`Erro de validação:\n${validationErrors}`, { duration: 5000 })
+    throw new Error('Erro de validação')
+  }
+
+  // Erro genérico
+  const errorMessage = errorData?.error || errorData?.message || `Erro ${response.status}`
+  toast.error(`Erro: ${errorMessage}`)
+  throw new Error(errorMessage)
+}
+
 interface Prospect {
   id: string
   companyName: string
@@ -415,7 +455,6 @@ export default function Referrals() {
     try {
       console.log('[Referrals] Enviando prospect:', prospect)
 
-      // Salvar no backend usando fetchWithAuth
       const response = await fetchWithAuth(`${API_URL}/prospects`, {
         method: 'POST',
         headers: {
@@ -424,53 +463,26 @@ export default function Referrals() {
         body: JSON.stringify(prospect)
       })
 
-      console.log('[Referrals] Response status:', response.status)
-
-      if (response.ok) {
-        const savedProspect = await response.json()
-        setProspects([...prospects, savedProspect])
-        setNewProspect({
-          companyName: '',
-          contactName: '',
-          email: '',
-          phone: '',
-          cnpj: '',
-          employeeCount: '',
-          segment: ''
-        })
-        toast.success('Prospect indicado com sucesso!')
-      } else {
-        const errorData = await response.json().catch(() => ({}))
-        console.error('[Referrals] Erro da API:', errorData)
-
-        // Tratamento específico para erros de autenticação
-        if (response.status === 401) {
-          toast.error('Sessão expirada. Faça login novamente.')
-          // Limpar tokens inválidos
-          localStorage.removeItem('accessToken')
-          localStorage.removeItem('refreshToken')
-          localStorage.removeItem('user')
-          // Redirecionar para login após 2 segundos
-          setTimeout(() => {
-            window.location.href = '/login'
-          }, 2000)
-          return
-        }
-
-        // Tratamento específico para erros de validação
-        if (response.status === 400 && errorData.details) {
-          const validationErrors = errorData.details
-            .map((detail: any) => `${detail.field}: ${detail.message}`)
-            .join('\n')
-          toast.error(`Erro de validação:\n${validationErrors}`)
-          return
-        }
-
-        throw new Error(errorData.error || errorData.message || 'Erro ao salvar prospect')
+      if (!response.ok) {
+        await handleApiError(response, 'Referrals - Submit Prospect')
+        return
       }
+
+      const savedProspect = await response.json()
+      setProspects([...prospects, savedProspect])
+      setNewProspect({
+        companyName: '',
+        contactName: '',
+        email: '',
+        phone: '',
+        cnpj: '',
+        employeeCount: '',
+        segment: ''
+      })
+      toast.success('Prospect indicado com sucesso!')
     } catch (error: any) {
       console.error('[Referrals] Erro ao salvar prospect:', error)
-      toast.error(`Erro ao salvar indicação: ${error.message}`)
+      // Erro já foi mostrado pelo handleApiError
     }
   }
 

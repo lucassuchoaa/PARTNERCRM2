@@ -48,7 +48,8 @@ export const createProspectSchema = z.object({
   }),
 
   partnerId: z.string()
-    .uuid('Partner ID inválido')
+    .min(1, 'Partner ID é obrigatório')
+    .max(255, 'Partner ID muito longo')
     .optional()
 });
 
@@ -88,7 +89,7 @@ export const createClientSchema = z.object({
   stage: z.enum(['prospeccao', 'negociacao', 'fechamento', 'ativo', 'inativo']).optional(),
   temperature: z.enum(['cold', 'warm', 'hot']).optional(),
   totalLives: z.number().int().min(0).optional(),
-  partnerId: z.string().uuid().optional(),
+  partnerId: z.string().min(1).max(255).optional(),
   partnerName: z.string().max(255).optional(),
   notes: z.string().max(2000).optional()
 });
@@ -125,7 +126,7 @@ export const createUserSchema = z.object({
     .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
     .regex(/[0-9]/, 'Senha deve conter pelo menos um número'),
   role: z.enum(['admin', 'manager', 'partner']),
-  managerId: z.string().uuid().optional(),
+  managerId: z.string().min(1).max(255).optional(),
   status: z.enum(['active', 'inactive']).optional()
 });
 
