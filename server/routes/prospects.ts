@@ -39,8 +39,13 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 // POST - Criar novo prospecto
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('[Prospects POST] Dados recebidos:', JSON.stringify(req.body, null, 2));
+    console.log('[Prospects POST] Usuário autenticado:', req.user);
+
     // Validar input com Zod
     const validated = createProspectSchema.parse(req.body);
+
+    console.log('[Prospects POST] Dados validados:', JSON.stringify(validated, null, 2));
 
     const {
       companyName, contactName, email, phone, cnpj,
@@ -64,14 +69,25 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(201).json(result.rows[0]);
   } catch (error: any) {
     if (error.name === 'ZodError') {
+      console.error('[Prospects POST] Erro de validação Zod:', JSON.stringify(error.errors, null, 2));
       return res.status(400).json({
+        success: false,
         error: 'Dados inválidos',
-        details: error.errors
+        details: error.errors.map((e: any) => ({
+          field: e.path.join('.'),
+          message: e.message,
+          received: e.received
+        })),
+        code: 'VALIDATION_ERROR'
       });
     }
 
-    console.error('Error creating prospect:', error);
-    res.status(500).json({ error: 'Erro ao criar prospecto' });
+    console.error('[Prospects POST] Erro ao criar prospect:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao criar prospecto',
+      message: error.message
+    });
   }
 });
 

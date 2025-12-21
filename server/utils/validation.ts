@@ -21,9 +21,9 @@ export const createProspectSchema = z.object({
     .trim(),
 
   phone: z.string()
-    .regex(/^[+]?[0-9\s()-]{10,20}$/, 'Telefone inválido')
-    .optional()
-    .transform(val => val?.replace(/[^\d+]/g, '')), // Remove formatação
+    .transform(val => val ? val.replace(/[^\d+]/g, '') : '') // Remove formatação
+    .refine(val => !val || val.length >= 10, 'Telefone deve ter no mínimo 10 dígitos')
+    .optional(),
 
   cnpj: z.string()
     .regex(/^\d{14}$/, 'CNPJ deve conter exatamente 14 dígitos')

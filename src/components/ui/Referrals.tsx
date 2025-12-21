@@ -383,20 +383,38 @@ export default function Referrals() {
 
   const handleSubmitProspect = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar se o usuário está logado
+    if (!currentUser?.id) {
+      toast.error('Você precisa estar logado para criar indicações')
+      return
+    }
+
+    // Limpar CNPJ (remover pontos, traços, barras)
+    const cleanedCNPJ = newProspect.cnpj.replace(/\D/g, '')
+
+    // Validar CNPJ
+    if (cleanedCNPJ.length !== 14) {
+      toast.error('CNPJ inválido. Deve conter 14 dígitos.')
+      return
+    }
+
     const prospect: Prospect = {
       id: Date.now().toString(),
-      companyName: newProspect.companyName,
-      contactName: newProspect.contactName,
-      email: newProspect.email,
-      phone: newProspect.phone,
-      cnpj: newProspect.cnpj,
+      companyName: newProspect.companyName.trim(),
+      contactName: newProspect.contactName.trim(),
+      email: newProspect.email.trim().toLowerCase(),
+      phone: newProspect.phone.replace(/\D/g, ''), // Remove formatação do telefone
+      cnpj: cleanedCNPJ, // CNPJ sem formatação
       employees: newProspect.employeeCount,
       segment: newProspect.segment,
       status: 'pending',
-      partnerId: currentUser?.id.toString() || '0'
+      partnerId: currentUser.id.toString()
     }
 
     try {
+      console.log('[Referrals] Enviando prospect:', prospect)
+
       // Salvar no backend usando fetchWithAuth
       const response = await fetchWithAuth(`${API_URL}/prospects`, {
         method: 'POST',
@@ -405,6 +423,8 @@ export default function Referrals() {
         },
         body: JSON.stringify(prospect)
       })
+
+      console.log('[Referrals] Response status:', response.status)
 
       if (response.ok) {
         const savedProspect = await response.json()
@@ -418,13 +438,38 @@ export default function Referrals() {
           employeeCount: '',
           segment: ''
         })
-        alert('Prospect indicado com sucesso!')
+        toast.success('Prospect indicado com sucesso!')
       } else {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Erro ao salvar prospect')
+        console.error('[Referrals] Erro da API:', errorData)
+
+        // Tratamento específico para erros de autenticação
+        if (response.status === 401) {
+          toast.error('Sessão expirada. Faça login novamente.')
+          // Limpar tokens inválidos
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          localStorage.removeItem('user')
+          // Redirecionar para login após 2 segundos
+          setTimeout(() => {
+            window.location.href = '/login'
+          }, 2000)
+          return
+        }
+
+        // Tratamento específico para erros de validação
+        if (response.status === 400 && errorData.details) {
+          const validationErrors = errorData.details
+            .map((detail: any) => `${detail.field}: ${detail.message}`)
+            .join('\n')
+          toast.error(`Erro de validação:\n${validationErrors}`)
+          return
+        }
+
+        throw new Error(errorData.error || errorData.message || 'Erro ao salvar prospect')
       }
     } catch (error: any) {
-      console.error('Erro ao salvar prospect:', error)
+      console.error('[Referrals] Erro ao salvar prospect:', error)
       toast.error(`Erro ao salvar indicação: ${error.message}`)
     }
   }

@@ -19,7 +19,11 @@ function getAccessToken(): string | null {
   }
 
   // Fallback para o formato antigo
-  return localStorage.getItem('accessToken')
+  const token = localStorage.getItem('accessToken')
+  if (!token) {
+    console.error('[fetchWithAuth] Token não encontrado no localStorage')
+  }
+  return token
 }
 
 /**
