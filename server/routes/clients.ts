@@ -144,12 +144,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    console.log('[Clients PATCH] Updating client:', id, 'with data:', req.body);
+    console.log('[Clients PATCH] Updating client:', id);
+    console.log('[Clients PATCH] Request body:', JSON.stringify(req.body, null, 2));
 
     // Buscar cliente atual primeiro
     const currentClient = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
 
     if (currentClient.rows.length === 0) {
+      console.log('[Clients PATCH] Cliente não encontrado:', id);
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
 
@@ -202,6 +204,9 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     values.push(id); // ID para o WHERE
 
+    console.log('[Clients PATCH] Query updates:', updates);
+    console.log('[Clients PATCH] Query values:', values);
+
     const result = await pool.query(`
       UPDATE clients SET
         ${updates.join(', ')}
@@ -225,9 +230,14 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     console.log('[Clients PATCH] Updated successfully:', result.rows[0]);
     res.json(result.rows[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Clients PATCH] Error updating client:', error);
-    res.status(500).json({ error: 'Erro ao atualizar cliente' });
+    console.error('[Clients PATCH] Error details:', error.message);
+    console.error('[Clients PATCH] Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Erro ao atualizar cliente',
+      details: error.message
+    });
   }
 });
 

@@ -19,7 +19,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         status,
         created_at as "createdAt"
       FROM users
-      WHERE LOWER(TRIM(role)) = 'manager' AND (status IS NULL OR LOWER(status) = 'active')
+      WHERE LOWER(TRIM(role)) = 'manager'
       ORDER BY name ASC
     `);
 
