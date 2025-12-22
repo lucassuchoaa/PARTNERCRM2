@@ -422,9 +422,9 @@ export default function Referrals() {
               cnpj: client.cnpj || 'CNPJ não informado',
               employeeCount: parseInt(client.employees || client.employeeCount) || Math.floor(Math.random() * 500) + 50,
               segment: client.segment || 'Não informado',
-              currentProducts: client.currentProducts || ['Folha de Pagamento'],
+              currentProducts: Array.isArray(client.currentProducts) ? client.currentProducts : ['Folha de Pagamento'],
               viabilityScore: client.viabilityScore || calculateViabilityScore(client),
-              potentialProducts: client.potentialProducts || getPotentialProducts(client),
+              potentialProducts: Array.isArray(client.potentialProducts) ? client.potentialProducts : getPotentialProducts(client),
               lastAnalysis: client.lastAnalysis || new Date().toISOString().split('T')[0]
             }))
           setPortfolioClients(portfolioData)
@@ -1574,7 +1574,7 @@ export default function Referrals() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {client.currentProducts.map((product, index) => (
+                          {(Array.isArray(client.currentProducts) ? client.currentProducts : []).map((product, index) => (
                             <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {product}
                             </span>
@@ -1595,12 +1595,12 @@ export default function Referrals() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {client.potentialProducts.slice(0, 2).map((product, index) => (
+                          {(Array.isArray(client.potentialProducts) ? client.potentialProducts : []).slice(0, 2).map((product, index) => (
                             <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               {product}
                             </span>
                           ))}
-                          {client.potentialProducts.length > 2 && (
+                          {Array.isArray(client.potentialProducts) && client.potentialProducts.length > 2 && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                               +{client.potentialProducts.length - 2} mais
                             </span>

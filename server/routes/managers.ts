@@ -7,18 +7,23 @@ const router = Router();
 // GET - Listar todos os gerentes com seus parceiros
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    // Buscar todos os usuários com role='manager'
+    console.log('[Managers] Buscando gerentes...');
+
+    // Buscar todos os usuários com role='manager' (case insensitive)
     const managersResult = await pool.query(`
       SELECT
         id,
         email,
         name,
         role,
+        status,
         created_at as "createdAt"
       FROM users
-      WHERE role = 'manager' AND status = 'active'
+      WHERE LOWER(TRIM(role)) = 'manager' AND (status IS NULL OR LOWER(status) = 'active')
       ORDER BY name ASC
     `);
+
+    console.log('[Managers] Encontrados:', managersResult.rows.length, 'gerentes');
 
     // Para cada gerente, buscar seus parceiros
     const managersWithPartners = await Promise.all(
@@ -42,6 +47,32 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Error fetching managers:', error);
     res.status(500).json({ error: 'Erro ao buscar gerentes' });
+  }
+});
+
+// GET - Debug: Listar todos os roles existentes
+router.get('/debug/roles', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const rolesResult = await pool.query(`
+      SELECT DISTINCT role, status, COUNT(*) as count
+      FROM users
+      GROUP BY role, status
+      ORDER BY role
+    `);
+
+    const usersWithManager = await pool.query(`
+      SELECT id, name, email, role, status
+      FROM users
+      WHERE LOWER(role) LIKE '%manager%' OR LOWER(role) LIKE '%gerente%'
+    `);
+
+    res.json({
+      roles: rolesResult.rows,
+      potentialManagers: usersWithManager.rows
+    });
+  } catch (error) {
+    console.error('Error fetching debug info:', error);
+    res.status(500).json({ error: 'Erro ao buscar informações de debug' });
   }
 });
 
