@@ -185,15 +185,14 @@ export default function Referrals() {
 
   const saveChanges = async () => {
     if (!editingClient) return
-    
+
     try {
       // Atualizar no backend
-      const response = await fetch(`${API_URL}/clients/${editingClient.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/clients/${editingClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           ...editingClient,
           currentProducts: editingClient.currentProducts,
@@ -336,12 +335,11 @@ export default function Referrals() {
     if (!selectedClient) return
 
     try {
-      const response = await fetch(`${API_URL}/clients/${selectedClient.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/clients/${selectedClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           ...selectedClient,
           customRecommendations: editingRecommendations
@@ -375,13 +373,11 @@ export default function Referrals() {
         const user = await getCurrentUser()
         setCurrentUser(user)
 
-        // Carregar prospects
-        const response = await fetch(`${API_URL}/prospects`, {
-          credentials: 'include'
-        })
+        // Carregar prospects usando fetchWithAuth
+        const response = await fetchWithAuth(`${API_URL}/prospects`)
         if (response.ok) {
           const data = await response.json()
-          
+
           // Filtrar prospects por parceiro (se não for admin)
           if (user && user.role !== 'admin') {
             const userProspects = data.filter((prospect: Prospect) => prospect.partnerId === user.id.toString())
@@ -391,10 +387,8 @@ export default function Referrals() {
           }
         }
 
-        // Carregar clientes da carteira
-        const clientsResponse = await fetch(`${API_URL}/clients`, {
-          credentials: 'include'
-        })
+        // Carregar clientes da carteira usando fetchWithAuth
+        const clientsResponse = await fetchWithAuth(`${API_URL}/clients`)
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
           // Converter clientes para formato de análise de carteira
@@ -500,12 +494,11 @@ export default function Referrals() {
         }
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -533,12 +526,11 @@ export default function Referrals() {
         status: 'in-analysis' as const
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -555,12 +547,11 @@ export default function Referrals() {
   const approveProspect = async (prospect: Prospect) => {
     try {
       // Usar endpoint PATCH /validate que cria cliente automaticamente
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}/validate`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           isApproved: true,
           validatedBy: currentUser?.name || 'Admin',
@@ -603,12 +594,11 @@ export default function Referrals() {
         status: 'rejected' as const
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -675,12 +665,11 @@ export default function Referrals() {
       const savedProspects = []
       for (const prospect of newProspects) {
         try {
-          const response = await fetch(`${API_URL}/prospects`, {
+          const response = await fetchWithAuth(`${API_URL}/prospects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            credentials: 'include',
             body: JSON.stringify(prospect)
           })
           
