@@ -546,6 +546,8 @@ export default function Referrals() {
 
   const approveProspect = async (prospect: Prospect) => {
     try {
+      console.log('[Referrals] Aprovando prospect:', prospect.id)
+
       // Usar endpoint PATCH /validate que cria cliente automaticamente
       const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}/validate`, {
         method: 'PATCH',
@@ -562,28 +564,41 @@ export default function Referrals() {
 
       if (response.ok) {
         const updatedProspect = await response.json()
+        console.log('[Referrals] Prospect aprovado:', updatedProspect)
 
         // Atualizar lista de prospects
         setProspects(prev => prev.map(p =>
           p.id === prospect.id ? { ...updatedProspect, id: prospect.id } : p
         ))
 
-        toast.success(`${prospect.companyName} aprovado! Cliente criado automaticamente.`)
+        // Mostrar mensagem de sucesso
+        if (updatedProspect.clientId) {
+          toast.success(
+            `${prospect.companyName} aprovado!\n\nCliente criado: ${updatedProspect.clientName || prospect.contactName}`,
+            { duration: 5000 }
+          )
+        } else {
+          toast.success(`${prospect.companyName} aprovado!`)
+        }
       } else {
         // Tratar erros específicos
         const errorData = await response.json()
+        console.error('[Referrals] Erro ao aprovar:', errorData)
 
-        if (response.status === 409) {
-          // Cliente duplicado
-          alert(`⚠️ Atenção: ${errorData.error}\n\n${errorData.details}`)
+        if (response.status === 409 && errorData.code === 'DUPLICATE_EMAIL') {
+          toast.error(
+            `Cliente já existe com email: ${errorData.email}\n\nVerifique a lista de clientes.`,
+            { duration: 6000 }
+          )
+        } else if (response.status === 400 && errorData.code === 'MISSING_DATA') {
+          toast.error(`Dados insuficientes: ${errorData.details}`)
         } else {
-          // Outro erro
-          alert(`❌ Erro ao aprovar prospect:\n${errorData.error}\n\n${errorData.details || ''}`)
+          toast.error(`Erro: ${errorData.error}\n${errorData.details || ''}`, { duration: 5000 })
         }
       }
     } catch (error: any) {
-      console.error('Erro ao aprovar prospect:', error)
-      alert(`❌ Erro ao aprovar prospect: ${error.message || 'Tente novamente.'}`)
+      console.error('[Referrals] Erro ao aprovar prospect:', error)
+      toast.error(`Erro ao aprovar: ${error.message || 'Tente novamente.'}`)
     }
   }
 

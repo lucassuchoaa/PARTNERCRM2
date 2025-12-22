@@ -279,24 +279,40 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
     // 2. Se aprovado, criar cliente automaticamente
     if (isApproved === true && status === 'approved') {
       try {
+        // Validar dados mínimos necessários
+        if (!prospect.email) {
+          throw new Error('Email é obrigatório para criar cliente');
+        }
+
+        // Gerar ID único para o cliente
+        const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log(`[Prospects] Criando cliente para prospect ${id}:`, {
+          clientId,
+          name: prospect.contactName || prospect.companyName,
+          email: prospect.email,
+          partnerId: prospect.partnerId
+        });
+
         // Tentar criar cliente com prospect_id para rastreamento
         const clientResult = await client.query(`
           INSERT INTO clients (
-            name, email, phone, cnpj, status, stage, temperature,
+            id, name, email, phone, cnpj, status, stage, temperature,
             total_lives, partner_id, notes, prospect_id,
-            created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-          RETURNING id
+            registration_date, last_updated
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+          RETURNING id, name, email
         `, [
+          clientId,
           prospect.contactName || prospect.companyName,
           prospect.email,
-          prospect.phone,
-          prospect.cnpj,
+          prospect.phone || null,
+          prospect.cnpj || null,
           'ativo',
           'prospeccao',
           'quente',
           1,
-          prospect.partnerId,
+          prospect.partnerId || null,
           validationNotes || '',
           id  // prospect_id para rastreamento
         ]);
@@ -305,15 +321,22 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
           throw new Error('Cliente não foi criado (possível email duplicado)');
         }
 
-        const clientId = clientResult.rows[0].id;
-        console.log(`✅ Cliente ${clientId} criado automaticamente do prospect ${id}`);
+        const newClient = clientResult.rows[0];
+        console.log(`✅ Cliente criado com sucesso:`, {
+          clientId: newClient.id,
+          name: newClient.name,
+          email: newClient.email,
+          prospectId: id
+        });
 
         // Commit da transação - sucesso total
         await client.query('COMMIT');
 
         res.json({
+          success: true,
           ...prospect,
-          clientId: clientId,
+          clientId: newClient.id,
+          clientName: newClient.name,
           message: 'Prospect aprovado e cliente criado com sucesso'
         });
 
@@ -321,29 +344,49 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
         // Erro ao criar cliente - fazer rollback
         await client.query('ROLLBACK');
 
-        console.error('❌ ERRO ao criar cliente automático:', clientError);
-        console.error('   Prospect ID:', id);
-        console.error('   Email:', prospect.email);
-        console.error('   Detalhes:', clientError.message);
+        console.error('❌ ERRO ao criar cliente automático:', {
+          prospectId: id,
+          email: prospect.email,
+          error: clientError.message,
+          code: clientError.code,
+          detail: clientError.detail,
+          constraint: clientError.constraint
+        });
 
-        // Verificar se é duplicata
+        // Verificar se é duplicata de email
         const isDuplicate = clientError.message?.includes('duplicate') ||
-                           clientError.code === '23505';
+                           clientError.code === '23505' ||
+                           clientError.constraint === 'unique_client_email';
 
         if (isDuplicate) {
           return res.status(409).json({
+            success: false,
             error: 'Cliente com este email já existe',
-            details: 'Um cliente com este email já está cadastrado no sistema',
+            details: 'Um cliente com este email já está cadastrado no sistema. Verifique a lista de clientes.',
             prospectId: id,
-            email: prospect.email
+            email: prospect.email,
+            code: 'DUPLICATE_EMAIL'
+          });
+        }
+
+        // Erro de dados faltando
+        if (clientError.message?.includes('obrigatório')) {
+          return res.status(400).json({
+            success: false,
+            error: 'Dados insuficientes para criar cliente',
+            details: clientError.message,
+            prospectId: id,
+            code: 'MISSING_DATA'
           });
         }
 
         // Outro tipo de erro
         return res.status(500).json({
+          success: false,
           error: 'Erro ao criar cliente automaticamente',
-          details: clientError.message,
+          details: clientError.message || 'Erro desconhecido ao criar cliente',
           prospectId: id,
+          code: 'CLIENT_CREATION_ERROR',
           message: 'O prospect não foi aprovado devido a erro na criação do cliente'
         });
       }
