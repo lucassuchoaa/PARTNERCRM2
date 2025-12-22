@@ -217,11 +217,11 @@ export default function Dashboard() {
           // Carregar notificações do usuário
           await loadNotifications(authUser.id.toString())
 
-          // Fetch dashboard data
+          // Fetch dashboard data com autenticação
           const [clientsData, transactions, prospectsData] = await Promise.all([
-            fetch(`${API_URL}/clients`).then(res => res.json()),
-            fetch(`${API_URL}/transactions`).then(res => res.json()),
-            fetch(`${API_URL}/prospects`).then(res => res.json())
+            fetchWithAuth(`${API_URL}/clients`).then(res => res.json()),
+            fetchWithAuth(`${API_URL}/transactions`).then(res => res.json()),
+            fetchWithAuth(`${API_URL}/prospects`).then(res => res.json())
           ])
 
           const totalTransactionsAmount = transactions.reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
