@@ -7,8 +7,11 @@ const router = Router();
 // GET - Listar todos os clientes
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
+    const user = req.user;
+
+    // Construir query com filtro por parceiro se necessário
+    let query = `
+      SELECT
         id, name, email, phone, cnpj, cpf, status, stage, temperature,
         total_lives as "totalLives",
         partner_id as "partnerId",
@@ -17,10 +20,27 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         registration_date as "registrationDate",
         last_contact_date as "lastContactDate",
         last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
+        current_products as "currentProducts",
+        potential_products as "potentialProducts",
+        viability_score as "viabilityScore",
+        custom_recommendations as "customRecommendations",
+        potential_products_with_values as "potentialProductsWithValues"
       FROM clients
-      ORDER BY last_updated DESC
-    `);
+    `;
+
+    const params: any[] = [];
+
+    // Filtrar por partnerId se não for admin
+    if (user?.role !== 'admin' && user?.id) {
+      query += ` WHERE partner_id = $1`;
+      params.push(user.id.toString());
+    }
+
+    query += ` ORDER BY last_updated DESC`;
+
+    const result = await pool.query(query, params);
+    console.log(`[Clients GET] Retornando ${result.rows.length} clientes para user ${user?.id} (role: ${user?.role})`);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching clients:', error);

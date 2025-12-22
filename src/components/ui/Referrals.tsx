@@ -187,11 +187,16 @@ export default function Referrals() {
     if (!editingClient) return
 
     try {
-      console.log('[Referrals] Salvando análise de carteira:', editingClient.id, {
-        currentProducts: editingClient.currentProducts,
-        viabilityScore: editingClient.viabilityScore,
-        potentialProductsWithValues: editingClient.potentialProductsWithValues
-      })
+      // Preparar dados para envio - garantir que arrays JSONB sejam enviados corretamente
+      const updateData = {
+        currentProducts: editingClient.currentProducts || [],
+        potentialProducts: editingClient.potentialProducts || [],
+        viabilityScore: editingClient.viabilityScore || 0,
+        potentialProductsWithValues: editingClient.potentialProductsWithValues || []
+      }
+
+      console.log('[Referrals] Salvando análise de carteira:', editingClient.id)
+      console.log('[Referrals] Dados a enviar:', JSON.stringify(updateData, null, 2))
 
       // Atualizar no backend usando PATCH
       const response = await fetchWithAuth(`${API_URL}/clients/${editingClient.id}`, {
@@ -199,12 +204,7 @@ export default function Referrals() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          currentProducts: editingClient.currentProducts,
-          potentialProducts: editingClient.potentialProducts,
-          viabilityScore: editingClient.viabilityScore,
-          potentialProductsWithValues: editingClient.potentialProductsWithValues
-        })
+        body: JSON.stringify(updateData)
       })
 
       console.log('[Referrals] Response status:', response.status)
@@ -213,24 +213,39 @@ export default function Referrals() {
         const updatedClient = await response.json()
         console.log('[Referrals] Cliente atualizado:', updatedClient)
 
+        // Mapear resposta do backend para formato do frontend
+        const mappedClient: PortfolioClient = {
+          id: updatedClient.id,
+          companyName: updatedClient.companyName || updatedClient.name || editingClient.companyName,
+          cnpj: updatedClient.cnpj || editingClient.cnpj,
+          employeeCount: parseInt(updatedClient.totalLives || updatedClient.employeeCount) || editingClient.employeeCount,
+          segment: updatedClient.segment || editingClient.segment,
+          currentProducts: Array.isArray(updatedClient.currentProducts) ? updatedClient.currentProducts : editingClient.currentProducts,
+          viabilityScore: updatedClient.viabilityScore || editingClient.viabilityScore,
+          potentialProducts: Array.isArray(updatedClient.potentialProducts) ? updatedClient.potentialProducts : editingClient.potentialProducts,
+          potentialProductsWithValues: Array.isArray(updatedClient.potentialProductsWithValues) ? updatedClient.potentialProductsWithValues : editingClient.potentialProductsWithValues,
+          customRecommendations: updatedClient.customRecommendations || editingClient.customRecommendations,
+          lastAnalysis: updatedClient.lastUpdated || editingClient.lastAnalysis
+        }
+
         // Atualizar estado local
         setPortfolioClients(prev =>
           prev.map(client =>
-            client.id === editingClient.id ? updatedClient : client
+            client.id === editingClient.id ? mappedClient : client
           )
         )
-        setSelectedClient(updatedClient)
+        setSelectedClient(mappedClient)
         setIsEditMode(false)
         setEditingClient(null)
         toast.success('Análise de carteira salva com sucesso!')
       } else {
         const errorData = await response.json()
         console.error('[Referrals] Erro ao salvar:', errorData)
-        toast.error(`Erro: ${errorData.error || 'Não foi possível salvar'}`)
+        toast.error(`Erro: ${errorData.error || errorData.details || 'Não foi possível salvar'}`)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Referrals] Erro ao salvar alterações:', error)
-      toast.error('Erro ao salvar alterações')
+      toast.error(`Erro ao salvar alterações: ${error.message || 'Tente novamente'}`)
     }
   }
 
@@ -395,38 +410,35 @@ export default function Referrals() {
         const user = await getCurrentUser()
         setCurrentUser(user)
 
-        // Carregar prospects usando fetchWithAuth
+        // Carregar prospects usando fetchWithAuth (já filtrados por parceiro no backend)
         const response = await fetchWithAuth(`${API_URL}/prospects`)
         if (response.ok) {
           const data = await response.json()
-
-          // Filtrar prospects por parceiro (se não for admin)
-          if (user && user.role !== 'admin') {
-            const userProspects = data.filter((prospect: Prospect) => prospect.partnerId === user.id.toString())
-            setProspects(userProspects)
-          } else {
-            setProspects(data)
-          }
+          console.log('[Referrals] Prospects carregados:', data.length)
+          setProspects(data)
         }
 
-        // Carregar clientes da carteira usando fetchWithAuth
+        // Carregar clientes da carteira usando fetchWithAuth (já filtrados por parceiro no backend)
         const clientsResponse = await fetchWithAuth(`${API_URL}/clients`)
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
+          console.log('[Referrals] Clientes carregados do backend:', clientsData.length)
+
           // Converter clientes para formato de análise de carteira
-          const portfolioData = clientsData
-            .filter((client: any) => user?.role === 'admin' || client.partnerId === user?.id?.toString())
-            .map((client: any) => ({
-              id: client.id,
-              companyName: client.companyName || client.name || 'Nome não informado',
-              cnpj: client.cnpj || 'CNPJ não informado',
-              employeeCount: parseInt(client.employees || client.employeeCount) || Math.floor(Math.random() * 500) + 50,
-              segment: client.segment || 'Não informado',
-              currentProducts: Array.isArray(client.currentProducts) ? client.currentProducts : ['Folha de Pagamento'],
-              viabilityScore: client.viabilityScore || calculateViabilityScore(client),
-              potentialProducts: Array.isArray(client.potentialProducts) ? client.potentialProducts : getPotentialProducts(client),
-              lastAnalysis: client.lastAnalysis || new Date().toISOString().split('T')[0]
-            }))
+          const portfolioData = clientsData.map((client: any) => ({
+            id: client.id,
+            companyName: client.companyName || client.name || 'Nome não informado',
+            cnpj: client.cnpj || 'CNPJ não informado',
+            employeeCount: parseInt(client.employees || client.employeeCount || client.totalLives) || Math.floor(Math.random() * 500) + 50,
+            segment: client.segment || 'Não informado',
+            currentProducts: Array.isArray(client.currentProducts) ? client.currentProducts : ['Folha de Pagamento'],
+            viabilityScore: client.viabilityScore || calculateViabilityScore(client),
+            potentialProducts: Array.isArray(client.potentialProducts) ? client.potentialProducts : getPotentialProducts(client),
+            potentialProductsWithValues: Array.isArray(client.potentialProductsWithValues) ? client.potentialProductsWithValues : [],
+            customRecommendations: client.customRecommendations || '',
+            lastAnalysis: client.lastAnalysis || client.lastUpdated || new Date().toISOString().split('T')[0]
+          }))
+          console.log('[Referrals] Clientes mapeados para carteira:', portfolioData.length)
           setPortfolioClients(portfolioData)
         }
       } catch (error) {

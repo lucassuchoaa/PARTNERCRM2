@@ -15,8 +15,11 @@ const router = Router();
 // GET - Listar todos os prospectos
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
+    const user = req.user;
+
+    // Se não for admin, filtrar por partner_id
+    let query = `
+      SELECT
         id, company_name as "companyName", contact_name as "contactName",
         email, phone, cnpj, employees, segment, status,
         partner_id as "partnerId",
@@ -27,8 +30,20 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         is_approved as "isApproved",
         created_at as "createdAt"
       FROM prospects
-      ORDER BY created_at DESC
-    `);
+    `;
+
+    const params: any[] = [];
+
+    // Filtrar por partnerId se não for admin
+    if (user?.role !== 'admin' && user?.id) {
+      query += ` WHERE partner_id = $1`;
+      params.push(user.id.toString());
+    }
+
+    query += ` ORDER BY created_at DESC`;
+
+    const result = await pool.query(query, params);
+    console.log(`[Prospects GET] Retornando ${result.rows.length} prospects para user ${user?.id} (role: ${user?.role})`);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching prospects:', error);
