@@ -1636,8 +1636,19 @@ export default function Referrals() {
             {getFilteredPortfolioClients().length === 0 && (
               <div className="text-center py-12">
                 <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum cliente encontrado</h3>
-                <p className="mt-1 text-sm text-gray-500">Ajuste os filtros para ver mais resultados.</p>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  {portfolioClients.length === 0 ? 'Nenhum cliente na carteira' : 'Nenhum cliente encontrado'}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {portfolioClients.length === 0
+                    ? 'Clientes aprovados aparecerão aqui automaticamente para análise de viabilidade.'
+                    : 'Ajuste os filtros para ver mais resultados.'}
+                </p>
+                {portfolioClients.length === 0 && (
+                  <p className="mt-2 text-xs text-gray-400">
+                    Dica: Após aprovar prospects, eles se tornam clientes e aparecem nesta seção.
+                  </p>
+                )}
               </div>
             )}
           </div>
