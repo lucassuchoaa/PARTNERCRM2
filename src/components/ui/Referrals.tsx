@@ -187,34 +187,49 @@ export default function Referrals() {
     if (!editingClient) return
 
     try {
-      // Atualizar no backend
+      console.log('[Referrals] Salvando análise de carteira:', editingClient.id, {
+        currentProducts: editingClient.currentProducts,
+        viabilityScore: editingClient.viabilityScore,
+        potentialProductsWithValues: editingClient.potentialProductsWithValues
+      })
+
+      // Atualizar no backend usando PATCH
       const response = await fetchWithAuth(`${API_URL}/clients/${editingClient.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ...editingClient,
           currentProducts: editingClient.currentProducts,
+          potentialProducts: editingClient.potentialProducts,
           viabilityScore: editingClient.viabilityScore,
           potentialProductsWithValues: editingClient.potentialProductsWithValues
         })
       })
-      
+
+      console.log('[Referrals] Response status:', response.status)
+
       if (response.ok) {
+        const updatedClient = await response.json()
+        console.log('[Referrals] Cliente atualizado:', updatedClient)
+
         // Atualizar estado local
-        setPortfolioClients(prev => 
-          prev.map(client => 
-            client.id === editingClient.id ? editingClient : client
+        setPortfolioClients(prev =>
+          prev.map(client =>
+            client.id === editingClient.id ? updatedClient : client
           )
         )
-        setSelectedClient(editingClient)
+        setSelectedClient(updatedClient)
         setIsEditMode(false)
         setEditingClient(null)
-        toast.success('Alterações salvas com sucesso!')
+        toast.success('Análise de carteira salva com sucesso!')
+      } else {
+        const errorData = await response.json()
+        console.error('[Referrals] Erro ao salvar:', errorData)
+        toast.error(`Erro: ${errorData.error || 'Não foi possível salvar'}`)
       }
     } catch (error) {
-      console.error('Erro ao salvar alterações:', error)
+      console.error('[Referrals] Erro ao salvar alterações:', error)
       toast.error('Erro ao salvar alterações')
     }
   }
@@ -335,22 +350,25 @@ export default function Referrals() {
     if (!selectedClient) return
 
     try {
+      console.log('[Referrals] Salvando recomendações:', selectedClient.id, editingRecommendations)
+
       const response = await fetchWithAuth(`${API_URL}/clients/${selectedClient.id}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ...selectedClient,
           customRecommendations: editingRecommendations
         })
       })
 
       if (response.ok) {
+        const updatedClient = await response.json()
+        console.log('[Referrals] Recomendações salvas:', updatedClient)
+
         // Atualizar estado local
-        const updatedClient = { ...selectedClient, customRecommendations: editingRecommendations }
-        setPortfolioClients(prev => 
-          prev.map(client => 
+        setPortfolioClients(prev =>
+          prev.map(client =>
             client.id === selectedClient.id ? updatedClient : client
           )
         )
@@ -358,9 +376,13 @@ export default function Referrals() {
         setIsEditingRecommendations(false)
         setEditingRecommendations('')
         toast.success('Recomendações salvas com sucesso!')
+      } else {
+        const errorData = await response.json()
+        console.error('[Referrals] Erro ao salvar recomendações:', errorData)
+        toast.error(`Erro: ${errorData.error || 'Não foi possível salvar'}`)
       }
     } catch (error) {
-      console.error('Erro ao salvar recomendações:', error)
+      console.error('[Referrals] Erro ao salvar recomendações:', error)
       toast.error('Erro ao salvar recomendações')
     }
   }
