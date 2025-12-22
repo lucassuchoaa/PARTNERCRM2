@@ -106,14 +106,96 @@ export default function SupportMaterials() {
     }
   }
 
-  const handleDownload = (material: SupportMaterial) => {
-    console.log(`Baixando: ${material.title}`)
-    alert(`Baixando: ${material.title}`)
+  const handleDownload = async (material: SupportMaterial) => {
+    console.log(`[SupportMaterials] Baixando: ${material.title}`)
+
+    if (!material.downloadUrl || material.downloadUrl === '#') {
+      alert('URL de download não disponível para este material.')
+      return
+    }
+
+    try {
+      // Se a URL começa com /api, fazer download autenticado
+      if (material.downloadUrl.startsWith('/api')) {
+        const token = localStorage.getItem('accessToken')
+        const response = await fetch(`${API_URL.replace('/api', '')}${material.downloadUrl}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Erro ao baixar arquivo')
+        }
+
+        // Obter o blob e criar link de download
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+
+        // Extrair nome do arquivo da URL ou usar título
+        const fileName = material.downloadUrl.split('/').pop() || `${material.title}.pdf`
+        a.download = fileName
+
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+
+        console.log(`[SupportMaterials] Download concluído: ${material.title}`)
+      } else {
+        // URL externa - abrir em nova aba
+        window.open(material.downloadUrl, '_blank')
+      }
+    } catch (error) {
+      console.error('[SupportMaterials] Erro ao baixar:', error)
+      alert('Erro ao baixar arquivo. Por favor, tente novamente.')
+    }
   }
 
-  const handleView = (material: SupportMaterial) => {
-    console.log(`Visualizando: ${material.title}`)
-    alert(`Abrindo: ${material.title}`)
+  const handleView = async (material: SupportMaterial) => {
+    console.log(`[SupportMaterials] Visualizando: ${material.title}`)
+
+    const viewUrl = material.viewUrl || material.downloadUrl
+
+    if (!viewUrl || viewUrl === '#') {
+      alert('URL de visualização não disponível para este material.')
+      return
+    }
+
+    try {
+      // Se a URL começa com /api, precisa usar autenticação
+      if (viewUrl.startsWith('/api')) {
+        const token = localStorage.getItem('accessToken')
+        // Mudar para rota de visualização
+        const viewPath = viewUrl.replace('/api/material-files/', '/api/material-files/view/')
+        const response = await fetch(`${API_URL.replace('/api', '')}${viewPath}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (!response.ok) {
+          throw new Error('Erro ao visualizar arquivo')
+        }
+
+        // Obter o blob e abrir em nova janela
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        window.open(url, '_blank')
+
+        console.log(`[SupportMaterials] Visualização aberta: ${material.title}`)
+      } else {
+        // URL externa - abrir em nova aba
+        window.open(viewUrl, '_blank')
+      }
+    } catch (error) {
+      console.error('[SupportMaterials] Erro ao visualizar:', error)
+      alert('Erro ao visualizar arquivo. Por favor, tente novamente.')
+    }
   }
 
   return (

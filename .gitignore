@@ -58,3 +58,9 @@ jspm_packages/
 
 # CulturaBuilder MCP (development tool, not needed in deployment)
 CulturaBuilder-MCP/
+
+# Uploaded files (user-uploaded content)
+uploads/*
+!uploads/.gitkeep
+uploads/materials/*
+!uploads/materials/.gitkeep

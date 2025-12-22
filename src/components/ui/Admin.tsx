@@ -88,6 +88,8 @@ export default function Admin() {
     duration: '',
     fileSize: ''
   })
+  const [materialFile, setMaterialFile] = useState<File | null>(null)
+  const [uploadingMaterial, setUploadingMaterial] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
@@ -298,17 +300,21 @@ export default function Admin() {
 
   const fetchManagers = async () => {
     try {
+      console.log('[Admin] Buscando gerentes...')
       const response = await fetchWithAuth(`${API_URL}/managers`)
-      
+
       if (!response.ok) {
+        console.error('[Admin] Erro na resposta de gerentes:', response.status)
         setManagers([])
         return
       }
-      
+
       const managersData = await response.json()
-      
+      console.log('[Admin] Dados de gerentes recebidos:', managersData)
+
       // Garantir que sempre seja um array
       const managersArray = Array.isArray(managersData) ? managersData : (managersData?.data && Array.isArray(managersData.data) ? managersData.data : [])
+      console.log('[Admin] Gerentes processados:', managersArray.length, 'gerentes encontrados')
       setManagers(managersArray)
     } catch (error) {
       console.error('Erro ao buscar gerentes:', error)
@@ -394,13 +400,45 @@ export default function Admin() {
   
   const handleAddMaterial = async () => {
     try {
-      // Adicionar data de criação
-      const materialToAdd = {
-        ...newMaterial,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      setUploadingMaterial(true)
+
+      let downloadUrl = newMaterial.downloadUrl
+      let viewUrl = newMaterial.viewUrl
+      let fileSize = newMaterial.fileSize
+
+      // Se um arquivo foi selecionado, fazer upload primeiro
+      if (materialFile) {
+        console.log('[Admin] Fazendo upload do arquivo:', materialFile.name)
+
+        const formData = new FormData()
+        formData.append('file', materialFile)
+
+        const token = localStorage.getItem('accessToken')
+        const uploadResponse = await fetch(`${API_URL}/material-upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        })
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json().catch(() => ({}))
+          console.error('[Admin] Erro no upload:', errorData)
+          alert('Erro ao fazer upload do arquivo: ' + (errorData.error || 'Erro desconhecido'))
+          setUploadingMaterial(false)
+          return
+        }
+
+        const uploadResult = await uploadResponse.json()
+        console.log('[Admin] Upload concluído:', uploadResult)
+
+        downloadUrl = uploadResult.downloadUrl || uploadResult.url
+        viewUrl = uploadResult.url
+        fileSize = uploadResult.fileSize || fileSize
       }
-      
+
+      // Criar o material com a URL do arquivo
       const response = await fetchWithAuth(`${API_URL}/support-materials`, {
         method: 'POST',
         headers: {
@@ -411,18 +449,19 @@ export default function Admin() {
           category: newMaterial.category,
           type: newMaterial.type,
           description: newMaterial.description,
-          downloadUrl: newMaterial.downloadUrl,
-          viewUrl: newMaterial.viewUrl,
-          fileSize: newMaterial.fileSize,
+          downloadUrl: downloadUrl,
+          viewUrl: viewUrl,
+          fileSize: fileSize,
           duration: newMaterial.duration
         })
       })
-      
+
       if (response.ok) {
         const result = await response.json()
         const addedMaterial = result.data || result
         await fetchSupportMaterials() // Recarregar da API
         setShowMaterialModal(false)
+        setMaterialFile(null)
         setNewMaterial({
           title: '',
           category: 'folha-pagamento',
@@ -440,6 +479,8 @@ export default function Admin() {
     } catch (error) {
       console.error('Erro ao adicionar material de apoio:', error)
       alert('Erro ao adicionar material de apoio')
+    } finally {
+      setUploadingMaterial(false)
     }
   }
   
@@ -684,6 +725,10 @@ export default function Admin() {
         
         if (response.ok) {
           await fetchUsers() // Recarregar da API
+          // Se atualizou para gerente, atualizar a lista de gerentes
+          if (editingUser.role === 'manager') {
+            await fetchManagers()
+          }
           setShowUserModal(false)
           setEditingUser(null)
           setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
@@ -813,6 +858,10 @@ export default function Admin() {
         }
 
         fetchUsers()
+        // Se criou um gerente, atualizar a lista de gerentes
+        if (newUser.role === 'manager') {
+          fetchManagers()
+        }
         setShowUserModal(false)
         setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
         alert('Usuário criado com sucesso! Email de boas-vindas enviado.')
@@ -1774,24 +1823,78 @@ export default function Admin() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                 </div>
-                <div>
-                  <label htmlFor="downloadUrl" className="block text-sm font-medium text-gray-700">URL de Download</label>
+                {/* Upload de arquivo OU URL externa */}
+                {!editingMaterial && (
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                    <label className="block text-sm font-medium text-indigo-700 mb-2">
+                      <DocumentArrowUpIcon className="h-5 w-5 inline mr-1" />
+                      Upload de Arquivo
+                    </label>
+                    <input
+                      type="file"
+                      id="materialFile"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setMaterialFile(file)
+                          // Auto-preencher o nome do arquivo como título se vazio
+                          if (!newMaterial.title) {
+                            const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '')
+                            setNewMaterial({...newMaterial, title: nameWithoutExt})
+                          }
+                        }
+                      }}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.mp4,.webm,.mp3,.zip,.rar,.jpg,.jpeg,.png,.gif"
+                      className="mt-1 block w-full text-sm text-gray-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-md file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-indigo-600 file:text-white
+                        hover:file:bg-indigo-700
+                        file:cursor-pointer"
+                    />
+                    {materialFile && (
+                      <div className="mt-2 flex items-center text-sm text-indigo-600">
+                        <DocumentTextIcon className="h-4 w-4 mr-1" />
+                        <span>{materialFile.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => setMaterialFile(null)}
+                          className="ml-2 text-red-500 hover:text-red-700"
+                        >
+                          <XCircleIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500">
+                      Formatos aceitos: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, MP4, MP3, ZIP, RAR, imagens (max 100MB)
+                    </p>
+                  </div>
+                )}
+
+                <div className={!editingMaterial ? 'opacity-50' : ''}>
+                  <label htmlFor="downloadUrl" className="block text-sm font-medium text-gray-700">
+                    {!editingMaterial ? 'URL Externa (opcional - use se não fizer upload)' : 'URL de Download'}
+                  </label>
                   <input
                     type="text"
                     id="downloadUrl"
                     value={editingMaterial ? editingMaterial.downloadUrl : newMaterial.downloadUrl}
                     onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, downloadUrl: e.target.value}) : setNewMaterial({...newMaterial, downloadUrl: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    placeholder={!editingMaterial && materialFile ? 'Arquivo selecionado - URL será gerada automaticamente' : 'https://...'}
+                    disabled={!editingMaterial && !!materialFile}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100"
                   />
                 </div>
-                <div>
+                <div className={!editingMaterial ? 'opacity-50' : ''}>
                   <label htmlFor="viewUrl" className="block text-sm font-medium text-gray-700">URL de Visualização (opcional)</label>
                   <input
                     type="text"
                     id="viewUrl"
                     value={editingMaterial ? (editingMaterial.viewUrl || '') : newMaterial.viewUrl}
                     onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, viewUrl: e.target.value}) : setNewMaterial({...newMaterial, viewUrl: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    disabled={!editingMaterial && !!materialFile}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1823,14 +1926,29 @@ export default function Admin() {
                 <button
                   type="button"
                   onClick={() => editingMaterial ? handleUpdateMaterial() : handleAddMaterial()}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
+                  disabled={uploadingMaterial}
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingMaterial ? 'Atualizar' : 'Adicionar'}
+                  {uploadingMaterial ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Enviando...
+                    </>
+                  ) : (
+                    editingMaterial ? 'Atualizar' : 'Adicionar'
+                  )}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowMaterialModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                  onClick={() => {
+                    setShowMaterialModal(false)
+                    setMaterialFile(null)
+                  }}
+                  disabled={uploadingMaterial}
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm disabled:opacity-50"
                 >
                   Cancelar
                 </button>
@@ -2358,19 +2476,26 @@ export default function Admin() {
                       <label className="block text-sm font-medium text-gray-700">Gerente Responsável</label>
                       <select
                         value={editingUser ? (editingUser as any).managerId || '' : newUser.managerId}
-                        onChange={(e) => editingUser 
+                        onChange={(e) => editingUser
                           ? setEditingUser({...editingUser, managerId: e.target.value} as any)
                           : setNewUser({...newUser, managerId: e.target.value})
                         }
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       >
-                        <option value="">Selecione um gerente</option>
+                        <option value="">
+                          {managers.length === 0 ? '-- Nenhum gerente cadastrado --' : 'Selecione um gerente'}
+                        </option>
                         {managers.map((manager) => (
                           <option key={manager.id} value={manager.id}>
-                            {manager.name}
+                            {manager.name} ({manager.email})
                           </option>
                         ))}
                       </select>
+                      {managers.length === 0 && (
+                        <p className="mt-1 text-xs text-amber-600">
+                          Dica: Primeiro crie um usuário com o papel "Gerente" na aba de usuários.
+                        </p>
+                      )}
                     </div>
                     {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
                       <div>

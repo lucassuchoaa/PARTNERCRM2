@@ -22,6 +22,8 @@ import stripeRoutes from './routes/stripe';
 import initRoutes from './routes/init';
 import emailRoutes from './routes/email';
 import rolesRoutes from './routes/roles';
+import materialUploadRoutes from './routes/material-upload';
+import materialFilesRoutes from './routes/material-files';
 
 // Middlewares de segurança
 import { apiLimiter, authLimiter, createResourceLimiter } from './middleware/rateLimiter';
@@ -189,6 +191,8 @@ async function startServer() {
   app.use('/api/init', initRoutes);
   app.use('/api/email', emailRoutes);
   app.use('/api/roles', rolesRoutes);
+  app.use('/api/material-upload', materialUploadRoutes);
+  app.use('/api/material-files', materialFilesRoutes);
 
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
