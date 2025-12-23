@@ -15,6 +15,7 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true, // Retorna info de rate limit nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita headers `X-RateLimit-*`
+  validate: false, // Desabilitar validação IPv6
 
   // Usar IP + User-Agent para identificar cliente
   keyGenerator: (req: Request) => {
@@ -51,6 +52,7 @@ export const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Desabilitar validação IPv6
 
   keyGenerator: (req: Request) => {
     // Usar userId se autenticado, senão IP
@@ -80,6 +82,7 @@ export const createResourceLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Desabilitar validação IPv6
 
   skipSuccessfulRequests: false, // Contar todas as tentativas, mesmo bem-sucedidas
 
@@ -101,6 +104,7 @@ export const externalAPILimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false, // Desabilitar validação IPv6
 
   keyGenerator: (req: Request) => {
     return (req as any).user?.id || req.ip;

@@ -1,7 +1,7 @@
 import { Router, Response, Request } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { authenticate, AuthRequest } from '../middleware/auth-secure';
+import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 

@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { pool, getClient } from '../db';
-import { authenticate, AuthRequest } from '../middleware/auth-secure';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { createProspectSchema, updateProspectSchema, validateProspectSchema } from '../utils/validation';
 
 // Whitelist de colunas permitidas para UPDATE (proteção SQL injection)
