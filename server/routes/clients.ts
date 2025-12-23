@@ -25,7 +25,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         potential_products as "potentialProducts",
         viability_score as "viabilityScore",
         custom_recommendations as "customRecommendations",
-        potential_products_with_values as "potentialProductsWithValues"
+        potential_products_with_values as "potentialProductsWithValues",
+        segment,
+        employees,
+        employee_count as "employeeCount",
+        company_name as "companyName"
       FROM clients
     `;
 
