@@ -218,11 +218,16 @@ export default function Dashboard() {
           await loadNotifications(authUser.id.toString())
 
           // Fetch dashboard data com autenticação
-          const [clientsData, transactions, prospectsData] = await Promise.all([
+          const [clientsResponse, transactionsResponse, prospectsResponse] = await Promise.all([
             fetchWithAuth(`${API_URL}/clients`).then(res => res.json()),
             fetchWithAuth(`${API_URL}/transactions`).then(res => res.json()),
             fetchWithAuth(`${API_URL}/prospects`).then(res => res.json())
           ])
+
+          // Garantir que são arrays
+          const clientsData = Array.isArray(clientsResponse) ? clientsResponse : []
+          const transactions = Array.isArray(transactionsResponse) ? transactionsResponse : []
+          const prospectsData = Array.isArray(prospectsResponse) ? prospectsResponse : []
 
           const totalTransactionsAmount = transactions.reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)
 
