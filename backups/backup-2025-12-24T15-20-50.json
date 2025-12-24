@@ -1,0 +1,1197 @@
+{
+  "metadata": {
+    "backup_date": "2025-12-24T15:20:46.075Z",
+    "database_name": "neondb",
+    "total_tables": 13,
+    "total_records": 54
+  },
+  "tables": {
+    "clients": [
+      {
+        "id": "4c8b7337-cc4e-44de-871f-1bc85f8418e7",
+        "name": "Tech Solutions Ltda",
+        "email": "contato@techsolutions.com.br",
+        "phone": "11987654321",
+        "cnpj": "12345678000190",
+        "cpf": null,
+        "status": "active",
+        "stage": "client",
+        "temperature": "hot",
+        "total_lives": 250,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-22T20:58:57.582Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-22T20:58:57.582Z",
+        "notes": null,
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento"
+        ],
+        "potential_products": [
+          "Consignado",
+          "Benefícios"
+        ],
+        "viability_score": 85,
+        "custom_recommendations": "Cliente com alto potencial para expansão de produtos. Empresa em crescimento acelerado.",
+        "potential_products_with_values": [
+          {
+            "product": "Consignado",
+            "totalLives": 180
+          },
+          {
+            "product": "Benefícios",
+            "benefitDetails": {
+              "vr": 200,
+              "vt": 150,
+              "premiacao": 100,
+              "gestaoCorporativa": 50
+            }
+          }
+        ]
+      },
+      {
+        "id": "e965b26d-2670-41ef-b129-957c6a878ac0",
+        "name": "Indústria Moderna S.A.",
+        "email": "vendas@industriamoderna.com.br",
+        "phone": "11976543210",
+        "cnpj": "98765432000165",
+        "cpf": null,
+        "status": "active",
+        "stage": "client",
+        "temperature": "warm",
+        "total_lives": 450,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-22T20:58:57.723Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-22T20:58:57.723Z",
+        "notes": null,
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento",
+          "Benefícios"
+        ],
+        "potential_products": [
+          "Consignado"
+        ],
+        "viability_score": 75,
+        "custom_recommendations": "Grande empresa com boa estrutura. Potencial para consignado devido ao alto número de funcionários.",
+        "potential_products_with_values": [
+          {
+            "product": "Consignado",
+            "totalLives": 400
+          }
+        ]
+      },
+      {
+        "id": "b1d932a9-66c0-4997-8739-135ea76b062e",
+        "name": "Saúde Prime Clínicas",
+        "email": "administrativo@saudeprime.com.br",
+        "phone": "11965432109",
+        "cnpj": "45678912000123",
+        "cpf": null,
+        "status": "active",
+        "stage": "client",
+        "temperature": "hot",
+        "total_lives": 180,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-22T20:58:57.850Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-22T20:58:57.850Z",
+        "notes": null,
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento"
+        ],
+        "potential_products": [
+          "Benefícios",
+          "Consignado"
+        ],
+        "viability_score": 90,
+        "custom_recommendations": "Excelente oportunidade de cross-sell. Gestores demonstraram interesse em produtos complementares.",
+        "potential_products_with_values": [
+          {
+            "product": "Benefícios",
+            "benefitDetails": {
+              "vr": 150,
+              "vt": 100,
+              "premiacao": 80,
+              "gestaoCorporativa": 30
+            }
+          },
+          {
+            "product": "Consignado",
+            "totalLives": 150
+          }
+        ]
+      },
+      {
+        "id": "58db97c1-05d4-4d44-9514-d96e11cf5779",
+        "name": "Comércio Brasil Distribuidora",
+        "email": "financeiro@comerciobrasil.com.br",
+        "phone": "11954321098",
+        "cnpj": "78945612000145",
+        "cpf": null,
+        "status": "active",
+        "stage": "client",
+        "temperature": "cold",
+        "total_lives": 80,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-22T20:58:57.977Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-22T20:58:57.977Z",
+        "notes": null,
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento"
+        ],
+        "potential_products": [
+          "Benefícios"
+        ],
+        "viability_score": 55,
+        "custom_recommendations": "Empresa menor, focar no relacionamento antes de oferecer novos produtos.",
+        "potential_products_with_values": [
+          {
+            "product": "Benefícios",
+            "benefitDetails": {
+              "vr": 70,
+              "vt": 60,
+              "premiacao": 30,
+              "gestaoCorporativa": 10
+            }
+          }
+        ]
+      },
+      {
+        "id": "85c491de-42fa-45d1-b29a-0f5c0e103154",
+        "name": "Consultoria Estratégica Plus",
+        "email": "rh@consultoriaplus.com.br",
+        "phone": "11943210987",
+        "cnpj": "32165498000178",
+        "cpf": null,
+        "status": "active",
+        "stage": "client",
+        "temperature": "warm",
+        "total_lives": 120,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-22T20:58:58.105Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-22T20:58:58.105Z",
+        "notes": null,
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento",
+          "Consignado"
+        ],
+        "potential_products": [
+          "Benefícios"
+        ],
+        "viability_score": 70,
+        "custom_recommendations": "Empresa em estágio de expansão. Boa oportunidade para pacote completo de benefícios.",
+        "potential_products_with_values": [
+          {
+            "product": "Benefícios",
+            "benefitDetails": {
+              "vr": 100,
+              "vt": 80,
+              "premiacao": 60,
+              "gestaoCorporativa": 20
+            }
+          }
+        ]
+      },
+      {
+        "id": "1",
+        "name": "Empresa ABC Ltda",
+        "email": null,
+        "phone": null,
+        "cnpj": "12.345.678/0001-90",
+        "cpf": null,
+        "status": "active",
+        "stage": "proposta",
+        "temperature": "quente",
+        "total_lives": 0,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-24T14:31:15.177Z",
+        "last_contact_date": null,
+        "last_updated": "2025-07-28T16:32:25.267Z",
+        "notes": "Migrado do db.json - Contato: N/A, Segmento: N/A, Funcionários: 545",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [],
+        "potential_products": [
+          "Folha de Pagamento",
+          "Benefícios"
+        ],
+        "viability_score": 60,
+        "custom_recommendations": "",
+        "potential_products_with_values": [
+          {
+            "product": "Folha de Pagamento",
+            "totalLives": 1000
+          },
+          {
+            "product": "Benefícios",
+            "benefitDetails": {
+              "vr": 0,
+              "vt": 0,
+              "premiacao": 100000,
+              "gestaoCorporativa": 0
+            }
+          }
+        ]
+      },
+      {
+        "id": "2",
+        "name": "XYZ Comércio S.A.",
+        "email": null,
+        "phone": null,
+        "cnpj": "98.765.432/0001-10",
+        "cpf": null,
+        "status": "pending",
+        "stage": "negociacao",
+        "temperature": "morno",
+        "total_lives": 80,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": "2025-06-30T00:00:00.000Z",
+        "registration_date": "2025-12-24T14:31:15.317Z",
+        "last_contact_date": null,
+        "last_updated": "2024-01-24T14:15:00.000Z",
+        "notes": "Migrado do db.json - Contato: N/A, Segmento: N/A, Funcionários: N/A",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [],
+        "potential_products": [],
+        "viability_score": 0,
+        "custom_recommendations": "",
+        "potential_products_with_values": []
+      },
+      {
+        "id": "3",
+        "name": "Tech Solutions Ltda",
+        "email": null,
+        "phone": null,
+        "cnpj": "11.222.333/0001-44",
+        "cpf": null,
+        "status": "active",
+        "stage": "contrato_fechado",
+        "temperature": "quente",
+        "total_lives": 220,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": "2025-03-15T00:00:00.000Z",
+        "registration_date": "2025-12-24T14:31:15.448Z",
+        "last_contact_date": null,
+        "last_updated": "2024-01-23T09:45:00.000Z",
+        "notes": "Migrado do db.json - Contato: N/A, Segmento: N/A, Funcionários: N/A",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [],
+        "potential_products": [],
+        "viability_score": 0,
+        "custom_recommendations": "",
+        "potential_products_with_values": []
+      },
+      {
+        "id": "1753463256534",
+        "name": "ewewq",
+        "email": null,
+        "phone": null,
+        "cnpj": "eq",
+        "cpf": null,
+        "status": "active",
+        "stage": "prospeccao",
+        "temperature": "cold",
+        "total_lives": 0,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-24T14:31:15.642Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-24T14:31:15.607Z",
+        "notes": "Migrado do db.json - Contato: N/A, Segmento: Tecnologia, Funcionários: 485",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento"
+        ],
+        "potential_products": [
+          "Folha de Pagamento"
+        ],
+        "viability_score": 65,
+        "custom_recommendations": "",
+        "potential_products_with_values": [
+          {
+            "product": "Folha de Pagamento",
+            "totalLives": 1000
+          }
+        ]
+      },
+      {
+        "id": "1753463271603",
+        "name": "21",
+        "email": null,
+        "phone": null,
+        "cnpj": "21",
+        "cpf": null,
+        "status": "active",
+        "stage": "prospeccao",
+        "temperature": "cold",
+        "total_lives": 0,
+        "partner_id": null,
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-24T14:31:15.772Z",
+        "last_contact_date": null,
+        "last_updated": "2025-12-24T14:31:15.737Z",
+        "notes": "Migrado do db.json - Contato: N/A, Segmento: Tecnologia, Funcionários: 480",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [
+          "Folha de Pagamento"
+        ],
+        "potential_products": [
+          "Folha de Pagamento"
+        ],
+        "viability_score": 65,
+        "custom_recommendations": "",
+        "potential_products_with_values": [
+          {
+            "product": "Folha de Pagamento",
+            "totalLives": 1000
+          }
+        ]
+      },
+      {
+        "id": "1754016137728",
+        "name": "nkjbbsjka",
+        "email": "klnfsok@lkjfneovom.com",
+        "phone": "20432",
+        "cnpj": "240990423",
+        "cpf": null,
+        "status": "active",
+        "stage": "prospeccao",
+        "temperature": "morno",
+        "total_lives": 0,
+        "partner_id": "1",
+        "partner_name": null,
+        "contract_end_date": null,
+        "registration_date": "2025-12-24T14:31:15.901Z",
+        "last_contact_date": null,
+        "last_updated": "2025-08-01T02:42:17.728Z",
+        "notes": "Migrado do db.json - Contato: LJKCSNBAKJ, Segmento: Tecnologia, Funcionários: 21",
+        "hubspot_id": null,
+        "netsuite_id": null,
+        "prospect_id": null,
+        "current_products": [],
+        "potential_products": [],
+        "viability_score": 0,
+        "custom_recommendations": "",
+        "potential_products_with_values": []
+      }
+    ],
+    "nfe_uploads": [],
+    "notifications": [],
+    "pricing_plans": [
+      {
+        "id": "starter",
+        "name": "Starter",
+        "description": "Ideal para pequenas empresas começando a digitalizar seus processos",
+        "base_price": "299.9",
+        "included_users": 5,
+        "additional_user_price": "49.9",
+        "features": [
+          "Até 5 usuários inclusos",
+          "Dashboard básico",
+          "Gestão de clientes",
+          "Indicações de parceiros",
+          "Suporte por email",
+          "Relatórios mensais"
+        ],
+        "is_active": true,
+        "order": 1
+      },
+      {
+        "id": "professional",
+        "name": "Professional",
+        "description": "Para empresas em crescimento que precisam de mais recursos",
+        "base_price": "599.9",
+        "included_users": 15,
+        "additional_user_price": "39.9",
+        "features": [
+          "Até 15 usuários inclusos",
+          "Dashboard avançado",
+          "Gestão completa de clientes",
+          "Sistema de indicações premium",
+          "Integrações com NetSuite e HubSpot",
+          "ChatBot com IA",
+          "Suporte prioritário",
+          "Relatórios personalizados",
+          "API de integração"
+        ],
+        "is_active": true,
+        "order": 2
+      },
+      {
+        "id": "enterprise",
+        "name": "Enterprise",
+        "description": "Solução completa para grandes empresas com necessidades avançadas",
+        "base_price": "1299.9",
+        "included_users": 50,
+        "additional_user_price": "29.9",
+        "features": [
+          "Até 50 usuários inclusos",
+          "Dashboard enterprise com analytics",
+          "CRM completo com automações",
+          "Sistema de indicações multi-nível",
+          "Todas as integrações disponíveis",
+          "ChatBot com IA personalizado",
+          "Gestão de produtos e estoque",
+          "Suporte 24/7 dedicado",
+          "Relatórios em tempo real",
+          "API ilimitada",
+          "Treinamento personalizado",
+          "Gerente de conta dedicado"
+        ],
+        "is_active": true,
+        "order": 3
+      }
+    ],
+    "products": [
+      {
+        "id": "folha",
+        "name": "Folha de Pagamento",
+        "description": "Pagamento 100% digital",
+        "icon": "CreditCardIcon",
+        "color": "blue",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2025-11-20T18:44:41.327Z",
+        "updated_at": "2025-11-20T18:44:41.327Z"
+      },
+      {
+        "id": "consignado",
+        "name": "Consignado",
+        "description": "Crédito consignado seguro",
+        "icon": "BanknotesIcon",
+        "color": "green",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2025-11-20T18:44:41.327Z",
+        "updated_at": "2025-11-20T18:44:41.327Z"
+      },
+      {
+        "id": "beneficios",
+        "name": "Benefícios",
+        "description": "Benefícios flexíveis",
+        "icon": "GiftIcon",
+        "color": "purple",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2025-11-20T18:44:41.327Z",
+        "updated_at": "2025-11-20T18:44:41.327Z"
+      }
+    ],
+    "prospects": [
+      {
+        "id": "bedbd23b-11f4-4085-a5c0-7afb66a495c2",
+        "company_name": "Tech Solutions Ltda",
+        "contact_name": "João Silva",
+        "email": "joao@techsolutions.com",
+        "phone": "(11) 99999-9999",
+        "cnpj": "12.345.678/0001-90",
+        "employees": "150",
+        "segment": "Tecnologia",
+        "status": "approved",
+        "partner_id": "2",
+        "submitted_at": "2024-01-15T00:00:00.000Z",
+        "validated_at": null,
+        "validated_by": null,
+        "validation_notes": null,
+        "is_approved": true,
+        "created_at": "2024-01-15T00:00:00.000Z"
+      },
+      {
+        "id": "930bd1f9-90f5-4356-b2b7-db938f9617a6",
+        "company_name": "Comercial ABC",
+        "contact_name": "Maria Santos",
+        "email": "maria@comercialabc.com",
+        "phone": "(11) 88888-8888",
+        "cnpj": "98.765.432/0001-10",
+        "employees": "75",
+        "segment": "Comércio",
+        "status": "approved",
+        "partner_id": "2",
+        "submitted_at": "2024-01-20T00:00:00.000Z",
+        "validated_at": null,
+        "validated_by": null,
+        "validation_notes": null,
+        "is_approved": true,
+        "created_at": "2024-01-20T00:00:00.000Z"
+      },
+      {
+        "id": "2b9b9bf6-df8d-4ac3-86b4-f9b1496c5855",
+        "company_name": "ewewq",
+        "contact_name": "eewq",
+        "email": "ew@ew",
+        "phone": "eq",
+        "cnpj": "eq",
+        "employees": "232",
+        "segment": "Tecnologia",
+        "status": "approved",
+        "partner_id": "2",
+        "submitted_at": "2025-07-25T00:00:00.000Z",
+        "validated_at": "2025-07-25T04:22:20.623Z",
+        "validated_by": "Lucas Uchoa",
+        "validation_notes": "Validado manualmente pelo administrador",
+        "is_approved": true,
+        "created_at": "2025-07-25T00:00:00.000Z"
+      },
+      {
+        "id": "7519788b-3b0c-423b-8f30-a2abdc2b6138",
+        "company_name": "21",
+        "contact_name": "21",
+        "email": "21@121",
+        "phone": "212",
+        "cnpj": "21",
+        "employees": "21",
+        "segment": "Tecnologia",
+        "status": "approved",
+        "partner_id": "1753416259657",
+        "submitted_at": "2025-07-25T00:00:00.000Z",
+        "validated_at": "2025-07-25T14:28:11.741Z",
+        "validated_by": "Lucas Uchoa",
+        "validation_notes": "Validado manualmente pelo administrador",
+        "is_approved": true,
+        "created_at": "2025-07-25T00:00:00.000Z"
+      },
+      {
+        "id": "8e7b2322-dfad-4025-b1fe-bcc6683d9356",
+        "company_name": "nkjbbsjka",
+        "contact_name": "LJKCSNBAKJ",
+        "email": "klnfsok@lkjfneovom.com",
+        "phone": "20432",
+        "cnpj": "240990423",
+        "employees": "21",
+        "segment": "Tecnologia",
+        "status": "approved",
+        "partner_id": "1",
+        "submitted_at": "2025-12-24T14:30:06.668Z",
+        "validated_at": "2025-08-01T02:42:12.889Z",
+        "validated_by": "Administrador Principal",
+        "validation_notes": "Validado manualmente pelo administrador",
+        "is_approved": true,
+        "created_at": "2025-12-24T14:30:06.669Z"
+      },
+      {
+        "id": "ccbba300-2502-47da-a4c4-eeac3f694f20",
+        "company_name": "teste3103",
+        "contact_name": "teste3107",
+        "email": "tes@tes.com",
+        "phone": "212",
+        "cnpj": "2123132",
+        "employees": "2222",
+        "segment": "Tecnologia",
+        "status": "rejected",
+        "partner_id": "1753985298363",
+        "submitted_at": "2025-12-24T14:30:06.797Z",
+        "validated_at": "2025-08-01T02:44:03.266Z",
+        "validated_by": "Administrador Principal",
+        "validation_notes": "Validado manualmente pelo administrador",
+        "is_approved": true,
+        "created_at": "2025-12-24T14:30:06.797Z"
+      },
+      {
+        "id": "b1a133ef-82b6-473e-90e6-e7f78f432d06",
+        "company_name": "dwq",
+        "contact_name": "dwq",
+        "email": "dw@dsa.co",
+        "phone": "212",
+        "cnpj": "2112",
+        "employees": "222",
+        "segment": "Tecnologia",
+        "status": "rejected",
+        "partner_id": "1754016563222",
+        "submitted_at": "2025-12-24T14:30:06.924Z",
+        "validated_at": "2025-11-09T14:28:00.904Z",
+        "validated_by": "Administrador Principal",
+        "validation_notes": "Validado manualmente pelo administrador",
+        "is_approved": true,
+        "created_at": "2025-12-24T14:30:06.924Z"
+      },
+      {
+        "id": "8ed43e21-2974-4ea2-90a4-90c1c8acf0f4",
+        "company_name": "Top",
+        "contact_name": "TOP ",
+        "email": "top@top.com.br",
+        "phone": "1199999999",
+        "cnpj": "1212121",
+        "employees": "1212",
+        "segment": "Tecnologia",
+        "status": "pending",
+        "partner_id": "1753985298363",
+        "submitted_at": "2025-12-24T14:30:07.053Z",
+        "validated_at": null,
+        "validated_by": null,
+        "validation_notes": null,
+        "is_approved": false,
+        "created_at": "2025-12-24T14:30:07.053Z"
+      }
+    ],
+    "remuneration_tables": [
+      {
+        "id": 1,
+        "employee_range_start": "1",
+        "employee_range_end": "10",
+        "finder_negotiation_margin": "5",
+        "max_company_cashback": "10",
+        "final_finder_cashback": "15",
+        "description": "Teste",
+        "value_type": "percentage",
+        "created_at": "2025-11-21T10:57:04.948Z"
+      }
+    ],
+    "roles": [
+      {
+        "id": "role_admin",
+        "name": "Administrador",
+        "description": "Acesso total ao sistema com todas as permissões",
+        "permissions": [
+          "dashboard.view",
+          "dashboard.analytics",
+          "clients.view",
+          "clients.create",
+          "clients.edit",
+          "clients.delete",
+          "referrals.view",
+          "referrals.create",
+          "referrals.validate",
+          "referrals.approve",
+          "reports.view",
+          "reports.export",
+          "reports.all_partners",
+          "support.view",
+          "support.manage",
+          "admin.access",
+          "admin.users",
+          "admin.roles",
+          "admin.products",
+          "admin.pricing",
+          "admin.notifications",
+          "admin.integrations",
+          "admin.files",
+          "commissions.view",
+          "commissions.manage",
+          "chatbot.view",
+          "chatbot.train"
+        ],
+        "is_system": true,
+        "is_active": true,
+        "created_at": "2025-12-14T18:23:48.748Z",
+        "updated_at": "2025-12-14T18:23:48.748Z"
+      },
+      {
+        "id": "role_manager",
+        "name": "Gerente",
+        "description": "Gerente de parceiros com permissões de supervisão",
+        "permissions": [
+          "dashboard.view",
+          "dashboard.analytics",
+          "clients.view",
+          "clients.create",
+          "clients.edit",
+          "referrals.view",
+          "referrals.create",
+          "referrals.validate",
+          "reports.view",
+          "reports.export",
+          "reports.all_partners",
+          "support.view",
+          "commissions.view",
+          "chatbot.view"
+        ],
+        "is_system": true,
+        "is_active": true,
+        "created_at": "2025-12-14T18:23:48.748Z",
+        "updated_at": "2025-12-14T18:23:48.748Z"
+      },
+      {
+        "id": "role_partner",
+        "name": "Parceiro",
+        "description": "Parceiro padrão com permissões básicas",
+        "permissions": [
+          "dashboard.view",
+          "clients.view",
+          "referrals.view",
+          "referrals.create",
+          "reports.view",
+          "support.view",
+          "commissions.view",
+          "chatbot.view"
+        ],
+        "is_system": true,
+        "is_active": true,
+        "created_at": "2025-12-14T18:23:48.748Z",
+        "updated_at": "2025-12-14T18:23:48.748Z"
+      }
+    ],
+    "sessions": [
+      {
+        "sid": "THP_bxWct5fpr9KKRXFwL7cDcF1QERyk",
+        "sess": {
+          "cookie": {
+            "path": "/",
+            "secure": true,
+            "expires": "2025-12-19T22:05:01.094Z",
+            "httpOnly": true,
+            "originalMaxAge": 604800000
+          },
+          "passport": {
+            "user": {
+              "claims": {
+                "aud": "ff6085d4-0d5d-4b78-8bd6-63a746d65b9c",
+                "exp": 1765580700,
+                "iat": 1765577100,
+                "iss": "https://replit.com/oidc",
+                "sub": "45565700",
+                "email": "lucassuchoa@gmail.com",
+                "at_hash": "rToId5hg_RQWUZi-Y7aQAA",
+                "username": "lucassuchoa",
+                "auth_time": 1765038439,
+                "last_name": "uchoa",
+                "first_name": "lucas"
+              },
+              "expires_at": 1765580700,
+              "access_token": "yEx-jPmzAT0g5xq4jfOfpvU1FaD2Xj7AC2ELWNbzfue",
+              "refresh_token": "u7XFhzgcZejnThYRz1TEqn8muBn4ijt65CtZKEuxDsI"
+            }
+          }
+        },
+        "expire": "2025-12-23T19:36:16.000Z"
+      }
+    ],
+    "support_materials": [
+      {
+        "id": "1",
+        "title": "Guia Completo de Folha de Pagamento Digital",
+        "category": "folha-pagamento",
+        "type": "pdf",
+        "description": "Manual completo sobre como implementar e gerenciar folha de pagamento digital com a Somapay.",
+        "download_url": "#",
+        "view_url": null,
+        "file_size": "2.5 MB",
+        "duration": null,
+        "created_at": "2024-01-15T10:00:00.000Z",
+        "updated_at": "2024-01-15T10:00:00.000Z"
+      },
+      {
+        "id": "2",
+        "title": "Webinar: Modernização da Folha de Pagamento",
+        "category": "folha-pagamento",
+        "type": "webinar",
+        "description": "Apresentação sobre as melhores práticas para modernizar processos de folha de pagamento.",
+        "download_url": null,
+        "view_url": "#",
+        "file_size": null,
+        "duration": "45 min",
+        "created_at": "2024-01-16T10:00:00.000Z",
+        "updated_at": "2024-01-16T10:00:00.000Z"
+      },
+      {
+        "id": "3",
+        "title": "Manual de Crédito Consignado",
+        "category": "consignado",
+        "type": "pdf",
+        "description": "Guia detalhado sobre produtos de crédito consignado e como oferecê-los aos colaboradores.",
+        "download_url": "#",
+        "view_url": null,
+        "file_size": "1.8 MB",
+        "duration": null,
+        "created_at": "2024-01-17T10:00:00.000Z",
+        "updated_at": "2024-01-17T10:00:00.000Z"
+      },
+      {
+        "id": "4",
+        "title": "Vídeo: Como Funciona o Consignado Somapay",
+        "category": "consignado",
+        "type": "video",
+        "description": "Explicação em vídeo sobre o funcionamento do crédito consignado na plataforma Somapay.",
+        "download_url": null,
+        "view_url": "#",
+        "file_size": null,
+        "duration": "12 min",
+        "created_at": "2024-01-18T10:00:00.000Z",
+        "updated_at": "2024-01-18T10:00:00.000Z"
+      },
+      {
+        "id": "5",
+        "title": "Guia de Benefícios Flexíveis",
+        "category": "beneficios-flexiveis",
+        "type": "guia",
+        "description": "Como implementar e gerenciar benefícios flexíveis para aumentar a satisfação dos colaboradores.",
+        "download_url": "#",
+        "view_url": null,
+        "file_size": "3.2 MB",
+        "duration": null,
+        "created_at": "2024-01-19T10:00:00.000Z",
+        "updated_at": "2024-01-19T10:00:00.000Z"
+      },
+      {
+        "id": "6",
+        "title": "Webinar: Tendências em Benefícios Corporativos",
+        "category": "beneficios-flexiveis",
+        "type": "webinar",
+        "description": "Apresentação sobre as principais tendências em benefícios corporativos e como aplicá-las.",
+        "download_url": null,
+        "view_url": "#",
+        "file_size": null,
+        "duration": "38 min",
+        "created_at": "2024-01-20T10:00:00.000Z",
+        "updated_at": "2024-01-20T10:00:00.000Z"
+      },
+      {
+        "id": "7",
+        "title": "Calculadora de ROI - Benefícios Flexíveis",
+        "category": "beneficios-flexiveis",
+        "type": "pdf",
+        "description": "Ferramenta para calcular o retorno sobre investimento em programas de benefícios flexíveis.",
+        "download_url": "#",
+        "view_url": null,
+        "file_size": "850 KB",
+        "duration": null,
+        "created_at": "2024-01-21T10:00:00.000Z",
+        "updated_at": "2024-01-21T10:00:00.000Z"
+      },
+      {
+        "id": "8",
+        "title": "Checklist de Implementação - Folha Digital",
+        "category": "folha-pagamento",
+        "type": "pdf",
+        "description": "Lista de verificação completa para implementação bem-sucedida da folha de pagamento digital.",
+        "download_url": "#",
+        "view_url": null,
+        "file_size": "1.2 MB",
+        "duration": null,
+        "created_at": "2024-01-22T10:00:00.000Z",
+        "updated_at": "2024-01-22T10:00:00.000Z"
+      }
+    ],
+    "transactions": [],
+    "uploads": [],
+    "users": [
+      {
+        "id": "1753409800039",
+        "email": "lucasuchoa@hotmail.com",
+        "name": "Lucas Uchoa",
+        "password": "lucas123",
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-07-25T02:16:40.039Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.457Z"
+      },
+      {
+        "id": "5",
+        "email": "ana.costa@somapay.com.br",
+        "name": "Ana Costa",
+        "password": "manager123",
+        "role": "manager",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-01-25T10:00:00.000Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.586Z"
+      },
+      {
+        "id": "6",
+        "email": "roberto.lima@somapay.com.br",
+        "name": "Roberto Lima",
+        "password": "manager456",
+        "role": "manager",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-01-25T10:00:00.000Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.714Z"
+      },
+      {
+        "id": "1754016563222",
+        "email": "gerente@gmail.com",
+        "name": "gerente",
+        "password": "Lucas123",
+        "role": "manager",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [
+          1
+        ],
+        "created_at": "2025-08-01T02:49:23.222Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.906Z"
+      },
+      {
+        "id": "1760981528414",
+        "email": "gerente1@gmail.com",
+        "name": "gerente1 ",
+        "password": "lucas01",
+        "role": "manager",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [
+          null
+        ],
+        "created_at": "2025-10-20T17:32:08.414Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:06.034Z"
+      },
+      {
+        "id": "user_1763722620676_salre2aa6",
+        "email": "novo@teste.com",
+        "name": "Novo Usuario",
+        "password": "$2b$10$n.ySS2.TKdhoh3U92BCVfOC.zZoJKRIrJxgMkeiXT3oKmKpUgs6qy",
+        "role": "partner",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-21T10:57:00.712Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "user_1763727384506_oep9boou1",
+        "email": "lucas@somapay.com.br",
+        "name": "lucas",
+        "password": "$2b$10$Rtv3oWoY3ptvyc2TTxRHY.0QRtZ1iY.eqorcskU88BXn91pPkUsKS",
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-21T12:16:24.540Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "45565700",
+        "email": "lucassuchoa@gmail.com",
+        "name": null,
+        "password": null,
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-24T19:22:34.230Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": "lucas",
+        "last_name": "uchoa",
+        "profile_image_url": null,
+        "updated_at": "2025-12-06T16:27:20.843Z"
+      },
+      {
+        "id": "user_1763723000058_w8qcp1y3t",
+        "email": "lucas.uchoa@somapay.com.br",
+        "name": "lucas",
+        "password": "$2b$10$YeSQrGoR3EfXTEausXQNXOaT9f3.Fw5Ni1kngWN6XILIeqYFYPKU.",
+        "role": "manager",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-21T11:03:20.092Z",
+        "last_login": "2025-12-13T20:56:46.656Z",
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "admin_test_001",
+        "email": "admin@teste.com",
+        "name": "Admin Teste",
+        "password": "$2b$10$rylMW4lsmLNJKX63WRiAZe14TwAby1Wtfubt2Y661cSJWHnbcbon6",
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-21T10:56:50.915Z",
+        "last_login": "2025-12-13T20:10:06.264Z",
+        "permissions": [
+          "all"
+        ],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "admin_001",
+        "email": "admin@partnerscrm.com",
+        "name": "Administrador",
+        "password": "$2b$10$rylMW4lsmLNJKX63WRiAZe14TwAby1Wtfubt2Y661cSJWHnbcbon6",
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-20T18:47:43.986Z",
+        "last_login": "2025-12-13T22:22:30.978Z",
+        "permissions": [
+          "all"
+        ],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "partner_001",
+        "email": "partner@example.com",
+        "name": "Partner Demo",
+        "password": "$2b$10$rylMW4lsmLNJKX63WRiAZe14TwAby1Wtfubt2Y661cSJWHnbcbon6",
+        "role": "partner",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-11-20T18:47:43.986Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-11-23T12:03:36.214Z"
+      },
+      {
+        "id": "1",
+        "email": "admin@somapay.com.br",
+        "name": "Administrador Principal",
+        "password": "SomaPay@2024!",
+        "role": "admin",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2024-01-01T00:00:00.000Z",
+        "last_login": null,
+        "permissions": [
+          "user_management",
+          "file_management",
+          "system_settings",
+          "reports_access",
+          "admin_panel"
+        ],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:04.933Z"
+      },
+      {
+        "id": "2",
+        "email": "parceiro1@empresa.com",
+        "name": "João Silva",
+        "password": "parceiro123",
+        "role": "partner",
+        "status": "active",
+        "manager_id": "1754016563222",
+        "remuneration_table_ids": [],
+        "created_at": "2024-01-15T10:00:00.000Z",
+        "last_login": "2024-01-20T14:30:00.000Z",
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.071Z"
+      },
+      {
+        "id": "3",
+        "email": "parceiro2@negocio.com",
+        "name": "Maria Santos",
+        "password": "parceiro456",
+        "role": "partner",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-12-24T14:30:05.166Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.200Z"
+      },
+      {
+        "id": "4",
+        "email": "parceiro3@comercio.com",
+        "name": "Carlos Oliveira",
+        "password": "parceiro789",
+        "role": "partner",
+        "status": "active",
+        "manager_id": null,
+        "remuneration_table_ids": [],
+        "created_at": "2025-12-24T14:30:05.294Z",
+        "last_login": null,
+        "permissions": [],
+        "first_name": null,
+        "last_name": null,
+        "profile_image_url": null,
+        "updated_at": "2025-12-24T14:30:05.328Z"
+      }
+    ]
+  }
+}

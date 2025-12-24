@@ -40,7 +40,10 @@
     "security-check": "./scripts/check-security.sh",
     "build:secure": "npm run build && npm run security-check",
     "supabase:verify": "curl http://localhost:5173/api/setup/verify-supabase",
-    "supabase:test-upload": "node scripts/test-upload.js"
+    "supabase:test-upload": "node scripts/test-upload.js",
+    "verify:env": "node scripts/verify-env-vars.js",
+    "verify:db": "node scripts/verify-database.js",
+    "verify:all": "npm run verify:env && npm run verify:db"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.6",

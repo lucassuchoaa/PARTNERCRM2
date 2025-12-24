@@ -1,0 +1,302 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-12-24T15:20:00.000Z",
+    "report_version": "1.0",
+    "database_type": "PostgreSQL",
+    "database_provider": "Neon"
+  },
+  "database_info": {
+    "connection_string": "postgresql://neondb_owner:***@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb",
+    "database_name": "neondb",
+    "postgres_version": "16.11",
+    "database_size": "8432 kB",
+    "total_tables": 13,
+    "total_records": 54
+  },
+  "tables_summary": {
+    "users": {
+      "total_records": 16,
+      "expected": "2+",
+      "status": "OK",
+      "distribution": {
+        "admin": 6,
+        "manager": 5,
+        "partner": 5
+      },
+      "all_active": true
+    },
+    "prospects": {
+      "total_records": 8,
+      "expected": 8,
+      "status": "OK",
+      "distribution": {
+        "approved": 5,
+        "rejected": 2,
+        "pending": 1
+      },
+      "issues": {
+        "invalid_partner_id": 3,
+        "duplicate_cnpj": 0
+      }
+    },
+    "clients": {
+      "total_records": 11,
+      "expected": "0+",
+      "status": "OK",
+      "distribution": {
+        "active": 10,
+        "pending": 1
+      },
+      "stages": {
+        "client": 5,
+        "prospeccao": 3,
+        "negociacao": 1,
+        "proposta": 1,
+        "contrato_fechado": 1
+      },
+      "issues": {
+        "invalid_partner_id": 0,
+        "duplicate_cnpj": 0
+      }
+    },
+    "support_materials": {
+      "total_records": 8,
+      "expected": 8,
+      "status": "OK",
+      "categories": {
+        "beneficios-flexiveis": 3,
+        "folha-pagamento": 3,
+        "consignado": 2
+      },
+      "types": {
+        "pdf": 4,
+        "webinar": 2,
+        "video": 1,
+        "guia": 1
+      }
+    },
+    "remuneration_tables": {
+      "total_records": 1,
+      "expected": 4,
+      "status": "ATTENTION",
+      "missing": 3,
+      "note": "Faltam 3 tabelas de remuneração"
+    },
+    "pricing_plans": {
+      "total_records": 3,
+      "status": "OK"
+    },
+    "products": {
+      "total_records": 3,
+      "status": "OK"
+    },
+    "roles": {
+      "total_records": 3,
+      "status": "OK"
+    },
+    "sessions": {
+      "total_records": 1,
+      "status": "OK"
+    },
+    "notifications": {
+      "total_records": 0,
+      "status": "OK",
+      "note": "Tabela vazia (normal)"
+    },
+    "nfe_uploads": {
+      "total_records": 0,
+      "status": "OK",
+      "note": "Tabela vazia (normal)"
+    },
+    "transactions": {
+      "total_records": 0,
+      "status": "OK",
+      "note": "Tabela vazia (normal)"
+    },
+    "uploads": {
+      "total_records": 0,
+      "status": "OK",
+      "note": "Tabela vazia (normal)"
+    }
+  },
+  "integrity_issues": {
+    "total_issues": 2,
+    "critical": 0,
+    "warnings": 2,
+    "details": [
+      {
+        "issue_id": "INT-001",
+        "severity": "WARNING",
+        "table": "prospects",
+        "description": "3 prospects com partner_id inválido",
+        "affected_records": [
+          {
+            "id": "prospect_id_1",
+            "company_name": "21",
+            "cnpj": "21",
+            "partner_id": "1753416259657",
+            "status": "approved"
+          },
+          {
+            "id": "prospect_id_2",
+            "company_name": "teste3103",
+            "cnpj": "2123132",
+            "partner_id": "1753985298363",
+            "status": "rejected"
+          },
+          {
+            "id": "prospect_id_3",
+            "company_name": "Top",
+            "cnpj": "1212121",
+            "partner_id": "1753985298363",
+            "status": "pending"
+          }
+        ],
+        "fix_command": "UPDATE prospects SET partner_id = '1' WHERE partner_id IN ('1753416259657', '1753985298363')",
+        "fix_script": "fix-data-integrity.ts"
+      },
+      {
+        "issue_id": "INT-002",
+        "severity": "WARNING",
+        "table": "remuneration_tables",
+        "description": "Apenas 1 de 4 tabelas de remuneração esperadas",
+        "missing_tables": 3,
+        "fix_script": "fix-data-integrity.ts"
+      }
+    ]
+  },
+  "scripts_created": [
+    {
+      "name": "verify-database.ts",
+      "path": "/home/runner/workspace/verify-database.ts",
+      "purpose": "Verificação completa do estado do banco de dados",
+      "command": "tsx verify-database.ts"
+    },
+    {
+      "name": "check-integrity.ts",
+      "path": "/home/runner/workspace/check-integrity.ts",
+      "purpose": "Verificação de integridade referencial",
+      "command": "tsx check-integrity.ts"
+    },
+    {
+      "name": "backup-database.ts",
+      "path": "/home/runner/workspace/backup-database.ts",
+      "purpose": "Backup completo do banco em formato JSON",
+      "command": "tsx backup-database.ts"
+    },
+    {
+      "name": "fix-data-integrity.ts",
+      "path": "/home/runner/workspace/fix-data-integrity.ts",
+      "purpose": "Correção automática de problemas de integridade",
+      "command": "tsx fix-data-integrity.ts"
+    },
+    {
+      "name": "migrate-from-json.ts",
+      "path": "/home/runner/workspace/migrate-from-json.ts",
+      "purpose": "Migração de dados do db.json para PostgreSQL",
+      "command": "tsx migrate-from-json.ts"
+    }
+  ],
+  "backups_created": [
+    {
+      "file": "/home/runner/workspace/backups/backup-2025-12-24T15-20-50.json",
+      "type": "full",
+      "tables": 13,
+      "total_records": 54,
+      "created_at": "2025-12-24T15:20:50.000Z"
+    },
+    {
+      "file": "/home/runner/workspace/backups/backup-main-tables-2025-12-24T15-20-50.json",
+      "type": "main_tables",
+      "tables": 5,
+      "created_at": "2025-12-24T15:20:50.000Z"
+    }
+  ],
+  "recommendations": {
+    "immediate_actions": [
+      {
+        "priority": "HIGH",
+        "action": "Executar backup imediato",
+        "status": "COMPLETED",
+        "command": "tsx backup-database.ts"
+      },
+      {
+        "priority": "HIGH",
+        "action": "Corrigir prospects com partner_id inválido",
+        "status": "PENDING",
+        "command": "tsx fix-data-integrity.ts"
+      },
+      {
+        "priority": "MEDIUM",
+        "action": "Adicionar tabelas de remuneração faltantes",
+        "status": "PENDING",
+        "command": "tsx fix-data-integrity.ts"
+      }
+    ],
+    "short_term": [
+      {
+        "action": "Configurar backups automáticos no Neon",
+        "timeline": "7 dias"
+      },
+      {
+        "action": "Implementar constraints de foreign key",
+        "timeline": "7 dias"
+      },
+      {
+        "action": "Adicionar índices para performance",
+        "timeline": "7 dias"
+      }
+    ],
+    "medium_term": [
+      {
+        "action": "Configurar monitoramento de integridade",
+        "timeline": "30 dias"
+      },
+      {
+        "action": "Documentar procedimentos de recuperação",
+        "timeline": "30 dias"
+      }
+    ],
+    "long_term": [
+      {
+        "action": "Implementar testes automatizados de integridade",
+        "timeline": "90 dias"
+      },
+      {
+        "action": "Configurar alertas de anomalias",
+        "timeline": "90 dias"
+      }
+    ]
+  },
+  "migration_status": {
+    "environment": "PRODUCTION",
+    "database_provider": "Neon (Serverless PostgreSQL)",
+    "migration_completed": true,
+    "data_available": true,
+    "application_status": "OPERATIONAL",
+    "issues_blocking_production": false,
+    "notes": "O banco de dados já está em produção e operacional. Existem pequenos problemas de integridade que devem ser corrigidos, mas não impedem o funcionamento do sistema."
+  },
+  "next_steps": [
+    {
+      "step": 1,
+      "action": "Executar fix-data-integrity.ts para corrigir problemas",
+      "command": "tsx fix-data-integrity.ts"
+    },
+    {
+      "step": 2,
+      "action": "Executar verify-database.ts para validar correções",
+      "command": "tsx verify-database.ts"
+    },
+    {
+      "step": 3,
+      "action": "Configurar backups automáticos semanais",
+      "method": "Cron job ou Neon console"
+    },
+    {
+      "step": 4,
+      "action": "Implementar monitoramento contínuo",
+      "method": "Script semanal de verificação"
+    }
+  ]
+}
