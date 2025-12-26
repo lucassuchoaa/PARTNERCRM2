@@ -18,7 +18,13 @@
       "Bash(npm run type-check:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(echo:*)",
+      "Bash(tsx:*)",
+      "Bash(npm run seed:*)",
+      "Bash(TOKEN=\"access_YWRtaW5fMDAx_1766757498780\")",
+      "Bash(TOKEN=\"access_YWRtaW5fMDAx_1766758028435\")",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

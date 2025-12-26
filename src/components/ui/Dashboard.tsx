@@ -14,10 +14,10 @@ import ChatBotHybrid from './ChatBotHybrid'
 import Profile from './Profile'
 import { useAuth } from '../../hooks/useAuth'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { productService } from '../../services/productService'
 import type { Product } from '../../types/products'
 import * as HeroIcons from '@heroicons/react/24/outline'
-import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { logout } from '../../services/auth'
 
 interface Client {
@@ -219,9 +219,9 @@ export default function Dashboard() {
 
           // Fetch dashboard data
           const [clientsData, transactions, prospectsData] = await Promise.all([
-            fetch(`${API_URL}/clients`).then(res => res.json()),
-            fetch(`${API_URL}/transactions`).then(res => res.json()),
-            fetch(`${API_URL}/prospects`).then(res => res.json())
+            fetchWithAuth(`${API_URL}/clients`).then(res => res.json()),
+            fetchWithAuth(`${API_URL}/transactions`).then(res => res.json()),
+            fetchWithAuth(`${API_URL}/prospects`).then(res => res.json())
           ])
 
           const totalTransactionsAmount = transactions.reduce((acc: number, curr: Transaction) => acc + curr.amount, 0)

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DocumentTextIcon, BookOpenIcon, AcademicCapIcon, ArrowDownTrayIcon, EyeIcon } from '@heroicons/react/24/outline'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
 interface SupportMaterial {
   id: number
@@ -25,9 +26,7 @@ export default function SupportMaterials() {
     const fetchMaterials = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`${API_URL}/support-materials`, {
-          credentials: 'include'
-        })
+        const response = await fetchWithAuth(`${API_URL}/support-materials`)
         if (response.ok) {
           const data = await response.json()
           if (data.success && Array.isArray(data.data)) {
@@ -36,7 +35,7 @@ export default function SupportMaterials() {
             setMaterials(data)
           }
         } else {
-          console.error('Erro ao buscar materiais de apoio')
+          console.error('Erro ao buscar materiais de apoio:', response.status)
         }
       } catch (error) {
         console.error('Erro ao buscar materiais de apoio:', error)
@@ -44,7 +43,7 @@ export default function SupportMaterials() {
         setLoading(false)
       }
     }
-    
+
     fetchMaterials()
   }, [])
 
