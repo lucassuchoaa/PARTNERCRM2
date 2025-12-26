@@ -7,11 +7,8 @@ const router = Router();
 // GET - Listar todos os clientes
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const user = req.user;
-
-    // Construir query com filtro por parceiro se necessário
-    let query = `
-      SELECT
+    const result = await pool.query(`
+      SELECT 
         id, name, email, phone, cnpj, cpf, status, stage, temperature,
         total_lives as "totalLives",
         partner_id as "partnerId",
@@ -20,31 +17,10 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
         registration_date as "registrationDate",
         last_contact_date as "lastContactDate",
         last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
-        current_products as "currentProducts",
-        potential_products as "potentialProducts",
-        viability_score as "viabilityScore",
-        custom_recommendations as "customRecommendations",
-        potential_products_with_values as "potentialProductsWithValues",
-        segment,
-        employees,
-        employee_count as "employeeCount",
-        company_name as "companyName"
+        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
       FROM clients
-    `;
-
-    const params: any[] = [];
-
-    // Filtrar por partnerId se não for admin
-    if (user?.role !== 'admin' && user?.id) {
-      query += ` WHERE partner_id = $1`;
-      params.push(user.id.toString());
-    }
-
-    query += ` ORDER BY last_updated DESC`;
-
-    const result = await pool.query(query, params);
-    console.log(`[Clients GET] Retornando ${result.rows.length} clientes para user ${user?.id} (role: ${user?.role})`);
+      ORDER BY last_updated DESC
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching clients:', error);
@@ -119,7 +95,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// PUT - Atualizar cliente (completo)
+// PUT - Atualizar cliente
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -128,7 +104,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       totalLives, partnerId, partnerName, contractEndDate,
       lastContactDate, notes, hubspotId, netsuiteId
     } = req.body;
-
+    
     const result = await pool.query(`
       UPDATE clients SET
         name = $1, email = $2, phone = $3, cnpj = $4, cpf = $5,
@@ -137,7 +113,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         last_contact_date = $13, notes = $14, hubspot_id = $15,
         netsuite_id = $16, last_updated = NOW()
       WHERE id = $17
-      RETURNING
+      RETURNING 
         id, name, email, phone, cnpj, cpf, status, stage, temperature,
         total_lives as "totalLives",
         partner_id as "partnerId",
@@ -152,116 +128,15 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       totalLives, partnerId, partnerName, contractEndDate,
       lastContactDate, notes, hubspotId, netsuiteId, id
     ]);
-
+    
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
-
+    
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error updating client:', error);
     res.status(500).json({ error: 'Erro ao atualizar cliente' });
-  }
-});
-
-// PATCH - Atualizar cliente (parcial)
-router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    console.log('[Clients PATCH] Updating client:', id);
-    console.log('[Clients PATCH] Request body:', JSON.stringify(req.body, null, 2));
-
-    // Buscar cliente atual primeiro
-    const currentClient = await pool.query('SELECT * FROM clients WHERE id = $1', [id]);
-
-    if (currentClient.rows.length === 0) {
-      console.log('[Clients PATCH] Cliente não encontrado:', id);
-      return res.status(404).json({ error: 'Cliente não encontrado' });
-    }
-
-    // Construir query de update dinamicamente com os campos fornecidos
-    const updates: string[] = [];
-    const values: any[] = [];
-    let paramIndex = 1;
-
-    const fieldMapping: Record<string, string> = {
-      name: 'name',
-      email: 'email',
-      phone: 'phone',
-      cnpj: 'cnpj',
-      cpf: 'cpf',
-      status: 'status',
-      stage: 'stage',
-      temperature: 'temperature',
-      totalLives: 'total_lives',
-      partnerId: 'partner_id',
-      partnerName: 'partner_name',
-      contractEndDate: 'contract_end_date',
-      lastContactDate: 'last_contact_date',
-      notes: 'notes',
-      hubspotId: 'hubspot_id',
-      netsuiteId: 'netsuite_id',
-      currentProducts: 'current_products',
-      potentialProducts: 'potential_products',
-      viabilityScore: 'viability_score',
-      customRecommendations: 'custom_recommendations',
-      potentialProductsWithValues: 'potential_products_with_values'
-    };
-
-    // Processar cada campo fornecido no body
-    Object.keys(req.body).forEach(key => {
-      if (key === 'lastUpdated' || key === 'id') return; // Ignorar esses campos
-
-      const dbField = fieldMapping[key];
-      if (dbField) {
-        updates.push(`${dbField} = $${paramIndex++}`);
-        values.push(req.body[key]);
-      }
-    });
-
-    // Sempre atualizar last_updated
-    updates.push(`last_updated = NOW()`);
-
-    if (updates.length === 1) { // Apenas last_updated
-      return res.status(400).json({ error: 'Nenhum campo para atualizar' });
-    }
-
-    values.push(id); // ID para o WHERE
-
-    console.log('[Clients PATCH] Query updates:', updates);
-    console.log('[Clients PATCH] Query values:', values);
-
-    const result = await pool.query(`
-      UPDATE clients SET
-        ${updates.join(', ')}
-      WHERE id = $${paramIndex}
-      RETURNING
-        id, name, email, phone, cnpj, cpf, status, stage, temperature,
-        total_lives as "totalLives",
-        partner_id as "partnerId",
-        partner_name as "partnerName",
-        contract_end_date as "contractEndDate",
-        registration_date as "registrationDate",
-        last_contact_date as "lastContactDate",
-        last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
-        current_products as "currentProducts",
-        potential_products as "potentialProducts",
-        viability_score as "viabilityScore",
-        custom_recommendations as "customRecommendations",
-        potential_products_with_values as "potentialProductsWithValues"
-    `, values);
-
-    console.log('[Clients PATCH] Updated successfully:', result.rows[0]);
-    res.json(result.rows[0]);
-  } catch (error: any) {
-    console.error('[Clients PATCH] Error updating client:', error);
-    console.error('[Clients PATCH] Error details:', error.message);
-    console.error('[Clients PATCH] Error stack:', error.stack);
-    res.status(500).json({
-      error: 'Erro ao atualizar cliente',
-      details: error.message
-    });
   }
 });
 

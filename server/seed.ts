@@ -124,9 +124,61 @@ async function seed() {
       }
     }
 
-    // 3. Criar produtos exemplo - DESABILITADO temporariamente devido a erro na estrutura da tabela
-    // console.log('\n📦 Criando produtos exemplo...');
-    console.log('\n📦 Pulando criação de produtos (tabela precisa de ajustes)...');
+    // 3. Criar produtos exemplo
+    console.log('\n📦 Criando produtos exemplo...');
+
+    const products = [
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto A',
+        description: 'Produto exemplo A',
+        price: 100.00,
+        category: 'Categoria 1',
+        is_active: true,
+        order: 1
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto B',
+        description: 'Produto exemplo B',
+        price: 200.00,
+        category: 'Categoria 2',
+        is_active: true,
+        order: 2
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Produto C',
+        description: 'Produto exemplo C',
+        price: 300.00,
+        category: 'Categoria 3',
+        is_active: true,
+        order: 3
+      }
+    ];
+
+    for (const product of products) {
+      const existing = await query('SELECT id FROM products WHERE name = $1', [product.name]);
+
+      if (existing.rows.length === 0) {
+        await query(
+          `INSERT INTO products (id, name, description, price, category, is_active, "order")
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            product.id,
+            product.name,
+            product.description,
+            product.price,
+            product.category,
+            product.is_active,
+            product.order
+          ]
+        );
+        console.log(`✅ Produto "${product.name}" criado`);
+      } else {
+        console.log(`ℹ️  Produto "${product.name}" já existe`);
+      }
+    }
 
     // Criar usuários de exemplo com senha "password123"
     const hashedPasswordForExampleUsers = await bcrypt.hash('password123', 10);
@@ -134,15 +186,15 @@ async function seed() {
     console.log('[SEED] Creating users with hashed password');
 
     // Criar os 3 usuários com senha hasheada
-    const adminPerms = ['all'];
-    const partnerPerms: string[] = [];
+    const adminPerms = JSON.stringify({ all: true });
+    const partnerPerms = JSON.stringify({});
 
     await query(`
       INSERT INTO users (id, email, name, role, password, status, permissions)
-      VALUES
-        ($1, 'admin@teste.com', 'Administrador', 'admin', $2, 'active', $3),
-        ($4, 'admin@partnerscrm.com', 'Admin User', 'admin', $2, 'active', $3),
-        ($5, 'partner@example.com', 'Partner User', 'partner', $2, 'active', $6)
+      VALUES 
+        ($1, 'admin@teste.com', 'Administrador', 'admin', $2, 'active', $3::jsonb),
+        ($4, 'admin@partnerscrm.com', 'Admin User', 'admin', $2, 'active', $3::jsonb),
+        ($5, 'partner@example.com', 'Partner User', 'partner', $2, 'active', $6::jsonb)
       ON CONFLICT (email) DO UPDATE SET
         password = EXCLUDED.password,
         status = EXCLUDED.status,
@@ -159,137 +211,6 @@ async function seed() {
 
     console.log('[SEED] Users created/updated successfully');
     console.log('[SEED] Passwords are hashed with bcrypt');
-
-    // 4. Criar clientes de exemplo
-    console.log('\n🏢 Criando clientes de exemplo...');
-
-    const clients = [
-      {
-        id: crypto.randomUUID(),
-        name: 'Tech Solutions Ltda',
-        email: 'contato@techsolutions.com.br',
-        phone: '11987654321',
-        cnpj: '12345678000190',
-        status: 'active',
-        stage: 'client',
-        temperature: 'hot',
-        total_lives: 250,
-        current_products: JSON.stringify(['Folha de Pagamento']),
-        potential_products: JSON.stringify(['Consignado', 'Benefícios']),
-        viability_score: 85,
-        custom_recommendations: 'Cliente com alto potencial para expansão de produtos. Empresa em crescimento acelerado.',
-        potential_products_with_values: JSON.stringify([
-          { product: 'Consignado', totalLives: 180 },
-          { product: 'Benefícios', benefitDetails: { vt: 150, vr: 200, premiacao: 100, gestaoCorporativa: 50 } }
-        ])
-      },
-      {
-        id: crypto.randomUUID(),
-        name: 'Indústria Moderna S.A.',
-        email: 'vendas@industriamoderna.com.br',
-        phone: '11976543210',
-        cnpj: '98765432000165',
-        status: 'active',
-        stage: 'client',
-        temperature: 'warm',
-        total_lives: 450,
-        current_products: JSON.stringify(['Folha de Pagamento', 'Benefícios']),
-        potential_products: JSON.stringify(['Consignado']),
-        viability_score: 75,
-        custom_recommendations: 'Grande empresa com boa estrutura. Potencial para consignado devido ao alto número de funcionários.',
-        potential_products_with_values: JSON.stringify([
-          { product: 'Consignado', totalLives: 400 }
-        ])
-      },
-      {
-        id: crypto.randomUUID(),
-        name: 'Saúde Prime Clínicas',
-        email: 'administrativo@saudeprime.com.br',
-        phone: '11965432109',
-        cnpj: '45678912000123',
-        status: 'active',
-        stage: 'client',
-        temperature: 'hot',
-        total_lives: 180,
-        current_products: JSON.stringify(['Folha de Pagamento']),
-        potential_products: JSON.stringify(['Benefícios', 'Consignado']),
-        viability_score: 90,
-        custom_recommendations: 'Excelente oportunidade de cross-sell. Gestores demonstraram interesse em produtos complementares.',
-        potential_products_with_values: JSON.stringify([
-          { product: 'Benefícios', benefitDetails: { vt: 100, vr: 150, premiacao: 80, gestaoCorporativa: 30 } },
-          { product: 'Consignado', totalLives: 150 }
-        ])
-      },
-      {
-        id: crypto.randomUUID(),
-        name: 'Comércio Brasil Distribuidora',
-        email: 'financeiro@comerciobrasil.com.br',
-        phone: '11954321098',
-        cnpj: '78945612000145',
-        status: 'active',
-        stage: 'client',
-        temperature: 'cold',
-        total_lives: 80,
-        current_products: JSON.stringify(['Folha de Pagamento']),
-        potential_products: JSON.stringify(['Benefícios']),
-        viability_score: 55,
-        custom_recommendations: 'Empresa menor, focar no relacionamento antes de oferecer novos produtos.',
-        potential_products_with_values: JSON.stringify([
-          { product: 'Benefícios', benefitDetails: { vt: 60, vr: 70, premiacao: 30, gestaoCorporativa: 10 } }
-        ])
-      },
-      {
-        id: crypto.randomUUID(),
-        name: 'Consultoria Estratégica Plus',
-        email: 'rh@consultoriaplus.com.br',
-        phone: '11943210987',
-        cnpj: '32165498000178',
-        status: 'active',
-        stage: 'client',
-        temperature: 'warm',
-        total_lives: 120,
-        current_products: JSON.stringify(['Folha de Pagamento', 'Consignado']),
-        potential_products: JSON.stringify(['Benefícios']),
-        viability_score: 70,
-        custom_recommendations: 'Empresa em estágio de expansão. Boa oportunidade para pacote completo de benefícios.',
-        potential_products_with_values: JSON.stringify([
-          { product: 'Benefícios', benefitDetails: { vt: 80, vr: 100, premiacao: 60, gestaoCorporativa: 20 } }
-        ])
-      }
-    ];
-
-    for (const client of clients) {
-      const existing = await query('SELECT id FROM clients WHERE cnpj = $1', [client.cnpj]);
-
-      if (existing.rows.length === 0) {
-        await query(
-          `INSERT INTO clients (
-            id, name, email, phone, cnpj, status, stage, temperature,
-            total_lives, current_products, potential_products,
-            viability_score, custom_recommendations, potential_products_with_values
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, $14::jsonb)`,
-          [
-            client.id,
-            client.name,
-            client.email,
-            client.phone,
-            client.cnpj,
-            client.status,
-            client.stage,
-            client.temperature,
-            client.total_lives,
-            client.current_products,
-            client.potential_products,
-            client.viability_score,
-            client.custom_recommendations,
-            client.potential_products_with_values
-          ]
-        );
-        console.log(`✅ Cliente "${client.name}" criado`);
-      } else {
-        console.log(`ℹ️  Cliente "${client.name}" já existe`);
-      }
-    }
 
     console.log('\n🎉 Seed concluído com sucesso!');
     console.log('\n📋 Credenciais de acesso:');

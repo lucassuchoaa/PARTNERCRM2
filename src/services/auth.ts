@@ -25,18 +25,18 @@ export async function login({ email, password }: LoginCredentials): Promise<User
 
     const data = await response.json()
 
-    // O backend retorna { success: true, user: {...}, tokens: {...} }
-    if (data.success && data.user && data.tokens) {
+    // O backend retorna { success: true, data: { user, accessToken, refreshToken } }
+    if (data.success && data.data) {
       // Armazenar tokens
-      if (data.tokens.accessToken) {
-        localStorage.setItem('accessToken', data.tokens.accessToken)
+      if (data.data.accessToken) {
+        localStorage.setItem('accessToken', data.data.accessToken)
       }
-      if (data.tokens.refreshToken) {
-        localStorage.setItem('refreshToken', data.tokens.refreshToken)
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken)
       }
 
       // Armazenar usuário
-      const user = data.user
+      const user = data.data.user
       localStorage.setItem('user', JSON.stringify(user))
 
       return user

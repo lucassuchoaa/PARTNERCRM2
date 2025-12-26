@@ -5,47 +5,6 @@ import { getCurrentUser } from '../../services/auth'
 import { API_URL } from '../../config/api'
 import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 import { fetchCNPJData, formatCNPJ, validateCNPJ, mapCNAEToSegment, estimateEmployeesByPorte } from '../../services/cnpjService'
-import toast from 'react-hot-toast'
-
-// Helper para tratar erros de API de forma consistente
-const handleApiError = async (response: Response, context: string) => {
-  console.error(`[${context}] Response status:`, response.status)
-
-  let errorData = null
-  try {
-    errorData = await response.json()
-  } catch (e) {
-    console.error(`[${context}] Erro ao parsear JSON de erro:`, e)
-  }
-
-  console.error(`[${context}] Erro da API:`, errorData)
-
-  // Erro de autenticação
-  if (response.status === 401) {
-    toast.error('Sessão expirada. Faça login novamente.')
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
-    localStorage.removeItem('user')
-    setTimeout(() => {
-      window.location.href = '/login'
-    }, 2000)
-    throw new Error('Sessão expirada')
-  }
-
-  // Erro de validação
-  if (response.status === 400 && errorData?.details && Array.isArray(errorData.details)) {
-    const validationErrors = errorData.details
-      .map((detail: any) => `• ${detail.field}: ${detail.message}`)
-      .join('\n')
-    toast.error(`Erro de validação:\n${validationErrors}`, { duration: 5000 })
-    throw new Error('Erro de validação')
-  }
-
-  // Erro genérico
-  const errorMessage = errorData?.error || errorData?.message || `Erro ${response.status}`
-  toast.error(`Erro: ${errorMessage}`)
-  throw new Error(errorMessage)
-}
 
 interface Prospect {
   id: string
@@ -185,67 +144,38 @@ export default function Referrals() {
 
   const saveChanges = async () => {
     if (!editingClient) return
-
+    
     try {
-      // Preparar dados para envio - garantir que arrays JSONB sejam enviados corretamente
-      const updateData = {
-        currentProducts: editingClient.currentProducts || [],
-        potentialProducts: editingClient.potentialProducts || [],
-        viabilityScore: editingClient.viabilityScore || 0,
-        potentialProductsWithValues: editingClient.potentialProductsWithValues || []
-      }
-
-      console.log('[Referrals] Salvando análise de carteira:', editingClient.id)
-      console.log('[Referrals] Dados a enviar:', JSON.stringify(updateData, null, 2))
-
-      // Atualizar no backend usando PATCH
-      const response = await fetchWithAuth(`${API_URL}/clients/${editingClient.id}`, {
-        method: 'PATCH',
+      // Atualizar no backend
+      const response = await fetch(`${API_URL}/clients/${editingClient.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updateData)
+        credentials: 'include',
+        body: JSON.stringify({
+          ...editingClient,
+          currentProducts: editingClient.currentProducts,
+          viabilityScore: editingClient.viabilityScore,
+          potentialProductsWithValues: editingClient.potentialProductsWithValues
+        })
       })
-
-      console.log('[Referrals] Response status:', response.status)
-
+      
       if (response.ok) {
-        const updatedClient = await response.json()
-        console.log('[Referrals] Cliente atualizado:', updatedClient)
-
-        // Mapear resposta do backend para formato do frontend
-        const mappedClient: PortfolioClient = {
-          id: updatedClient.id,
-          companyName: updatedClient.companyName || updatedClient.name || editingClient.companyName,
-          cnpj: updatedClient.cnpj || editingClient.cnpj,
-          employeeCount: parseInt(updatedClient.totalLives || updatedClient.employeeCount) || editingClient.employeeCount,
-          segment: updatedClient.segment || editingClient.segment,
-          currentProducts: Array.isArray(updatedClient.currentProducts) ? updatedClient.currentProducts : editingClient.currentProducts,
-          viabilityScore: updatedClient.viabilityScore || editingClient.viabilityScore,
-          potentialProducts: Array.isArray(updatedClient.potentialProducts) ? updatedClient.potentialProducts : editingClient.potentialProducts,
-          potentialProductsWithValues: Array.isArray(updatedClient.potentialProductsWithValues) ? updatedClient.potentialProductsWithValues : editingClient.potentialProductsWithValues,
-          customRecommendations: updatedClient.customRecommendations || editingClient.customRecommendations,
-          lastAnalysis: updatedClient.lastUpdated || editingClient.lastAnalysis
-        }
-
         // Atualizar estado local
-        setPortfolioClients(prev =>
-          prev.map(client =>
-            client.id === editingClient.id ? mappedClient : client
+        setPortfolioClients(prev => 
+          prev.map(client => 
+            client.id === editingClient.id ? editingClient : client
           )
         )
-        setSelectedClient(mappedClient)
+        setSelectedClient(editingClient)
         setIsEditMode(false)
         setEditingClient(null)
-        toast.success('Análise de carteira salva com sucesso!')
-      } else {
-        const errorData = await response.json()
-        console.error('[Referrals] Erro ao salvar:', errorData)
-        toast.error(`Erro: ${errorData.error || errorData.details || 'Não foi possível salvar'}`)
+        alert('Alterações salvas com sucesso!')
       }
-    } catch (error: any) {
-      console.error('[Referrals] Erro ao salvar alterações:', error)
-      toast.error(`Erro ao salvar alterações: ${error.message || 'Tente novamente'}`)
+    } catch (error) {
+      console.error('Erro ao salvar alterações:', error)
+      alert('Erro ao salvar alterações')
     }
   }
 
@@ -365,40 +295,34 @@ export default function Referrals() {
     if (!selectedClient) return
 
     try {
-      console.log('[Referrals] Salvando recomendações:', selectedClient.id, editingRecommendations)
-
-      const response = await fetchWithAuth(`${API_URL}/clients/${selectedClient.id}`, {
-        method: 'PATCH',
+      const response = await fetch(`${API_URL}/clients/${selectedClient.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
+          ...selectedClient,
           customRecommendations: editingRecommendations
         })
       })
 
       if (response.ok) {
-        const updatedClient = await response.json()
-        console.log('[Referrals] Recomendações salvas:', updatedClient)
-
         // Atualizar estado local
-        setPortfolioClients(prev =>
-          prev.map(client =>
+        const updatedClient = { ...selectedClient, customRecommendations: editingRecommendations }
+        setPortfolioClients(prev => 
+          prev.map(client => 
             client.id === selectedClient.id ? updatedClient : client
           )
         )
         setSelectedClient(updatedClient)
         setIsEditingRecommendations(false)
         setEditingRecommendations('')
-        toast.success('Recomendações salvas com sucesso!')
-      } else {
-        const errorData = await response.json()
-        console.error('[Referrals] Erro ao salvar recomendações:', errorData)
-        toast.error(`Erro: ${errorData.error || 'Não foi possível salvar'}`)
+        alert('Recomendações salvas com sucesso!')
       }
     } catch (error) {
-      console.error('[Referrals] Erro ao salvar recomendações:', error)
-      toast.error('Erro ao salvar recomendações')
+      console.error('Erro ao salvar recomendações:', error)
+      alert('Erro ao salvar recomendações')
     }
   }
 
@@ -410,35 +334,42 @@ export default function Referrals() {
         const user = await getCurrentUser()
         setCurrentUser(user)
 
-        // Carregar prospects usando fetchWithAuth (já filtrados por parceiro no backend)
-        const response = await fetchWithAuth(`${API_URL}/prospects`)
+        // Carregar prospects
+        const response = await fetch(`${API_URL}/prospects`, {
+          credentials: 'include'
+        })
         if (response.ok) {
           const data = await response.json()
-          console.log('[Referrals] Prospects carregados:', data.length)
-          setProspects(data)
+          
+          // Filtrar prospects por parceiro (se não for admin)
+          if (user && user.role !== 'admin') {
+            const userProspects = data.filter((prospect: Prospect) => prospect.partnerId === user.id.toString())
+            setProspects(userProspects)
+          } else {
+            setProspects(data)
+          }
         }
 
-        // Carregar clientes da carteira usando fetchWithAuth (já filtrados por parceiro no backend)
-        const clientsResponse = await fetchWithAuth(`${API_URL}/clients`)
+        // Carregar clientes da carteira
+        const clientsResponse = await fetch(`${API_URL}/clients`, {
+          credentials: 'include'
+        })
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
-          console.log('[Referrals] Clientes carregados do backend:', clientsData.length)
-
           // Converter clientes para formato de análise de carteira
-          const portfolioData = clientsData.map((client: any) => ({
-            id: client.id,
-            companyName: client.companyName || client.name || 'Nome não informado',
-            cnpj: client.cnpj || 'CNPJ não informado',
-            employeeCount: parseInt(client.employees || client.employeeCount || client.totalLives) || Math.floor(Math.random() * 500) + 50,
-            segment: client.segment || 'Não informado',
-            currentProducts: Array.isArray(client.currentProducts) ? client.currentProducts : ['Folha de Pagamento'],
-            viabilityScore: client.viabilityScore || calculateViabilityScore(client),
-            potentialProducts: Array.isArray(client.potentialProducts) ? client.potentialProducts : getPotentialProducts(client),
-            potentialProductsWithValues: Array.isArray(client.potentialProductsWithValues) ? client.potentialProductsWithValues : [],
-            customRecommendations: client.customRecommendations || '',
-            lastAnalysis: client.lastAnalysis || client.lastUpdated || new Date().toISOString().split('T')[0]
-          }))
-          console.log('[Referrals] Clientes mapeados para carteira:', portfolioData.length)
+          const portfolioData = clientsData
+            .filter((client: any) => user?.role === 'admin' || client.partnerId === user?.id?.toString())
+            .map((client: any) => ({
+              id: client.id,
+              companyName: client.companyName || client.name || 'Nome não informado',
+              cnpj: client.cnpj || 'CNPJ não informado',
+              employeeCount: parseInt(client.employees || client.employeeCount) || Math.floor(Math.random() * 500) + 50,
+              segment: client.segment || 'Não informado',
+              currentProducts: client.currentProducts || ['Folha de Pagamento'],
+              viabilityScore: client.viabilityScore || calculateViabilityScore(client),
+              potentialProducts: client.potentialProducts || getPotentialProducts(client),
+              lastAnalysis: client.lastAnalysis || new Date().toISOString().split('T')[0]
+            }))
           setPortfolioClients(portfolioData)
         }
       } catch (error) {
@@ -451,38 +382,21 @@ export default function Referrals() {
 
   const handleSubmitProspect = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // Validar se o usuário está logado
-    if (!currentUser?.id) {
-      toast.error('Você precisa estar logado para criar indicações')
-      return
-    }
-
-    // Limpar CNPJ (remover pontos, traços, barras)
-    const cleanedCNPJ = newProspect.cnpj.replace(/\D/g, '')
-
-    // Validar CNPJ
-    if (cleanedCNPJ.length !== 14) {
-      toast.error('CNPJ inválido. Deve conter 14 dígitos.')
-      return
-    }
-
     const prospect: Prospect = {
       id: Date.now().toString(),
-      companyName: newProspect.companyName.trim(),
-      contactName: newProspect.contactName.trim(),
-      email: newProspect.email.trim().toLowerCase(),
-      phone: newProspect.phone.replace(/\D/g, ''), // Remove formatação do telefone
-      cnpj: cleanedCNPJ, // CNPJ sem formatação
+      companyName: newProspect.companyName,
+      contactName: newProspect.contactName,
+      email: newProspect.email,
+      phone: newProspect.phone,
+      cnpj: newProspect.cnpj,
       employees: newProspect.employeeCount,
       segment: newProspect.segment,
       status: 'pending',
-      partnerId: currentUser.id.toString()
+      partnerId: currentUser?.id.toString() || '0'
     }
 
     try {
-      console.log('[Referrals] Enviando prospect:', prospect)
-
+      // Salvar no backend usando fetchWithAuth
       const response = await fetchWithAuth(`${API_URL}/prospects`, {
         method: 'POST',
         headers: {
@@ -491,26 +405,26 @@ export default function Referrals() {
         body: JSON.stringify(prospect)
       })
 
-      if (!response.ok) {
-        await handleApiError(response, 'Referrals - Submit Prospect')
-        return
+      if (response.ok) {
+        const savedProspect = await response.json()
+        setProspects([...prospects, savedProspect])
+        setNewProspect({
+          companyName: '',
+          contactName: '',
+          email: '',
+          phone: '',
+          cnpj: '',
+          employeeCount: '',
+          segment: ''
+        })
+        alert('Prospect indicado com sucesso!')
+      } else {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erro ao salvar prospect')
       }
-
-      const savedProspect = await response.json()
-      setProspects([...prospects, savedProspect])
-      setNewProspect({
-        companyName: '',
-        contactName: '',
-        email: '',
-        phone: '',
-        cnpj: '',
-        employeeCount: '',
-        segment: ''
-      })
-      toast.success('Prospect indicado com sucesso!')
     } catch (error: any) {
-      console.error('[Referrals] Erro ao salvar prospect:', error)
-      // Erro já foi mostrado pelo handleApiError
+      console.error('Erro ao salvar prospect:', error)
+      alert(`Erro ao salvar indicação: ${error.message}. Tente novamente.`)
     }
   }
 
@@ -528,11 +442,12 @@ export default function Referrals() {
         }
       }
 
-      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -540,7 +455,7 @@ export default function Referrals() {
         setProspects(prev => prev.map(p =>
           p.id === prospect.id ? updatedProspect : p
         ))
-        toast.success(`${prospect.companyName} validada com sucesso!`)
+        alert(`Indicação de ${prospect.companyName} validada com sucesso! Agora seguirá para análise de carteira.`)
         
         // Automaticamente mover para análise após validação
         setTimeout(() => {
@@ -560,11 +475,12 @@ export default function Referrals() {
         status: 'in-analysis' as const
       }
 
-      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -580,59 +496,60 @@ export default function Referrals() {
 
   const approveProspect = async (prospect: Prospect) => {
     try {
-      console.log('[Referrals] Aprovando prospect:', prospect.id)
+      // Atualizar status do prospect para aprovado
+      const updatedProspect = {
+        ...prospect,
+        status: 'approved' as const
+      }
 
-      // Usar endpoint PATCH /validate que cria cliente automaticamente
-      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}/validate`, {
-        method: 'PATCH',
+      const prospectResponse = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          isApproved: true,
-          validatedBy: currentUser?.name || 'Admin',
-          validationNotes: 'Aprovado pelo parceiro',
-          status: 'approved'
-        })
+        credentials: 'include',
+        body: JSON.stringify(updatedProspect)
       })
 
-      if (response.ok) {
-        const updatedProspect = await response.json()
-        console.log('[Referrals] Prospect aprovado:', updatedProspect)
-
-        // Atualizar lista de prospects
-        setProspects(prev => prev.map(p =>
-          p.id === prospect.id ? { ...updatedProspect, id: prospect.id } : p
-        ))
-
-        // Mostrar mensagem de sucesso
-        if (updatedProspect.clientId) {
-          toast.success(
-            `${prospect.companyName} aprovado!\n\nCliente criado: ${updatedProspect.clientName || prospect.contactName}`,
-            { duration: 5000 }
-          )
-        } else {
-          toast.success(`${prospect.companyName} aprovado!`)
+      if (prospectResponse.ok) {
+        // Criar cliente baseado no prospect aprovado
+        const newClient = {
+          id: Date.now().toString(),
+          name: prospect.companyName,
+          cnpj: prospect.cnpj,
+          status: 'active',
+          stage: 'prospeccao',
+          temperature: 'morno',
+          totalLives: 0,
+          contractEndDate: '',
+          lastUpdated: new Date().toISOString(),
+          partnerId: prospect.partnerId,
+          contactName: prospect.contactName,
+          email: prospect.email,
+          phone: prospect.phone,
+          employees: prospect.employees,
+          segment: prospect.segment
         }
-      } else {
-        // Tratar erros específicos
-        const errorData = await response.json()
-        console.error('[Referrals] Erro ao aprovar:', errorData)
 
-        if (response.status === 409 && errorData.code === 'DUPLICATE_EMAIL') {
-          toast.error(
-            `Cliente já existe com email: ${errorData.email}\n\nVerifique a lista de clientes.`,
-            { duration: 6000 }
-          )
-        } else if (response.status === 400 && errorData.code === 'MISSING_DATA') {
-          toast.error(`Dados insuficientes: ${errorData.details}`)
-        } else {
-          toast.error(`Erro: ${errorData.error}\n${errorData.details || ''}`, { duration: 5000 })
+        const clientResponse = await fetch(`${API_URL}/clients`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(newClient)
+        })
+
+        if (clientResponse.ok) {
+          setProspects(prev => prev.map(p => 
+            p.id === prospect.id ? updatedProspect : p
+          ))
+          alert(`Prospect ${prospect.companyName} aprovado e movido para área de clientes!`)
         }
       }
-    } catch (error: any) {
-      console.error('[Referrals] Erro ao aprovar prospect:', error)
-      toast.error(`Erro ao aprovar: ${error.message || 'Tente novamente.'}`)
+    } catch (error) {
+      console.error('Erro ao aprovar prospect:', error)
+      alert('Erro ao aprovar prospect. Tente novamente.')
     }
   }
 
@@ -643,11 +560,12 @@ export default function Referrals() {
         status: 'rejected' as const
       }
 
-      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -714,11 +632,12 @@ export default function Referrals() {
       const savedProspects = []
       for (const prospect of newProspects) {
         try {
-          const response = await fetchWithAuth(`${API_URL}/prospects`, {
+          const response = await fetch(`${API_URL}/prospects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify(prospect)
           })
           
@@ -1586,7 +1505,7 @@ export default function Referrals() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {(Array.isArray(client.currentProducts) ? client.currentProducts : []).map((product, index) => (
+                          {client.currentProducts.map((product, index) => (
                             <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                               {product}
                             </span>
@@ -1607,12 +1526,12 @@ export default function Referrals() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                          {(Array.isArray(client.potentialProducts) ? client.potentialProducts : []).slice(0, 2).map((product, index) => (
+                          {client.potentialProducts.slice(0, 2).map((product, index) => (
                             <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               {product}
                             </span>
                           ))}
-                          {Array.isArray(client.potentialProducts) && client.potentialProducts.length > 2 && (
+                          {client.potentialProducts.length > 2 && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                               +{client.potentialProducts.length - 2} mais
                             </span>
@@ -1636,19 +1555,8 @@ export default function Referrals() {
             {getFilteredPortfolioClients().length === 0 && (
               <div className="text-center py-12">
                 <BuildingOfficeIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  {portfolioClients.length === 0 ? 'Nenhum cliente na carteira' : 'Nenhum cliente encontrado'}
-                </h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {portfolioClients.length === 0
-                    ? 'Clientes aprovados aparecerão aqui automaticamente para análise de viabilidade.'
-                    : 'Ajuste os filtros para ver mais resultados.'}
-                </p>
-                {portfolioClients.length === 0 && (
-                  <p className="mt-2 text-xs text-gray-400">
-                    Dica: Após aprovar prospects, eles se tornam clientes e aparecem nesta seção.
-                  </p>
-                )}
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum cliente encontrado</h3>
+                <p className="mt-1 text-sm text-gray-500">Ajuste os filtros para ver mais resultados.</p>
               </div>
             )}
           </div>

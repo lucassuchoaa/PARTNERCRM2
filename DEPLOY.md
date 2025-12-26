@@ -1,768 +1,505 @@
-# 🚀 Guia de Deploy - Partners CRM
+# 🚀 Deploy Guide - Partners Platform
 
-**Aplicação pronta para produção no Replit** com todas as correções de segurança aplicadas.
+Complete deployment guide for production environments.
 
-**Score de Segurança**: 8/10 ⭐ (PRODUCTION READY)
+## Table of Contents
 
-## Índice
-
-- [✅ Status de Produção](#-status-de-produção)
-- [🔐 Pré-requisitos Críticos](#-pré-requisitos-críticos)
-- [🗄️ Database Setup](#️-database-setup)
-- [📦 Instalação](#-instalação)
-- [🚦 Checklist Pré-Deploy](#-checklist-pré-deploy)
-- [🔄 Deploy no Replit](#-deploy-no-replit)
-- [🧪 Testes Pós-Deploy](#-testes-pós-deploy)
-- [🛡️ Segurança Implementada](#️-segurança-implementada)
-- [📊 Monitoramento](#-monitoramento)
-- [🆘 Troubleshooting](#-troubleshooting)
+- [Prerequisites](#prerequisites)
+- [Environment Variables](#environment-variables)
+- [Deployment Methods](#deployment-methods)
+- [Post-Deployment Verification](#post-deployment-verification)
+- [Rollback Procedures](#rollback-procedures)
+- [Disaster Recovery](#disaster-recovery)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-## ✅ Status de Produção
+## Prerequisites
 
-### Últimas Correções Aplicadas
+### Required Accounts
+- **Vercel Account**: For hosting and deployment
+- **Sentry Account**: For error tracking (optional but recommended)
+- **HubSpot Account**: For CRM integration
+- **Google Cloud**: For Gemini AI integration
 
-**Commit**: `10fad3b` - Integration: Aplica integrações de segurança finais e melhora UX
-
-**22 arquivos modificados:**
-- ✅ JWT seguro com assinatura HS256
-- ✅ Rate limiting em 4 níveis
-- ✅ Validação Zod de todos inputs críticos
-- ✅ Proteção SQL injection com whitelist
-- ✅ React Hot Toast substituindo alerts
-- ✅ Transações para consistência de dados
-- ✅ Build de produção validado
-
-**Problema Principal RESOLVIDO**: Prospects aprovados agora criam clientes automaticamente.
+### Required Tools
+- Node.js 18+
+- npm or yarn
+- Git
+- Vercel CLI (optional): `npm i -g vercel`
 
 ---
 
-## 🔐 Pré-requisitos Críticos
+## Environment Variables
 
-### 1. Configurar Secrets no Replit
+### Required Variables
 
-**OBRIGATÓRIO antes de colocar em produção:**
+Create these environment variables in your Vercel project settings:
 
-1. Acesse: **Replit → Tools → Secrets** (ícone de cadeado 🔒)
-
-2. Adicione as seguintes secrets:
-
+#### Frontend Variables (Build-time - VITE_* prefix)
 ```bash
-# =============================================================================
-# JWT SECRETS (CRÍTICO - GERAR NOVOS!)
-# =============================================================================
-JWT_ACCESS_SECRET=<gerar-com-comando-abaixo>
-JWT_REFRESH_SECRET=<gerar-com-comando-abaixo>
+# Application URLs
+VITE_APP_URL=https://your-domain.vercel.app
+VITE_API_URL=/api
 
-# =============================================================================
-# DATABASE
-# =============================================================================
-DATABASE_URL=postgresql://user:password@host:5432/partners_crm
-
-# =============================================================================
-# SESSION
-# =============================================================================
-SESSION_SECRET=<gerar-com-comando-abaixo>
-
-# =============================================================================
-# SERVER
-# =============================================================================
-NODE_ENV=production
-PORT=3001
-FRONTEND_URL=https://seu-projeto.replit.app
-
-# =============================================================================
-# OPTIONAL (APIs Externas)
-# =============================================================================
-HUBSPOT_API_KEY=
-STRIPE_SECRET_KEY=
-SENTRY_DSN=
-LOG_LEVEL=info
+# Feature Flags
+VITE_ENABLE_REACT_QUERY_DEVTOOLS=false
+VITE_ENABLE_ERROR_LOGGING=true
 ```
 
-### 2. Gerar Secrets Seguros
+⚠️ **SECURITY WARNING**: Never expose API keys with VITE_* prefix - they will be included in the frontend bundle!
 
-**Execute no Shell do Replit:**
-
+#### Backend Variables (Serverless Functions - NO VITE_* prefix)
 ```bash
-# JWT Access Secret (256 bits)
-node -e "console.log('JWT_ACCESS_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+# JWT Authentication (Generate with: openssl rand -base64 32)
+JWT_SECRET=your-super-secret-jwt-secret-min-32-chars
+JWT_REFRESH_SECRET=your-super-secret-refresh-token-secret-min-32-chars
 
-# JWT Refresh Secret (256 bits)
-node -e "console.log('JWT_REFRESH_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+# Resend Email Service (https://resend.com/api-keys)
+RESEND_API_KEY=your-resend-api-key-here
+DEFAULT_FROM_EMAIL=noreply@partnerscrm.com
 
-# Session Secret (256 bits)
-node -e "console.log('SESSION_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+# HubSpot Integration (HubSpot > Settings > Integrations > Private Apps)
+# Required scopes: crm.objects.contacts, crm.objects.companies, crm.objects.deals
+HUBSPOT_ACCESS_TOKEN=your-hubspot-private-app-access-token
+
+# Google Gemini AI (https://makersuite.google.com/app/apikey)
+# Free tier: 15 requests/minute, 1M tokens/minute
+GEMINI_API_KEY=your-gemini-api-key-here
+
+# CORS Configuration
+FRONTEND_URL=https://your-domain.vercel.app
 ```
 
-**⚠️ NUNCA** use os valores de exemplo do `.env.example` em produção!
-
-### 3. Copiar Secrets para Replit
-
-1. Execute os comandos acima
-2. Copie cada valor gerado
-3. Cole no Replit Secrets (Tools → Secrets)
-4. Clique em "Add new secret" para cada um
-
----
-
-## 🗄️ Database Setup
-
-### 1. Aplicar Correções de Schema
-
-**IMPORTANTE**: Execute os scripts SQL na ordem exata:
-
+### Optional Variables
 ```bash
-# No Shell do Replit:
+# Analytics
+VITE_GOOGLE_ANALYTICS_ID=G-XXXXXXXXXX
 
-# 1. Corrigir constraints e relacionamentos
-psql $DATABASE_URL < fix-database-constraints.sql
-
-# 2. Corrigir tipo do prospect_id
-psql $DATABASE_URL < fix-prospect-id-type.sql
-```
-
-### 2. Verificar Schema
-
-```bash
-# Conectar ao banco
-psql $DATABASE_URL
-
-# Verificar constraints
-SELECT conname, contype
-FROM pg_constraint
-WHERE conrelid = 'clients'::regclass;
-
-# Deve mostrar:
-# unique_client_email (u)
-# fk_prospect (f)
-```
-
-### 3. Validar Dados
-
-```sql
--- Verificar prospects sem clientes
-SELECT p.id, p.company_name, p.is_approved, p.status
-FROM prospects p
-LEFT JOIN clients c ON c.prospect_id = p.id
-WHERE p.is_approved = true AND p.status = 'approved' AND c.id IS NULL;
-
--- Se houver resultados, esses prospects foram aprovados mas não geraram clientes
--- Isso não deve acontecer mais com as correções aplicadas
+# Feature Flags
+VITE_ENABLE_CHAT=true
+VITE_ENABLE_NETSUITE=false
 ```
 
 ---
 
-## 📦 Instalação
+## Deployment Methods
 
-```bash
-# Instalar dependências
-npm install
-```
+### Method 1: Vercel Dashboard (Recommended)
 
-**Novas dependências de segurança:**
-- `jsonwebtoken` - JWT assinado com HS256
-- `express-rate-limit` - Proteção contra DDoS
-- `zod` - Validação runtime de inputs
-- `react-hot-toast` - Notificações UX
-- `bcrypt` - Hash seguro de senhas
-
----
-
-## 🚦 Checklist Pré-Deploy
-
-### Secrets & Env
-- [ ] JWT_ACCESS_SECRET configurado no Replit Secrets
-- [ ] JWT_REFRESH_SECRET configurado no Replit Secrets
-- [ ] SESSION_SECRET configurado no Replit Secrets
-- [ ] DATABASE_URL configurado e testado
-- [ ] NODE_ENV=production configurado
-- [ ] FRONTEND_URL atualizado para domínio Replit
-
-### Database
-- [ ] fix-database-constraints.sql executado
-- [ ] fix-prospect-id-type.sql executado
-- [ ] Constraints verificados (unique_client_email, fk_prospect)
-- [ ] Dados validados (sem prospects órfãos)
-
-### Build
-- [ ] `npm install` executado sem erros
-- [ ] `npm run build` executado com sucesso
-- [ ] `npm run type-check` sem erros TypeScript
-- [ ] Dist folder gerado corretamente
-
----
-
-## 🔄 Deploy no Replit
-
-### Método Automático (Recomendado)
-
-1. **Commit das mudanças** (se ainda não fez):
+1. **Connect Repository**
    ```bash
+   # Push your code to GitHub
    git add .
-   git commit -m "chore: preparar para produção"
+   git commit -m "feat: prepare for production deployment"
    git push origin main
    ```
 
-2. **Clique em "Run"** no topo do Replit
-   - O Replit detecta automaticamente mudanças
-   - Executa `npm install` e `npm run build`
-   - Inicia o servidor
+2. **Import Project**
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Click "Add New Project"
+   - Import your GitHub repository
 
-3. **Aguarde o build** (~2-3 minutos)
+3. **Configure Project**
+   - Framework Preset: `Vite`
+   - Root Directory: `./`
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
 
-4. **Acesse a URL**: `https://seu-projeto.replit.app`
+4. **Set Environment Variables**
+   - Go to Project Settings → Environment Variables
+   - Add all required variables from the list above
+   - Select appropriate environments (Production, Preview, Development)
 
-### Método Manual
+5. **Deploy**
+   - Click "Deploy"
+   - Wait for build to complete (~2-3 minutes)
+   - Verify deployment at the provided URL
 
-```bash
-# No Shell do Replit:
+### Method 2: Vercel CLI
 
-# 1. Build
-npm run build
+1. **Install Vercel CLI**
+   ```bash
+   npm i -g vercel
+   ```
 
-# 2. Iniciar servidor
-npm start
-```
+2. **Login**
+   ```bash
+   vercel login
+   ```
 
-### Verificar Status do Deploy
+3. **Deploy to Preview**
+   ```bash
+   # Deploy to preview environment
+   vercel
 
-```bash
-# Ver logs em tempo real
-# Replit Shell → Logs aba
+   # Or use npm script
+   npm run deploy:preview
+   ```
 
-# Ou via curl
-curl https://seu-projeto.replit.app/api/health
-```
+4. **Deploy to Production**
+   ```bash
+   # Deploy to production
+   vercel --prod
 
----
+   # Or use npm script
+   npm run deploy:prod
+   ```
 
-## 🧪 Testes Pós-Deploy
+### Method 3: GitHub Actions (CI/CD)
 
-### 1. Health Check
+Create `.github/workflows/deploy.yml`:
 
-```bash
-curl https://seu-projeto.replit.app/api/health
+```yaml
+name: Deploy to Vercel
 
-# Resposta esperada:
-# { "status": "ok", "timestamp": "..." }
-```
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
 
-### 2. Testar Autenticação
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-```bash
-# Login
-curl -X POST https://seu-projeto.replit.app/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@empresa.com","password":"suasenha"}'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
 
-# Deve retornar:
-# {
-#   "user": { "id": "...", "email": "...", "role": "..." },
-#   "tokens": {
-#     "accessToken": "eyJhbGc...",
-#     "refreshToken": "eyJhbGc..."
-#   }
-# }
-```
+      - name: Install dependencies
+        run: npm ci
 
-### 3. Testar Rate Limiting
+      - name: Run tests
+        run: npm test
 
-```bash
-# Fazer 6 tentativas de login rápidas (limite é 5 em 15min)
-for i in {1..6}; do
-  echo "Tentativa $i:"
-  curl -X POST https://seu-projeto.replit.app/api/auth/login \
-    -H "Content-Type: application/json" \
-    -d '{"email":"test@test.com","password":"wrong"}'
-  echo "\n---"
-done
+      - name: Build
+        run: npm run build
+        env:
+          VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
 
-# A 6ª tentativa deve retornar:
-# { "error": "Muitas tentativas de login. Aguarde 15 minutos." }
-# Status: 429 Too Many Requests
-```
-
-### 4. Testar Fluxo Prospect → Client (CRÍTICO)
-
-1. **Criar Prospect** (como parceiro):
-   - Acesse o dashboard
-   - Vá para "Indicações"
-   - Clique em "Nova Indicação"
-   - Preencha todos os campos
-   - Salve
-
-2. **Validar Prospect** (como manager):
-   - Acesse dashboard como manager
-   - Vá para "Validar Indicações"
-   - Encontre o prospect criado
-   - Clique em "Validar"
-   - Marque como "Aprovado"
-   - Adicione notas de validação
-   - Salve
-
-3. **Verificar Cliente Criado**:
-   - Vá para "Clientes"
-   - Verifique se o cliente apareceu automaticamente
-   - Confira que os dados batem (nome, email, CNPJ)
-   - Verifique que o campo `prospect_id` está preenchido
-
-4. **Verificar Notificação**:
-   - Toast de sucesso deve aparecer: "Prospect aprovado! Cliente criado automaticamente."
-
-**Se falhar**: Verifique os logs do servidor e o retorno da API.
-
----
-
-## 🛡️ Segurança Implementada
-
-### ✅ Correções Aplicadas (Score: 8/10)
-
-#### 1. JWT Seguro (HS256)
-**Antes**: Base64 encoding (decodável por qualquer um)
-```typescript
-// INSEGURO
-const token = `access_${Buffer.from(userId).toString('base64url')}_${Date.now()}`
-```
-
-**Depois**: JWT assinado com HS256
-```typescript
-// SEGURO
-jwt.sign(
-  { userId, email, role, type: 'access' },
-  JWT_ACCESS_SECRET,
-  { expiresIn: '1h', algorithm: 'HS256' }
-)
-```
-
-**Arquivo**: `server/utils/jwt.ts`
-
-#### 2. Rate Limiting (4 níveis)
-**Implementado**:
-- Login: 5 tentativas / 15min (proteção brute force)
-- API Geral: 100 requisições / 15min (proteção DDoS)
-- Criação de recursos: 50 / hora (proteção spam)
-- APIs externas: 200 / hora (proteção abuse)
-
-**Arquivo**: `server/middleware/rateLimiter.ts`
-
-#### 3. Validação de Input (Zod)
-**Schemas criados**:
-- Login: email válido, senha mínima
-- Prospects: CNPJ validado, email sanitizado
-- Clientes: campos obrigatórios, tipos corretos
-- Usuários: role válido, status controlado
-
-**Arquivo**: `server/utils/validation.ts`
-
-**Exemplo**:
-```typescript
-const createProspectSchema = z.object({
-  companyName: z.string().min(1).max(255).trim(),
-  email: z.string().email().toLowerCase().trim(),
-  cnpj: z.string().regex(/^\d{14}$/).refine(validateCNPJ)
-})
-```
-
-#### 4. Proteção SQL Injection
-**Whitelist de colunas**:
-```typescript
-const ALLOWED_PROSPECT_COLUMNS = new Set([
-  'company_name', 'contact_name', 'email', 'phone',
-  'cnpj', 'employees', 'segment', 'status'
-])
-
-// Validação antes de query dinâmica
-if (!ALLOWED_PROSPECT_COLUMNS.has(columnName)) {
-  return res.status(400).json({ error: 'Coluna inválida' })
-}
-```
-
-**Arquivo**: `server/routes/prospects.ts:6-11`
-
-#### 5. Transações para Consistência
-**Antes**: Cliente criado mas prospect não atualizado
-**Depois**: BEGIN/COMMIT/ROLLBACK
-```typescript
-await client.query('BEGIN')
-try {
-  // 1. Atualizar prospect
-  await client.query('UPDATE prospects...')
-  // 2. Criar cliente
-  await client.query('INSERT INTO clients...')
-  await client.query('COMMIT')
-} catch (error) {
-  await client.query('ROLLBACK')
-}
-```
-
-**Arquivo**: `server/routes/prospects.ts:226-350`
-
-#### 6. UX com Toast Notifications
-**Substituído**: 91 chamadas `alert()` bloqueantes
-**Por**: `react-hot-toast` não-bloqueante
-
-**Exemplo**:
-```typescript
-// Antes
-alert('Alterações salvas com sucesso!')
-
-// Depois
-toast.success('Alterações salvas com sucesso!')
-```
-
-**Arquivo**: `src/components/ui/Referrals.tsx`
-
-### 🔴 Melhorias Futuras (Score 8→10)
-
-1. **CSRF Protection** (tokens para formulários)
-2. **Audit Logging** (rastreamento de ações sensíveis)
-3. **2FA** (autenticação de dois fatores para admins)
-4. **Content Security Policy** (headers HTTP de segurança)
-5. **Backup automático** (PostgreSQL scheduled backups)
-
-## 📊 Monitoramento
-
-### Logs do Replit
-
-```bash
-# Ver logs em tempo real
-# Replit → Shell → Console tab
-
-# Ou acessar logs via Tools
-# Replit → Tools → Logs
-```
-
-### Métricas Importantes
-
-1. **Taxa de falha de login** (detectar brute force)
-   - Se > 50% das tentativas falham: possível ataque
-
-2. **Tempo de resposta das APIs**
-   - Normal: < 500ms
-   - Alerta: > 1s
-   - Crítico: > 3s
-
-3. **Taxa de criação de prospects/clientes**
-   - Normal: prospects aprovados = clientes criados
-   - Erro: prospects aprovados > clientes (verificar logs de erro 409)
-
-4. **Erros de validação** (possível ataque)
-   - Se muitos erros 400 de validação Zod: alguém enviando dados malformados
-
-### Queries de Monitoramento
-
-```sql
--- Prospects órfãos (aprovados sem cliente)
-SELECT COUNT(*) as orfaos
-FROM prospects p
-LEFT JOIN clients c ON c.prospect_id = p.id
-WHERE p.is_approved = true AND p.status = 'approved' AND c.id IS NULL;
--- Deve retornar 0
-
--- Últimas tentativas de login
-SELECT email, created_at, success
-FROM auth_logs
-WHERE created_at > NOW() - INTERVAL '1 hour'
-ORDER BY created_at DESC
-LIMIT 20;
-
--- Clientes criados nas últimas 24h
-SELECT COUNT(*) as novos_clientes
-FROM clients
-WHERE created_at > NOW() - INTERVAL '24 hours';
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
 ```
 
 ---
 
-## 🆘 Troubleshooting
+## Post-Deployment Verification
 
-### Problema: "Token inválido" após deploy
+### Automated Health Checks
 
-**Sintoma**: Usuários não conseguem fazer login após deploy
+1. **Health Endpoint**
+   ```bash
+   curl https://your-domain.vercel.app/api/health
+   ```
 
-**Causa**: JWT secrets mudaram ou não estão configurados
+   Expected Response:
+   ```json
+   {
+     "status": "healthy",
+     "timestamp": "2025-01-15T10:30:00Z",
+     "uptime": 3600,
+     "checks": {
+       "hubspot": { "status": "up", "responseTime": 150 },
+       "gemini": { "status": "up", "responseTime": 200 },
+       "memory": { "used": 45, "available": 211, "percentage": 17 }
+     }
+   }
+   ```
 
-**Solução**:
-1. Verificar se JWT_ACCESS_SECRET está no Replit Secrets
-2. Verificar se JWT_REFRESH_SECRET está no Replit Secrets
-3. Clicar em "Stop" e "Run" novamente
-4. Usuários precisam fazer login novamente (tokens antigos invalidados)
+   ⚠️ If HubSpot or Gemini show `"status": "down"`, verify:
+   - `HUBSPOT_ACCESS_TOKEN` is configured in Vercel Dashboard
+   - `GEMINI_API_KEY` is configured in Vercel Dashboard
+   - External APIs are accessible from Vercel region
+
+2. **Status Endpoint**
+   ```bash
+   curl https://your-domain.vercel.app/api/status
+   ```
+
+### Manual Verification Checklist
+
+- [ ] Homepage loads correctly
+- [ ] Login functionality works
+- [ ] Dashboard renders without errors
+- [ ] API endpoints respond correctly
+- [ ] HubSpot integration working
+- [ ] Gemini AI chat functional
+- [ ] Error tracking in Sentry
+- [ ] Performance monitoring active
+- [ ] Security headers present
+- [ ] SSL certificate valid
+
+### Performance Verification
 
 ```bash
-# Verificar secrets
-echo $JWT_ACCESS_SECRET
-echo $JWT_REFRESH_SECRET
-# Se vazio, adicionar no Replit Secrets
+# Run Lighthouse audit
+npm run lighthouse
+
+# Check Core Web Vitals
+# Visit: https://pagespeed.web.dev/
+# Enter your production URL
 ```
 
----
+### Smoke Tests Script
 
-### Problema: Cliente não criado ao aprovar prospect
-
-**Sintoma**: Toast de sucesso aparece mas cliente não aparece na lista
-
-**Causa 1**: Email duplicado
 ```bash
-# Verificar no banco
-psql $DATABASE_URL -c "SELECT email, COUNT(*) FROM clients GROUP BY email HAVING COUNT(*) > 1;"
-```
+# Run smoke tests
+npm run smoke-test
 
-**Solução**: Sistema agora retorna erro 409 com detalhes. Verifique a resposta da API:
-```javascript
-{
-  "error": "Cliente com este email já existe",
-  "details": "Um cliente com este email já está cadastrado",
-  "prospectId": "123",
-  "email": "email@exemplo.com"
-}
-```
-
-**Causa 2**: Constraint unique_client_email não aplicada
-```bash
-# Aplicar fix
-psql $DATABASE_URL < fix-database-constraints.sql
+# Or manually test critical paths:
+curl -I https://your-domain.vercel.app
+curl https://your-domain.vercel.app/api/health
+curl https://your-domain.vercel.app/api/status
 ```
 
 ---
 
-### Problema: "Too Many Requests" (429) em desenvolvimento
+## Rollback Procedures
 
-**Sintoma**: Não consegue fazer mais requisições, recebe erro 429
+### Immediate Rollback (Emergency)
 
-**Causa**: Rate limiting muito restritivo
+1. **Via Vercel Dashboard**
+   - Go to Deployments tab
+   - Find last stable deployment
+   - Click "Promote to Production"
+   - Confirm promotion
 
-**Solução Temporária**:
-```bash
-# No Replit Secrets, adicionar:
-NODE_ENV=development  # Rate limits são mais altos em dev
-```
+2. **Via Vercel CLI**
+   ```bash
+   # List recent deployments
+   vercel ls
 
-**Solução Permanente**:
-```bash
-# Aguardar o tempo do rate limit:
-# - Login: 15 minutos
-# - API Geral: 15 minutos
-# - Criação: 1 hora
-```
+   # Promote specific deployment
+   vercel promote <deployment-url>
+   ```
 
----
+3. **Expected Rollback Time**: < 2 minutes
 
-### Problema: Build falha no Replit
+### Rollback with Verification
 
-**Sintoma**: `npm run build` falha com erro de memória
+1. **Identify Issue**
+   - Check Sentry for errors
+   - Review deployment logs
+   - Verify health checks
 
-**Causa**: Memória Node.js insuficiente
+2. **Communicate**
+   - Notify team via Slack/Email
+   - Document incident in issue tracker
+   - Update status page (if applicable)
 
-**Solução**:
-```bash
-# Aumentar memória Node.js
-NODE_OPTIONS="--max-old-space-size=4096" npm run build
+3. **Execute Rollback**
+   - Promote last stable deployment
+   - Verify rollback success
+   - Monitor error rates
 
-# Ou adicionar no package.json:
-{
-  "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=4096' vite build"
-  }
-}
-```
-
----
-
-### Problema: Database connection refused
-
-**Sintoma**: Erro "ECONNREFUSED" ou "connection refused"
-
-**Causa**: DATABASE_URL incorreto ou banco inacessível
-
-**Solução**:
-```bash
-# Testar conexão
-psql $DATABASE_URL -c "SELECT NOW();"
-
-# Se falhar, verificar:
-# 1. DATABASE_URL está no Replit Secrets?
-# 2. Formato correto: postgresql://user:pass@host:5432/dbname
-# 3. Firewall do banco permite conexão do Replit?
-```
+4. **Post-Rollback**
+   - Investigate root cause
+   - Create fix in development
+   - Test thoroughly before redeployment
 
 ---
 
-### Problema: TypeScript build errors
+## Disaster Recovery
 
-**Sintoma**: Build falha com erros TypeScript
+### Scenario 1: Complete Service Outage
 
-**Solução**:
-```bash
-# Ver todos os erros
-npm run type-check
+**Symptoms**: Site completely unavailable
 
-# Erros comuns e soluções:
-# 1. "Cannot find module 'X'"
-npm install X
+**Steps**:
+1. Check Vercel Status: https://www.vercel-status.com/
+2. Verify DNS settings
+3. Check SSL certificate validity
+4. Review recent deployments
+5. Rollback to last known good state
+6. Contact Vercel support if needed
 
-# 2. "Type 'X' is not assignable to type 'Y'"
-# Verificar tipos em server/**/*.ts
+**Recovery Time Objective (RTO)**: < 15 minutes
 
-# 3. "Property 'X' does not exist on type 'Y'"
-# Adicionar tipo correto ou usar type assertion
-```
+### Scenario 2: Database Corruption
 
----
+**Symptoms**: Data inconsistencies, API errors
 
-### Problema: CORS errors no frontend
+**Steps**:
+1. Enable maintenance mode (if available)
+2. Restore from latest backup
+3. Verify data integrity
+4. Run migration scripts if needed
+5. Test critical paths
+6. Disable maintenance mode
 
-**Sintoma**: Erro "No 'Access-Control-Allow-Origin'" no console
+**RTO**: < 30 minutes
 
-**Causa**: FRONTEND_URL não configurado corretamente
+### Scenario 3: API Integration Failure
 
-**Solução**:
-```bash
-# No Replit Secrets, adicionar:
-FRONTEND_URL=https://seu-projeto.replit.app
+**Symptoms**: HubSpot/Gemini errors, integration timeouts
 
-# Verificar no server/index.ts:
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
-}
-```
+**Steps**:
+1. Check API status pages
+2. Verify API credentials
+3. Review rate limits
+4. Enable graceful degradation
+5. Notify users of limited functionality
+6. Monitor for recovery
 
----
+**RTO**: Depends on external provider
 
-### Problema: Prospect validation returns 500
+### Scenario 4: Security Breach
 
-**Sintoma**: Ao validar prospect, recebe erro 500
+**Symptoms**: Unauthorized access, data leak
 
-**Causa**: Falta de tratamento de erro ou transação incompleta
+**Steps**:
+1. **IMMEDIATE**: Revoke all API keys
+2. Take affected services offline
+3. Notify security team
+4. Investigate breach scope
+5. Rotate all credentials
+6. Deploy security patches
+7. Notify affected users (if required)
+8. Document incident
 
-**Solução**:
-```bash
-# Ver logs do servidor
-# Procurar por: "❌ ERRO ao criar cliente automático"
-
-# Verificar se scripts SQL foram executados
-psql $DATABASE_URL -c "\d clients" | grep prospect_id
-# Deve mostrar: prospect_id | text |
-```
-
----
-
-## 📝 Commits e Histórico
-
-### Último Commit (Produção)
-
-```
-commit 10fad3b
-Author: Claude Code
-Date: 2025-12-21
-
-Integration: Aplica integrações de segurança finais e melhora UX
-
-Mudanças (22 arquivos):
-- server/index.ts: Rate limiters e validação JWT
-- server/routes/*.ts (16 arquivos): Migração para auth-secure
-- server/routes/prospects.ts: Validação Zod + whitelist SQL
-- src/App.tsx: Toaster global
-- src/components/ui/Referrals.tsx: Toast substituindo alerts
-- .env.example: Variáveis documentadas
-- package.json: Novas dependências de segurança
-
-Build: ✅ Sucesso (1 warning não-crítico Sentry)
-Tests: ✅ Tipos validados
-Security: ✅ Score 8/10
-```
-
-### Commits Anteriores Importantes
-
-```
-25eb34c - Fix: Corrige múltiplos endpoints críticos e autenticação
-fc4dc7f - Published your App
-9adf3d3 - Published your App
-```
+**RTO**: Security-first, recovery time secondary
 
 ---
 
-## ✨ Resumo Executivo
+## Troubleshooting
 
-### O Que Foi Corrigido
+### Build Failures
 
-1. ✅ **Espelhamento de Indicações** (problema principal)
-   - Prospects aprovados agora criam clientes automaticamente
-   - Transações garantem consistência
-   - Erros reportados com detalhes (ex: email duplicado)
+**Error**: `npm run build` fails
 
-2. ✅ **Segurança Crítica**
-   - JWT assinado substituindo Base64
-   - Rate limiting em 4 níveis
-   - Validação Zod de todos inputs
-   - Proteção SQL injection
+**Solutions**:
+1. Clear cache: `npm run clean && npm ci`
+2. Check TypeScript errors: `npm run type-check`
+3. Verify environment variables are set
+4. Check Node.js version: `node -v` (must be 18+)
+5. Review build logs in Vercel dashboard
 
-3. ✅ **UX/QA**
-   - Toast notifications não-bloqueantes
-   - Feedback visual consistente
-   - Tratamento de erros melhorado
+### Runtime Errors
 
-### Próximos Passos para Produção
+**Error**: 500 Internal Server Error
 
-**Tempo estimado**: ~45 minutos
+**Solutions**:
+1. Check Sentry for error details
+2. Review serverless function logs
+3. Verify environment variables in production
+4. Test API endpoints individually
+5. Check external API availability
 
-1. ✅ **Configurar secrets** (15min)
-   - Gerar JWT_ACCESS_SECRET
-   - Gerar JWT_REFRESH_SECRET
-   - Gerar SESSION_SECRET
-   - Adicionar no Replit Secrets
+### Performance Issues
 
-2. ✅ **Executar scripts SQL** (5min)
-   - fix-database-constraints.sql
-   - fix-prospect-id-type.sql
+**Symptoms**: Slow page loads, timeouts
 
-3. ✅ **Testar autenticação** (10min)
-   - Login com usuário real
-   - Verificar token JWT válido
-   - Testar rate limiting
+**Solutions**:
+1. Review bundle size: `npm run build:analyze`
+2. Check Core Web Vitals in production
+3. Verify CDN caching working
+4. Review serverless function cold starts
+5. Optimize images and assets
 
-4. ✅ **Deploy** (1 clique)
-   - Clicar em "Run" no Replit
+### Integration Failures
 
-5. ✅ **Testar fluxo completo** (15min)
-   - Criar prospect como parceiro
-   - Validar como manager
-   - Verificar cliente criado
-   - Confirmar toast de sucesso
+**Symptoms**: HubSpot/Gemini not working
+
+**Solutions**:
+1. Verify API keys in Vercel settings
+2. Check API rate limits
+3. Review API status pages
+4. Test API endpoints directly
+5. Check CORS configuration
 
 ---
 
-## 📞 Suporte e Documentação
+## Emergency Contacts
 
-### Documentação Adicional
+### Team
+- **Tech Lead**: [contact-info]
+- **DevOps**: [contact-info]
+- **On-Call Engineer**: [contact-info]
 
-- `CORREÇÕES-APLICADAS.md` - Lista completa de todas as correções aplicadas
-- `RELATÓRIO-FINAL-SEGURANÇA.md` - Auditoria de segurança detalhada
-- `.env.example` - Todas as variáveis de ambiente necessárias
-- `fix-database-constraints.sql` - Script de correção do banco
-- `fix-prospect-id-type.sql` - Script de correção de tipos
-
-### Em Caso de Problemas
-
-1. ✅ Verificar logs do Replit (Tools → Logs)
-2. ✅ Validar se todas as secrets estão configuradas
-3. ✅ Confirmar que scripts SQL foram executados
-4. ✅ Testar conexão com banco de dados
-5. ✅ Executar `npm run type-check` para erros TypeScript
-6. ✅ Consultar seção de Troubleshooting acima
+### External Support
+- **Vercel Support**: https://vercel.com/support
+- **Sentry Support**: https://sentry.io/support
+- **HubSpot Support**: https://help.hubspot.com/
 
 ---
 
-## 🚀 Pronto para Produção!
+## Deployment Checklist
 
-**Status**: ✅ PRODUCTION READY (8/10)
+### Pre-Deployment
+- [ ] All tests passing
+- [ ] Code reviewed and approved
+- [ ] Environment variables configured
+- [ ] Security audit completed
+- [ ] Performance benchmarks met
+- [ ] Documentation updated
+- [ ] Rollback plan prepared
+- [ ] Team notified
 
-A aplicação está **segura e pronta para produção** após configurar os JWT secrets e executar os scripts SQL.
+### During Deployment
+- [ ] Monitor build logs
+- [ ] Watch error tracking
+- [ ] Verify health checks
+- [ ] Test critical paths
+- [ ] Check performance metrics
 
-**Total de tempo até produção**: ~45 minutos
+### Post-Deployment
+- [ ] Smoke tests passed
+- [ ] Monitoring dashboards checked
+- [ ] No error spikes in Sentry
+- [ ] Performance within acceptable range
+- [ ] Team notified of success
+- [ ] Documentation updated
+- [ ] Deployment tagged in git
 
-**Última atualização**: 2025-12-21
-**Versão**: 2.0.0 (Security Hardened)
+---
 
+## Monitoring & Alerts
+
+### Key Metrics to Monitor
+
+1. **Availability**: Uptime percentage
+2. **Performance**: Response times, Core Web Vitals
+3. **Errors**: Error rate, error types
+4. **Traffic**: Request volume, geographic distribution
+5. **Resources**: Function execution time, memory usage
+
+### Alert Thresholds
+
+- Error rate > 1%: Warning
+- Error rate > 5%: Critical
+- Response time > 3s: Warning
+- Response time > 5s: Critical
+- Uptime < 99.9%: Critical
+
+### Monitoring Tools
+
+- **Vercel Analytics**: Built-in performance monitoring
+- **Sentry**: Error tracking and performance
+- **Custom**: `/api/health` endpoint monitoring
+
+---
+
+## Additional Resources
+
+- [Vercel Documentation](https://vercel.com/docs)
+- [Sentry Documentation](https://docs.sentry.io/)
+- [Project Architecture](./ARCHITECTURE.md)
+- [API Documentation](./API.md)
+- [Main README](./README.md)
+
+---
+
+**Last Updated**: 2024-01-15
+**Version**: 1.0.0
