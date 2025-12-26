@@ -26,7 +26,8 @@
       "Bash(TOKEN=\"access_YWRtaW5fMDAx_1766758028435\")",
       "Bash(python3:*)",
       "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(TOKEN=\"access_YWRtaW5fMDAx_1766777262506\")"
     ],
     "deny": [],
     "ask": []
