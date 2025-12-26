@@ -23,6 +23,7 @@ import initRoutes from './routes/init';
 import emailRoutes from './routes/email';
 import rolesRoutes from './routes/roles';
 import analyticsRoutes from './routes/analytics';
+import partnerReportsRoutes from './routes/partner-reports';
 
 dotenv.config();
 
@@ -170,6 +171,7 @@ async function startServer() {
   app.use('/api/email', emailRoutes);
   app.use('/api/roles', rolesRoutes);
   app.use('/api/analytics', analyticsRoutes);
+  app.use('/api/partner_reports', partnerReportsRoutes);
 
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

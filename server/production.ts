@@ -23,6 +23,7 @@ import stripeRoutes from './routes/stripe';
 import initRoutes from './routes/init';
 import analyticsRoutes from './routes/analytics';
 import rolesRoutes from './routes/roles';
+import partnerReportsRoutes from './routes/partner-reports';
 
 dotenv.config();
 
@@ -132,6 +133,8 @@ async function startProductionServer() {
   app.use('/api/init', initRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/roles', rolesRoutes);
+  app.use('/api/partner_reports', partnerReportsRoutes);
+  console.log('✅ Registered route: /api/partner_reports');
 
   const distPath = join(__dirname, '../dist');
   app.use(express.static(distPath, {
@@ -144,6 +147,7 @@ async function startProductionServer() {
 
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
+      console.log('⚠️ Unhandled API route:', req.method, req.path);
       return res.status(404).json({
         success: false,
         error: 'API route not found',
