@@ -145,21 +145,63 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const {
-      name, email, phone, cnpj, cpf, status, stage, temperature,
-      totalLives, partnerId, partnerName, contractEndDate,
-      lastContactDate, notes, hubspotId, netsuiteId
-    } = req.body;
-    
+    const body = req.body;
+
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    // Map frontend field names to database column names
+    const fieldMapping: Record<string, string> = {
+      name: 'name',
+      email: 'email',
+      phone: 'phone',
+      cnpj: 'cnpj',
+      cpf: 'cpf',
+      status: 'status',
+      stage: 'stage',
+      temperature: 'temperature',
+      totalLives: 'total_lives',
+      partnerId: 'partner_id',
+      partnerName: 'partner_name',
+      contractEndDate: 'contract_end_date',
+      lastContactDate: 'last_contact_date',
+      notes: 'notes',
+      hubspotId: 'hubspot_id',
+      netsuiteId: 'netsuite_id',
+      currentProducts: 'current_products',
+      viabilityScore: 'viability_score',
+      potentialProductsWithValues: 'potential_products_with_values',
+      customRecommendations: 'custom_recommendations'
+    };
+
+    // Add fields that are present in the request body
+    for (const [frontendField, dbColumn] of Object.entries(fieldMapping)) {
+      if (body[frontendField] !== undefined) {
+        updates.push(`${dbColumn} = $${paramIndex++}`);
+        // Convert arrays/objects to JSON strings if needed
+        const value = typeof body[frontendField] === 'object' && body[frontendField] !== null
+          ? JSON.stringify(body[frontendField])
+          : body[frontendField];
+        values.push(value);
+      }
+    }
+
+    // Always update last_updated
+    updates.push(`last_updated = NOW()`);
+
+    if (updates.length === 1) { // Only last_updated
+      return res.status(400).json({ error: 'Nenhum campo para atualizar' });
+    }
+
+    values.push(id);
+
     const result = await pool.query(`
       UPDATE clients SET
-        name = $1, email = $2, phone = $3, cnpj = $4, cpf = $5,
-        status = $6, stage = $7, temperature = $8, total_lives = $9,
-        partner_id = $10, partner_name = $11, contract_end_date = $12,
-        last_contact_date = $13, notes = $14, hubspot_id = $15,
-        netsuite_id = $16, last_updated = NOW()
-      WHERE id = $17
-      RETURNING 
+        ${updates.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING
         id, name, email, phone, cnpj, cpf, status, stage, temperature,
         total_lives as "totalLives",
         partner_id as "partnerId",
@@ -168,21 +210,26 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         registration_date as "registrationDate",
         last_contact_date as "lastContactDate",
         last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
-    `, [
-      name, email, phone, cnpj, cpf, status, stage, temperature,
-      totalLives, partnerId, partnerName, contractEndDate,
-      lastContactDate, notes, hubspotId, netsuiteId, id
-    ]);
-    
+        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
+        current_products as "currentProducts",
+        viability_score as "viabilityScore",
+        potential_products_with_values as "potentialProductsWithValues",
+        custom_recommendations as "customRecommendations"
+    `, values);
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Cliente não encontrado' });
     }
-    
+
     res.json(result.rows[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating client:', error);
-    res.status(500).json({ error: 'Erro ao atualizar cliente' });
+    console.error('Request body:', req.body);
+    console.error('Error details:', error.message);
+    res.status(500).json({
+      error: 'Erro ao atualizar cliente',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
