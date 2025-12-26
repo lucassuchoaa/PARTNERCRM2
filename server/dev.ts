@@ -21,6 +21,9 @@ import stripeRoutes from "./routes/stripe";
 import initRoutes from "./routes/init";
 import emailRoutes from "./routes/email";
 import rolesRoutes from "./routes/roles";
+import managersRoutes from "./routes/managers";
+import partnersRoutes from "./routes/partners";
+import analyticsRoutes from "./routes/analytics";
 
 dotenv.config();
 
@@ -137,6 +140,9 @@ async function createDevServer() {
   app.use("/api/init", initRoutes);
   app.use("/api/email", emailRoutes);
   app.use("/api/roles", rolesRoutes);
+  app.use("/api/managers", managersRoutes);
+  app.use("/api/partners", partnersRoutes);
+  app.use("/api/analytics", analyticsRoutes);
 
   app.use(
     (

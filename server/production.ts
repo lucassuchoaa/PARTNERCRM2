@@ -19,6 +19,7 @@ import uploadsRoutes from './routes/uploads';
 import nfeUploadsRoutes from './routes/nfe-uploads';
 import stripeRoutes from './routes/stripe';
 import initRoutes from './routes/init';
+import analyticsRoutes from './routes/analytics';
 
 dotenv.config();
 
@@ -124,6 +125,7 @@ async function startProductionServer() {
   app.use('/api/nfe_uploads', nfeUploadsRoutes);
   app.use('/api/stripe', stripeRoutes);
   app.use('/api/init', initRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   const distPath = join(__dirname, '../dist');
   app.use(express.static(distPath, {

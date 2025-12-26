@@ -147,12 +147,11 @@ export default function Referrals() {
     
     try {
       // Atualizar no backend
-      const response = await fetch(`${API_URL}/clients/${editingClient.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/clients/${editingClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           ...editingClient,
           currentProducts: editingClient.currentProducts,
@@ -295,12 +294,11 @@ export default function Referrals() {
     if (!selectedClient) return
 
     try {
-      const response = await fetch(`${API_URL}/clients/${selectedClient.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/clients/${selectedClient.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify({
           ...selectedClient,
           customRecommendations: editingRecommendations
@@ -335,9 +333,7 @@ export default function Referrals() {
         setCurrentUser(user)
 
         // Carregar prospects (já filtrados pelo backend conforme role do usuário)
-        const response = await fetch(`${API_URL}/prospects`, {
-          credentials: 'include'
-        })
+        const response = await fetchWithAuth(`${API_URL}/prospects`)
         if (response.ok) {
           const data = await response.json()
           console.log('📊 Prospects recebidos da API (já filtrados):', data)
@@ -354,9 +350,7 @@ export default function Referrals() {
         }
 
         // Carregar clientes da carteira (já filtrados pelo backend conforme role)
-        const clientsResponse = await fetch(`${API_URL}/clients`, {
-          credentials: 'include'
-        })
+        const clientsResponse = await fetchWithAuth(`${API_URL}/clients`)
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
           console.log('📊 Clientes recebidos da API (já filtrados):', clientsData)
@@ -448,12 +442,11 @@ export default function Referrals() {
         }
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -481,12 +474,11 @@ export default function Referrals() {
         status: 'in-analysis' as const
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -508,12 +500,11 @@ export default function Referrals() {
         status: 'approved' as const
       }
 
-      const prospectResponse = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const prospectResponse = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -537,12 +528,11 @@ export default function Referrals() {
           segment: prospect.segment
         }
 
-        const clientResponse = await fetch(`${API_URL}/clients`, {
+        const clientResponse = await fetchWithAuth(`${API_URL}/clients`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          credentials: 'include',
           body: JSON.stringify(newClient)
         })
 
@@ -566,12 +556,11 @@ export default function Referrals() {
         status: 'rejected' as const
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
+      const response = await fetchWithAuth(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(updatedProspect)
       })
 
@@ -638,12 +627,11 @@ export default function Referrals() {
       const savedProspects = []
       for (const prospect of newProspects) {
         try {
-          const response = await fetch(`${API_URL}/prospects`, {
+          const response = await fetchWithAuth(`${API_URL}/prospects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            credentials: 'include',
             body: JSON.stringify(prospect)
           })
           

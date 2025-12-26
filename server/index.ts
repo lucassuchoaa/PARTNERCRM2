@@ -22,6 +22,7 @@ import stripeRoutes from './routes/stripe';
 import initRoutes from './routes/init';
 import emailRoutes from './routes/email';
 import rolesRoutes from './routes/roles';
+import analyticsRoutes from './routes/analytics';
 
 dotenv.config();
 
@@ -168,6 +169,7 @@ async function startServer() {
   app.use('/api/init', initRoutes);
   app.use('/api/email', emailRoutes);
   app.use('/api/roles', rolesRoutes);
+  app.use('/api/analytics', analyticsRoutes);
 
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
