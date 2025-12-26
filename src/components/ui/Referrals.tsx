@@ -334,32 +334,38 @@ export default function Referrals() {
         const user = await getCurrentUser()
         setCurrentUser(user)
 
-        // Carregar prospects
+        // Carregar prospects (já filtrados pelo backend conforme role do usuário)
         const response = await fetch(`${API_URL}/prospects`, {
           credentials: 'include'
         })
         if (response.ok) {
           const data = await response.json()
-          
-          // Filtrar prospects por parceiro (se não for admin)
-          if (user && user.role !== 'admin') {
-            const userProspects = data.filter((prospect: Prospect) => prospect.partnerId === user.id.toString())
-            setProspects(userProspects)
-          } else {
-            setProspects(data)
-          }
+          console.log('📊 Prospects recebidos da API (já filtrados):', data)
+          console.log('👤 Usuário atual:', user)
+          console.log(`✅ Total de prospects para ${user?.role}:`, data.length)
+
+          // Backend já filtra conforme permissões:
+          // - Admin: vê todos
+          // - Gerente: vê dos parceiros que gerencia + próprios
+          // - Parceiro: vê apenas os próprios
+          setProspects(data)
+        } else {
+          console.error('❌ Erro ao carregar prospects:', response.status, response.statusText)
         }
 
-        // Carregar clientes da carteira
+        // Carregar clientes da carteira (já filtrados pelo backend conforme role)
         const clientsResponse = await fetch(`${API_URL}/clients`, {
           credentials: 'include'
         })
         if (clientsResponse.ok) {
           const clientsData = await clientsResponse.json()
-          // Converter clientes para formato de análise de carteira
-          const portfolioData = clientsData
-            .filter((client: any) => user?.role === 'admin' || client.partnerId === user?.id?.toString())
-            .map((client: any) => ({
+          console.log('📊 Clientes recebidos da API (já filtrados):', clientsData)
+
+          // Backend já filtra conforme permissões:
+          // - Admin: vê todos
+          // - Gerente: vê dos parceiros que gerencia + próprios
+          // - Parceiro: vê apenas os próprios
+          const portfolioData = clientsData.map((client: any) => ({
               id: client.id,
               companyName: client.companyName || client.name || 'Nome não informado',
               cnpj: client.cnpj || 'CNPJ não informado',

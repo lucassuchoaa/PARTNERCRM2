@@ -7,21 +7,89 @@ const router = Router();
 // GET - Listar todos os prospectos
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id, company_name as "companyName", contact_name as "contactName",
-        email, phone, cnpj, employees, segment, status,
-        partner_id as "partnerId",
-        submitted_at as "submittedAt",
-        validated_at as "validatedAt",
-        validated_by as "validatedBy",
-        validation_notes as "validationNotes",
-        is_approved as "isApproved",
-        created_at as "createdAt"
-      FROM prospects
-      ORDER BY created_at DESC
-    `);
-    res.json(result.rows);
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    let result;
+
+    if (userRole === 'admin') {
+      // Admin vê todos os prospects
+      result = await pool.query(`
+        SELECT
+          id, company_name as "companyName", contact_name as "contactName",
+          email, phone, cnpj, employees, segment, status,
+          partner_id as "partnerId",
+          submitted_at as "submittedAt",
+          validated_at as "validatedAt",
+          validated_by as "validatedBy",
+          validation_notes as "validationNotes",
+          is_approved as "isApproved",
+          created_at as "createdAt"
+        FROM prospects
+        ORDER BY created_at DESC
+      `);
+    } else if (userRole === 'manager') {
+      // Gerente vê prospects dos parceiros que ele gerencia + os próprios
+      result = await pool.query(`
+        SELECT
+          p.id, p.company_name as "companyName", p.contact_name as "contactName",
+          p.email, p.phone, p.cnpj, p.employees, p.segment, p.status,
+          p.partner_id as "partnerId",
+          p.submitted_at as "submittedAt",
+          p.validated_at as "validatedAt",
+          p.validated_by as "validatedBy",
+          p.validation_notes as "validationNotes",
+          p.is_approved as "isApproved",
+          p.created_at as "createdAt"
+        FROM prospects p
+        WHERE p.partner_id IN (
+          SELECT id FROM users WHERE manager_id = $1
+        )
+        OR p.partner_id = $1
+        ORDER BY p.created_at DESC
+      `, [userId]);
+    } else {
+      // Parceiro vê apenas seus próprios prospects
+      result = await pool.query(`
+        SELECT
+          id, company_name as "companyName", contact_name as "contactName",
+          email, phone, cnpj, employees, segment, status,
+          partner_id as "partnerId",
+          submitted_at as "submittedAt",
+          validated_at as "validatedAt",
+          validated_by as "validatedBy",
+          validation_notes as "validationNotes",
+          is_approved as "isApproved",
+          created_at as "createdAt"
+        FROM prospects
+        WHERE partner_id = $1
+        ORDER BY created_at DESC
+      `, [userId]);
+    }
+
+    // Transform data to match frontend expectations
+    const transformedData = result.rows.map(row => ({
+      id: row.id,
+      companyName: row.companyName,
+      contactName: row.contactName,
+      email: row.email,
+      phone: row.phone,
+      cnpj: row.cnpj,
+      employees: row.employees,
+      segment: row.segment,
+      status: row.status,
+      partnerId: row.partnerId,
+      submittedAt: row.submittedAt,
+      adminValidation: row.validatedAt ? {
+        isValidated: true,
+        validatedBy: row.validatedBy,
+        validatedAt: row.validatedAt,
+        notes: row.validationNotes || '',
+        isApproved: row.isApproved || false
+      } : undefined
+    }));
+
+    res.json(transformedData);
   } catch (error) {
     console.error('Error fetching prospects:', error);
     res.status(500).json({ error: 'Erro ao buscar prospectos' });
@@ -35,22 +103,48 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       companyName, contactName, email, phone, cnpj,
       employees, segment, partnerId
     } = req.body;
-    
+
     const result = await pool.query(`
       INSERT INTO prospects (
         company_name, contact_name, email, phone, cnpj,
         employees, segment, partner_id
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING 
+      RETURNING
         id, company_name as "companyName", contact_name as "contactName",
         email, phone, cnpj, employees, segment, status,
         partner_id as "partnerId",
         submitted_at as "submittedAt",
+        validated_at as "validatedAt",
+        validated_by as "validatedBy",
+        validation_notes as "validationNotes",
+        is_approved as "isApproved",
         created_at as "createdAt"
     `, [companyName, contactName, email, phone, cnpj, employees, segment, partnerId]);
-    
-    res.status(201).json(result.rows[0]);
+
+    const row = result.rows[0];
+    const transformedData = {
+      id: row.id,
+      companyName: row.companyName,
+      contactName: row.contactName,
+      email: row.email,
+      phone: row.phone,
+      cnpj: row.cnpj,
+      employees: row.employees,
+      segment: row.segment,
+      status: row.status,
+      partnerId: row.partnerId,
+      submittedAt: row.submittedAt,
+      adminValidation: row.validatedAt ? {
+        isValidated: true,
+        validatedBy: row.validatedBy,
+        validatedAt: row.validatedAt,
+        notes: row.validationNotes || '',
+        isApproved: row.isApproved || false
+      } : undefined
+    };
+
+    res.status(201).json(transformedData);
   } catch (error) {
     console.error('Error creating prospect:', error);
     res.status(500).json({ error: 'Erro ao criar prospecto' });
@@ -127,7 +221,29 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: 'Prospecto não encontrado' });
     }
 
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    const transformedData = {
+      id: row.id,
+      companyName: row.companyName,
+      contactName: row.contactName,
+      email: row.email,
+      phone: row.phone,
+      cnpj: row.cnpj,
+      employees: row.employees,
+      segment: row.segment,
+      status: row.status,
+      partnerId: row.partnerId,
+      submittedAt: row.submittedAt,
+      adminValidation: row.validatedAt ? {
+        isValidated: true,
+        validatedBy: row.validatedBy,
+        validatedAt: row.validatedAt,
+        notes: row.validationNotes || '',
+        isApproved: row.isApproved || false
+      } : undefined
+    };
+
+    res.json(transformedData);
   } catch (error) {
     console.error('Error updating prospect:', error);
     res.status(500).json({ error: 'Erro ao atualizar prospecto' });
@@ -162,9 +278,9 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Prospecto não encontrado' });
     }
-    
-    const prospect = result.rows[0];
-    
+
+    const row = result.rows[0];
+
     // Se aprovado, criar cliente automaticamente
     if (isApproved === true && status === 'approved') {
       try {
@@ -175,15 +291,15 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
           ON CONFLICT (email) DO NOTHING
         `, [
-          prospect.contactName || prospect.companyName,
-          prospect.email,
-          prospect.phone,
-          prospect.cnpj,
+          row.contactName || row.companyName,
+          row.email,
+          row.phone,
+          row.cnpj,
           'ativo',
           'prospeccao',
           'quente',
           1,
-          prospect.partnerId,
+          row.partnerId,
           validationNotes || ''
         ]);
         console.log(`✅ Cliente criado automaticamente a partir do prospecto ${id}`);
@@ -191,8 +307,29 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
         console.error('Aviso: Erro ao criar cliente automático:', error);
       }
     }
-    
-    res.json(prospect);
+
+    const transformedData = {
+      id: row.id,
+      companyName: row.companyName,
+      contactName: row.contactName,
+      email: row.email,
+      phone: row.phone,
+      cnpj: row.cnpj,
+      employees: row.employees,
+      segment: row.segment,
+      status: row.status,
+      partnerId: row.partnerId,
+      submittedAt: row.submittedAt,
+      adminValidation: row.validatedAt ? {
+        isValidated: true,
+        validatedBy: row.validatedBy,
+        validatedAt: row.validatedAt,
+        notes: row.validationNotes || '',
+        isApproved: row.isApproved || false
+      } : undefined
+    };
+
+    res.json(transformedData);
   } catch (error) {
     console.error('Error validating prospect:', error);
     res.status(500).json({ error: 'Erro ao validar prospecto' });

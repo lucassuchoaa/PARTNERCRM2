@@ -7,20 +7,66 @@ const router = Router();
 // GET - Listar todos os clientes
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id, name, email, phone, cnpj, cpf, status, stage, temperature,
-        total_lives as "totalLives",
-        partner_id as "partnerId",
-        partner_name as "partnerName",
-        contract_end_date as "contractEndDate",
-        registration_date as "registrationDate",
-        last_contact_date as "lastContactDate",
-        last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
-      FROM clients
-      ORDER BY last_updated DESC
-    `);
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    let result;
+
+    if (userRole === 'admin') {
+      // Admin vê todos os clientes
+      result = await pool.query(`
+        SELECT
+          id, name, email, phone, cnpj, cpf, status, stage, temperature,
+          total_lives as "totalLives",
+          partner_id as "partnerId",
+          partner_name as "partnerName",
+          contract_end_date as "contractEndDate",
+          registration_date as "registrationDate",
+          last_contact_date as "lastContactDate",
+          last_updated as "lastUpdated",
+          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+        FROM clients
+        ORDER BY last_updated DESC
+      `);
+    } else if (userRole === 'manager') {
+      // Gerente vê clientes dos parceiros que ele gerencia + os próprios
+      result = await pool.query(`
+        SELECT
+          c.id, c.name, c.email, c.phone, c.cnpj, c.cpf, c.status, c.stage, c.temperature,
+          c.total_lives as "totalLives",
+          c.partner_id as "partnerId",
+          c.partner_name as "partnerName",
+          c.contract_end_date as "contractEndDate",
+          c.registration_date as "registrationDate",
+          c.last_contact_date as "lastContactDate",
+          c.last_updated as "lastUpdated",
+          c.notes, c.hubspot_id as "hubspotId", c.netsuite_id as "netsuiteId"
+        FROM clients c
+        WHERE c.partner_id IN (
+          SELECT id FROM users WHERE manager_id = $1
+        )
+        OR c.partner_id = $1
+        ORDER BY c.last_updated DESC
+      `, [userId]);
+    } else {
+      // Parceiro vê apenas seus próprios clientes
+      result = await pool.query(`
+        SELECT
+          id, name, email, phone, cnpj, cpf, status, stage, temperature,
+          total_lives as "totalLives",
+          partner_id as "partnerId",
+          partner_name as "partnerName",
+          contract_end_date as "contractEndDate",
+          registration_date as "registrationDate",
+          last_contact_date as "lastContactDate",
+          last_updated as "lastUpdated",
+          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+        FROM clients
+        WHERE partner_id = $1
+        ORDER BY last_updated DESC
+      `, [userId]);
+    }
+
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching clients:', error);
