@@ -28,7 +28,13 @@
       "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql:*)",
       "Bash(npm start)",
       "Bash(TOKEN=\"access_YWRtaW5fMDAx_1766777262506\")",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(TOKEN=\"access_MTc1MzQwOTgwMDAzOQ_1766866392798\")",
+      "Bash(npm run dev:vite:*)",
+      "Bash(vercel ls:*)",
+      "Bash(env)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []
