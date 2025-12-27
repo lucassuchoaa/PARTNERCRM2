@@ -34,7 +34,8 @@
       "Bash(vercel ls:*)",
       "Bash(env)",
       "Bash(chmod:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

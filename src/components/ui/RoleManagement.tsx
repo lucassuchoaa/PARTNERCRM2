@@ -235,6 +235,16 @@ export default function RoleManagement() {
 
   return (
     <div className="space-y-6">
+      {/* DEBUG INFO - Remover depois */}
+      <div className="p-4 bg-blue-50 border border-blue-200 rounded text-sm">
+        <strong>DEBUG:</strong> Total de roles carregadas: {roles.length}
+        {roles.length > 0 && (
+          <div className="mt-2">
+            Roles: {roles.map(r => r.name).join(', ')}
+          </div>
+        )}
+      </div>
+
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
