@@ -87,12 +87,6 @@ export default function Login() {
             'Entrar'
           )}
         </button>
-
-        <div className="text-center text-xs text-blue-100 mt-4 p-3 bg-white bg-opacity-10 rounded-lg">
-          <p className="font-semibold mb-1">Credenciais de teste:</p>
-          <p>Admin: admin@partnerscrm.com / password123</p>
-          <p>Parceiro: partner@example.com / password123</p>
-        </div>
       </form>
     </div>
   )
