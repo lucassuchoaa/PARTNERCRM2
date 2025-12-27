@@ -12,6 +12,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'))
 const SignupPage = lazy(() => import('./pages/SignupPage'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'))
+const DiagnosticoRoles = lazy(() => import('./components/DiagnosticoRoles'))
 
 function useHashLocation() {
   const [hash, setHash] = useState(window.location.hash)
@@ -134,6 +135,22 @@ export default function App() {
           }
         >
           <CheckoutSuccess />
+        </Suspense>
+      )
+    }
+
+    // Diagnostico de roles (para debug)
+    if (hash === '#diagnostico-roles') {
+      return (
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-t-transparent" aria-label="Carregando"></div>
+              <span className="sr-only">Carregando diagnóstico...</span>
+            </div>
+          }
+        >
+          <DiagnosticoRoles />
         </Suspense>
       )
     }

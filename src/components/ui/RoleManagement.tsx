@@ -68,13 +68,20 @@ export default function RoleManagement() {
 
   const fetchRoles = async () => {
     try {
+      console.log('[RoleManagement] Buscando roles em:', `${API_URL}/roles`)
       const response = await fetchWithAuth(`${API_URL}/roles`)
+      console.log('[RoleManagement] Response status:', response.status)
       const data = await response.json()
+      console.log('[RoleManagement] Data recebida:', data)
       if (data.success) {
+        console.log('[RoleManagement] Total de roles:', data.data?.length)
         setRoles(data.data)
+      } else {
+        console.error('[RoleManagement] API retornou success=false:', data)
+        setError(data.error || 'Erro ao carregar funcoes')
       }
     } catch (error) {
-      console.error('Erro ao buscar funcoes:', error)
+      console.error('[RoleManagement] Erro ao buscar funcoes:', error)
       setError('Erro ao carregar funcoes')
     } finally {
       setLoading(false)
