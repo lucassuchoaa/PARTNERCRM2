@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Teste API Produção</title>
+  <style>
+    body { font-family: monospace; padding: 20px; }
+    pre { background: #f5f5f5; padding: 10px; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Teste da API /roles em Produção</h1>
+  <button onclick="testar()">Testar API</button>
+  <div id="resultado"></div>
+  
+  <script>
+    async function testar() {
+      const div = document.getElementById('resultado');
+      div.innerHTML = '<p>Testando...</p>';
+      
+      try {
+        const token = localStorage.getItem('accessToken') ||
+                      JSON.parse(localStorage.getItem('auth_tokens') || '{}').accessToken;
+        
+        const response = await fetch('/api/roles', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        
+        div.innerHTML = `
+          <h2 class="success">✅ Resposta da API:</h2>
+          <pre>${JSON.stringify(data, null, 2)}</pre>
+          <h3>Resumo:</h3>
+          <ul>
+            <li><strong>Total de roles:</strong> ${data.data?.length || 0}</li>
+            <li><strong>Roles encontradas:</strong> ${data.data?.map(r => r.name).join(', ')}</li>
+          </ul>
+        `;
+      } catch (error) {
+        div.innerHTML = `<h2 class="error">❌ Erro:</h2><pre>${error.message}</pre>`;
+      }
+    }
+  </script>
+</body>
+</html>
