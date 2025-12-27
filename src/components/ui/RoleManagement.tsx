@@ -235,31 +235,6 @@ export default function RoleManagement() {
 
   return (
     <div className="space-y-6">
-      {/* DEBUG INFO - Remover depois */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded text-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <strong>DEBUG:</strong> Total de roles carregadas: {roles.length}
-            {roles.length > 0 && (
-              <div className="mt-2">
-                Roles: {roles.map(r => r.name).join(', ')}
-              </div>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              setRoles([]);
-              setLoading(true);
-              fetchRoles();
-              fetchPermissions();
-            }}
-            className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-          >
-            🔄 Forçar Atualização
-          </button>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="sm:flex sm:items-center sm:justify-between">
         <div>
