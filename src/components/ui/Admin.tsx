@@ -103,8 +103,9 @@ export default function Admin() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [accessDenied, setAccessDenied] = useState(false)
-  const [managers, setManagers] = useState<any[]>([])  
+  const [managers, setManagers] = useState<any[]>([])
   const [remunerationTables, setRemunerationTables] = useState<any[]>([])
+  const [roles, setRoles] = useState<any[]>([])
   const [showRemunerationModal, setShowRemunerationModal] = useState(false)
   const [editingRemuneration, setEditingRemuneration] = useState<any>(null)
   const [newRemuneration, setNewRemuneration] = useState({
@@ -120,6 +121,7 @@ export default function Admin() {
     email: '',
     name: '',
     role: 'partner',
+    roleId: '',
     password: '',
     managerId: '',
     remunerationTableIds: [1]
@@ -160,6 +162,7 @@ export default function Admin() {
         fetchNotifications()
         fetchManagers()
         fetchRemunerationTables()
+        fetchRoles()
         fetchSupportMaterials()
       } catch (error) {
         console.error('Erro ao verificar acesso:', error)
@@ -319,17 +322,17 @@ export default function Admin() {
   const fetchRemunerationTables = async () => {
     try {
       const response = await fetchWithAuth(`${API_URL}/remuneration-tables`)
-      
+
       if (!response.ok) {
         setRemunerationTables([])
         return
       }
-      
+
       const data = await response.json()
-      
+
       // Garantir que sempre seja um array
       const dataArray = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : [])
-      
+
       // Adaptar formato do banco para o formato esperado pelo frontend
       setRemunerationTables(dataArray.map((table: any) => ({
         ...table,
@@ -343,6 +346,26 @@ export default function Admin() {
     } catch (error) {
       console.error('Erro ao buscar tabelas de remuneração:', error)
       setRemunerationTables([])
+    }
+  }
+
+  const fetchRoles = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/roles`)
+
+      if (!response.ok) {
+        setRoles([])
+        return
+      }
+
+      const data = await response.json()
+
+      // Garantir que sempre seja um array
+      const rolesArray = Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : [])
+      setRoles(rolesArray)
+    } catch (error) {
+      console.error('Erro ao buscar roles:', error)
+      setRoles([])
     }
   }
 
@@ -676,6 +699,7 @@ export default function Admin() {
             name: editingUser.name,
             password: (editingUser as any).password,
             role: editingUser.role,
+            roleId: (editingUser as any).roleId || null,
             managerId: (editingUser as any).managerId || null,
             remunerationTableIds: (editingUser as any).remunerationTableIds || [],
             status: editingUser.status
@@ -686,7 +710,7 @@ export default function Admin() {
           await fetchUsers() // Recarregar da API
           setShowUserModal(false)
           setEditingUser(null)
-          setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
+          setNewUser({ email: '', name: '', role: 'partner', roleId: '', password: '', managerId: '', remunerationTableIds: [1] })
           alert('Usuário atualizado com sucesso!')
           return
         }
@@ -708,7 +732,7 @@ export default function Admin() {
         fetchUsers()
         setShowUserModal(false)
         setEditingUser(null)
-        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
+        setNewUser({ email: '', name: '', role: 'partner', roleId: '', password: '', managerId: '', remunerationTableIds: [1] })
         alert('Usuário atualizado com sucesso!')
         return
       }
@@ -724,6 +748,7 @@ export default function Admin() {
           name: newUser.name,
           password: newUser.password,
           role: newUser.role,
+          roleId: newUser.roleId || null,
           managerId: newUser.managerId || null,
           remunerationTableIds: newUser.remunerationTableIds || [],
           status: 'active'
@@ -814,7 +839,7 @@ export default function Admin() {
 
         fetchUsers()
         setShowUserModal(false)
-        setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
+        setNewUser({ email: '', name: '', role: 'partner', roleId: '', password: '', managerId: '', remunerationTableIds: [1] })
         alert('Usuário criado com sucesso! Email de boas-vindas enviado.')
       }
     } catch (error) {
@@ -2340,16 +2365,31 @@ export default function Admin() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Função</label>
                   <select
-                    value={editingUser ? editingUser.role : newUser.role}
-                    onChange={(e) => editingUser 
-                      ? setEditingUser({...editingUser, role: e.target.value})
-                      : setNewUser({...newUser, role: e.target.value})
-                    }
+                    value={editingUser ? (editingUser as any).roleId || editingUser.role : newUser.roleId || newUser.role}
+                    onChange={(e) => {
+                      const selectedRole = roles.find(r => r.id === e.target.value)
+                      if (editingUser) {
+                        setEditingUser({
+                          ...editingUser,
+                          roleId: selectedRole?.id || '',
+                          role: selectedRole?.name.toLowerCase().includes('admin') ? 'admin' : selectedRole?.name.toLowerCase().includes('gerente') ? 'manager' : 'partner'
+                        } as any)
+                      } else {
+                        setNewUser({
+                          ...newUser,
+                          roleId: selectedRole?.id || '',
+                          role: selectedRole?.name.toLowerCase().includes('admin') ? 'admin' : selectedRole?.name.toLowerCase().includes('gerente') ? 'manager' : 'partner'
+                        })
+                      }
+                    }}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   >
-                    <option value="partner">Parceiro</option>
-                    <option value="manager">Gerente de Parceiro</option>
-                    <option value="admin">Administrador</option>
+                    <option value="">Selecione uma função</option>
+                    {roles.map(role => (
+                      <option key={role.id} value={role.id}>
+                        {role.name} {role.is_system ? '(Sistema)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 {(newUser.role === 'partner' || (editingUser && editingUser.role === 'partner')) && (
@@ -2438,7 +2478,7 @@ export default function Admin() {
                   onClick={() => {
                     setShowUserModal(false)
                     setEditingUser(null)
-                    setNewUser({ email: '', name: '', role: 'partner', password: '', managerId: '', remunerationTableIds: [1] })
+                    setNewUser({ email: '', name: '', role: 'partner', roleId: '', password: '', managerId: '', remunerationTableIds: [1] })
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                 >
