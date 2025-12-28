@@ -239,11 +239,30 @@ router.post('/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    if (user.status !== 'active') {
-      return res.status(401).json({
+    // Verificar status da conta
+    if (user.status === 'pending') {
+      return res.status(403).json({
         success: false,
-        error: 'Conta inativa',
+        error: 'Sua conta está aguardando aprovação do administrador. Você receberá um email quando sua conta for aprovada.',
+        code: 'ACCOUNT_PENDING',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (user.status === 'inactive') {
+      return res.status(403).json({
+        success: false,
+        error: 'Sua conta foi desativada. Entre em contato com o administrador.',
         code: 'ACCOUNT_INACTIVE',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (user.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Sua conta não está ativa. Entre em contato com o administrador.',
+        code: 'ACCOUNT_NOT_ACTIVE',
         timestamp: new Date().toISOString()
       });
     }
@@ -373,30 +392,26 @@ router.post('/register', async (req, res) => {
     // Gerar ID único
     const newId = generateUUID();
 
-    // Criar usuário como parceiro (usando apenas colunas que existem na tabela)
+    // Criar usuário como parceiro pendente de aprovação
     const result = await pool.query(
       `INSERT INTO users (id, email, name, password, role, status, permissions)
-       VALUES ($1, $2, $3, $4, 'partner', 'active', $5)
+       VALUES ($1, $2, $3, $4, 'partner', 'pending', $5)
        RETURNING id, email, name, role, status, created_at, updated_at`,
       [newId, email.toLowerCase(), name, hashedPassword, JSON.stringify({})]
     );
 
     const newUser = result.rows[0];
 
-    // Gerar tokens
-    const accessToken = createToken('access', newUser.id);
-    const refreshToken = createToken('refresh', newUser.id);
+    console.log('✅ User registered successfully:', newUser.email, 'as partner (pending approval)');
 
-    console.log('✅ User registered successfully:', newUser.email, 'as partner');
-
-    // Retornar usuário criado
+    // Retornar usuário criado (sem tokens, pois precisa de aprovação)
     const userResponse = {
       id: newUser.id,
       email: newUser.email,
       name: newUser.name,
       role: newUser.role,
       status: newUser.status,
-      isActive: newUser.status === 'active',
+      isActive: false,
       createdAt: newUser.created_at,
       updatedAt: newUser.updated_at
     };
@@ -404,12 +419,9 @@ router.post('/register', async (req, res) => {
     return res.status(201).json({
       success: true,
       data: {
-        user: userResponse,
-        accessToken,
-        refreshToken,
-        expiresIn: 3600
+        user: userResponse
       },
-      message: 'Cadastro realizado com sucesso! Bem-vindo ao Partners CRM.',
+      message: 'Cadastro realizado com sucesso! Sua conta está aguardando aprovação do administrador.',
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {

@@ -15,7 +15,10 @@ import {
   BookOpenIcon,
   CurrencyDollarIcon,
   ArrowPathIcon,
-  ShoppingCartIcon
+  ShoppingCartIcon,
+  ClockIcon,
+  CheckCircleIcon as CheckCircleIconOutline,
+  XCircleIcon as XCircleIconOutline
 } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
 import { sendNotificationEmail, sendReportAvailableEmail, sendWelcomeEmail } from '../../services/api/emailService'
@@ -89,6 +92,7 @@ export default function Admin() {
     fileSize: ''
   })
   const [users, setUsers] = useState<User[]>([])
+  const [pendingUsers, setPendingUsers] = useState<User[]>([])
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -290,12 +294,61 @@ export default function Admin() {
         lastLogin: user.last_login,
         status: user.status || 'active'
       }))
-      setUsers(enhancedUsers)
+
+      // Separar usuários ativos dos pendentes
+      setUsers(enhancedUsers.filter((u: User) => u.status !== 'pending'))
+      setPendingUsers(enhancedUsers.filter((u: User) => u.status === 'pending'))
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
       // Não limpar os usuários existentes em caso de erro
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleApproveUser = async (userId: number) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          status: 'active'
+        })
+      })
+
+      if (response.ok) {
+        alert('Usuário aprovado com sucesso!')
+        fetchUsers() // Recarregar lista
+      } else {
+        alert('Erro ao aprovar usuário')
+      }
+    } catch (error) {
+      console.error('Erro ao aprovar usuário:', error)
+      alert('Erro ao aprovar usuário')
+    }
+  }
+
+  const handleRejectUser = async (userId: number) => {
+    if (!confirm('Tem certeza que deseja reprovar este cadastro? Esta ação não pode ser desfeita.')) {
+      return
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_URL}/users/${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('Cadastro reprovado e removido')
+        fetchUsers() // Recarregar lista
+      } else {
+        alert('Erro ao reprovar cadastro')
+      }
+    } catch (error) {
+      console.error('Erro ao reprovar cadastro:', error)
+      alert('Erro ao reprovar cadastro')
     }
   }
 
@@ -1217,6 +1270,22 @@ export default function Admin() {
                 Usuários
               </button>
               <button
+                onClick={() => setActiveTab('approvals')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'approvals'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <ClockIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                <span className="flex-1 text-left">Aprovações</span>
+                {pendingUsers.length > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {pendingUsers.length}
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={() => setActiveTab('notifications')}
                 className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   activeTab === 'notifications'
@@ -1401,6 +1470,81 @@ export default function Admin() {
 
         {activeTab === 'roles' && (
           <RoleManagement />
+        )}
+
+        {activeTab === 'approvals' && (
+          <div>
+            {/* Approvals Header */}
+            <div className="sm:flex sm:items-center mb-6">
+              <div className="sm:flex-auto">
+                <h2 className="text-lg font-semibold text-gray-900">Aprovação de Cadastros</h2>
+                <p className="mt-1 text-sm text-gray-700">
+                  Aprove ou reprove novos cadastros de parceiros aguardando aprovação.
+                </p>
+              </div>
+            </div>
+
+            {pendingUsers.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+                <CheckCircleIconOutline className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum cadastro pendente</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Todos os cadastros foram aprovados ou não há novos cadastros aguardando.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-300">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Parceiro
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Data de Cadastro
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {pendingUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(user.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleApproveUser(user.id)}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                            >
+                              <CheckCircleIconOutline className="h-4 w-4 mr-1" />
+                              Aprovar
+                            </button>
+                            <button
+                              onClick={() => handleRejectUser(user.id)}
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                            >
+                              <XCircleIconOutline className="h-4 w-4 mr-1" />
+                              Reprovar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === 'users' && (

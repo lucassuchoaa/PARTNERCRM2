@@ -122,22 +122,8 @@ export default function SignupPage() {
         throw new Error(result.error || 'Erro ao criar conta')
       }
 
-      // Salvar tokens e fazer login automático
-      if (result.data) {
-        setStoredTokens({
-          accessToken: result.data.accessToken,
-          refreshToken: result.data.refreshToken,
-          user: result.data.user
-        })
-      }
-
+      // Não fazer login automático - conta precisa de aprovação
       setSuccess(true)
-
-      // Redirecionar para o dashboard após 2 segundos
-      setTimeout(() => {
-        window.location.href = '/'
-        window.location.reload()
-      }, 2000)
 
     } catch (err: any) {
       setError(err.message || 'Erro ao criar conta. Tente novamente.')
@@ -148,22 +134,30 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center px-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl"
         >
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircleIcon className="h-12 w-12 text-green-600" />
+          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircleIcon className="h-12 w-12 text-blue-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Cadastro realizado com sucesso!
           </h2>
-          <p className="text-gray-600 mb-6">
-            Bem-vindo ao Partners CRM! Você será redirecionado para o dashboard em instantes...
+          <p className="text-gray-600 mb-4">
+            Sua conta foi criada e está aguardando aprovação do administrador.
           </p>
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          <p className="text-gray-500 text-sm mb-6">
+            Você receberá um email quando sua conta for aprovada e poderá fazer login na plataforma.
+          </p>
+          <a
+            href="/"
+            className="inline-block px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Voltar para a página inicial
+          </a>
         </motion.div>
       </div>
     )
