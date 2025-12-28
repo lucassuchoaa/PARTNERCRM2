@@ -21,6 +21,7 @@ export default function SupportMaterials() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [materials, setMaterials] = useState<SupportMaterial[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewingMaterial, setViewingMaterial] = useState<SupportMaterial | null>(null)
   
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -125,20 +126,11 @@ export default function SupportMaterials() {
     }
 
     console.log(`Baixando: ${material.title}`)
+    console.log('Download URL:', material.downloadUrl)
 
-    // Construir URL completa se for relativa
-    let downloadUrl = material.downloadUrl
-    if (downloadUrl.startsWith('/')) {
-      // URL relativa - construir URL completa
-      const baseUrl = API_URL.replace('/api', '')
-      downloadUrl = `${baseUrl}${material.downloadUrl}`
-    }
-
-    console.log('Download URL:', downloadUrl)
-
-    // Criar link temporário e fazer download
+    // Usar URL diretamente (o proxy do Vite vai lidar com /uploads)
     const link = document.createElement('a')
-    link.href = downloadUrl
+    link.href = material.downloadUrl
     link.download = material.title || 'download'
     link.target = '_blank'
     document.body.appendChild(link)
@@ -157,18 +149,8 @@ export default function SupportMaterials() {
 
     console.log(`Visualizando: ${material.title}`)
 
-    // Construir URL completa se for relativa
-    let viewUrl = urlToOpen
-    if (viewUrl.startsWith('/')) {
-      // URL relativa - construir URL completa
-      const baseUrl = API_URL.replace('/api', '')
-      viewUrl = `${baseUrl}${urlToOpen}`
-    }
-
-    console.log('View URL:', viewUrl)
-
-    // Abrir em nova aba
-    window.open(viewUrl, '_blank', 'noopener,noreferrer')
+    // Abrir modal de visualização
+    setViewingMaterial(material)
   }
 
   return (
@@ -261,6 +243,66 @@ export default function SupportMaterials() {
           <BookOpenIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">Nenhum material encontrado</h3>
           <p className="mt-1 text-sm text-gray-500">Não há materiais disponíveis para esta categoria.</p>
+        </div>
+      )}
+
+      {/* Modal de Visualização */}
+      {viewingMaterial && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={() => setViewingMaterial(null)}
+            ></div>
+
+            {/* Modal Content */}
+            <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl">
+              <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
+                    {viewingMaterial.title}
+                  </h3>
+                  <button
+                    onClick={() => setViewingMaterial(null)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <span className="sr-only">Fechar</span>
+                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Viewer */}
+                <div className="w-full" style={{ height: '80vh' }}>
+                  <iframe
+                    src={viewingMaterial.viewUrl || viewingMaterial.downloadUrl}
+                    className="w-full h-full border-0 rounded"
+                    title={viewingMaterial.title}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                <button
+                  type="button"
+                  onClick={() => handleDownload(viewingMaterial)}
+                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:ml-3 sm:w-auto"
+                >
+                  <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                  Baixar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingMaterial(null)}
+                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
