@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { fetchWithAuth } from '../../services/api/client'
+import { API_URL } from '../../config/api'
+import { authService } from '../../services/auth'
 
 export default function Settings() {
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [formData, setFormData] = useState({
     // Perfil
     nome: '',
@@ -29,6 +34,35 @@ export default function Settings() {
     confirmarSenha: ''
   })
 
+  // Carregar dados do usuário ao montar
+  useEffect(() => {
+    loadUserData()
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      const currentUser = authService.getCurrentUser()
+      if (!currentUser?.id) return
+
+      const response = await fetchWithAuth(`${API_URL}/users/${currentUser.id}`)
+      if (response.ok) {
+        const result = await response.json()
+        const user = result.data || result
+
+        setFormData(prev => ({
+          ...prev,
+          nome: user.name || '',
+          empresa: user.company || '',
+          email: user.email || '',
+          telefone: user.phone || '',
+          cargo: user.role || ''
+        }))
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     setFormData(prev => ({
@@ -37,14 +71,129 @@ export default function Settings() {
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Aqui você implementaria a lógica para salvar as configurações
-    console.log('Configurações salvas:', formData)
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const currentUser = authService.getCurrentUser()
+      if (!currentUser?.id) {
+        setMessage({ type: 'error', text: 'Usuário não autenticado' })
+        return
+      }
+
+      // Salvar dados do perfil
+      const response = await fetchWithAuth(`${API_URL}/users/${currentUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.nome,
+          company: formData.empresa,
+          phone: formData.telefone,
+          role: formData.cargo
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao salvar configurações')
+      }
+
+      setMessage({ type: 'success', text: 'Configurações salvas com sucesso!' })
+
+      // Limpar mensagem após 3 segundos
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      console.error('Erro ao salvar configurações:', error)
+      setMessage({ type: 'error', text: error.message || 'Erro ao salvar configurações' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage(null)
+
+    try {
+      const currentUser = authService.getCurrentUser()
+      if (!currentUser?.id) {
+        setMessage({ type: 'error', text: 'Usuário não autenticado' })
+        return
+      }
+
+      // Validações
+      if (!formData.senhaAtual || !formData.novaSenha || !formData.confirmarSenha) {
+        setMessage({ type: 'error', text: 'Todos os campos de senha são obrigatórios' })
+        return
+      }
+
+      if (formData.novaSenha !== formData.confirmarSenha) {
+        setMessage({ type: 'error', text: 'As senhas não coincidem' })
+        return
+      }
+
+      if (formData.novaSenha.length < 6) {
+        setMessage({ type: 'error', text: 'A nova senha deve ter no mínimo 6 caracteres' })
+        return
+      }
+
+      // Alterar senha
+      const response = await fetchWithAuth(`${API_URL}/users/${currentUser.id}/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentPassword: formData.senhaAtual,
+          newPassword: formData.novaSenha
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Erro ao alterar senha')
+      }
+
+      setMessage({ type: 'success', text: 'Senha alterada com sucesso!' })
+
+      // Limpar campos de senha
+      setFormData(prev => ({
+        ...prev,
+        senhaAtual: '',
+        novaSenha: '',
+        confirmarSenha: ''
+      }))
+
+      // Limpar mensagem após 3 segundos
+      setTimeout(() => setMessage(null), 3000)
+    } catch (error: any) {
+      console.error('Erro ao alterar senha:', error)
+      setMessage({ type: 'error', text: error.message || 'Erro ao alterar senha' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      {/* Mensagem de sucesso/erro */}
+      {message && (
+        <div className={`mb-6 rounded-md p-4 ${message.type === 'success' ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className="flex">
+            <div className="ml-3">
+              <p className={`text-sm font-medium ${message.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                {message.text}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-10 divide-y divide-gray-900/10">
         {/* Perfil */}
         <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
@@ -55,7 +204,7 @@ export default function Settings() {
             </p>
           </div>
 
-          <form className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+          <form onSubmit={handleSubmit} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
             <div className="px-4 py-6 sm:p-8">
               <div className="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                 <div className="sm:col-span-3">
@@ -152,7 +301,7 @@ export default function Settings() {
             </p>
           </div>
 
-          <form className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+          <form onSubmit={handleSubmit} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
             <div className="px-4 py-6 sm:p-8">
               <div className="max-w-2xl space-y-6">
                 <div className="relative flex gap-x-3">
@@ -230,7 +379,7 @@ export default function Settings() {
             </p>
           </div>
 
-          <form className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+          <form onSubmit={handleSubmit} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
             <div className="px-4 py-6 sm:p-8">
               <div className="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                 <div className="sm:col-span-3">
@@ -337,7 +486,7 @@ export default function Settings() {
             </p>
           </div>
 
-          <form className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+          <form onSubmit={handlePasswordChange} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
             <div className="px-4 py-6 sm:p-8">
               <div className="max-w-2xl space-y-6">
                 <div className="relative flex gap-x-3">
@@ -360,42 +509,48 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label htmlFor="current-password" className="block text-sm font-medium leading-6 text-gray-900">
+                  <label htmlFor="senhaAtual" className="block text-sm font-medium leading-6 text-gray-900">
                     Senha atual
                   </label>
                   <div className="mt-2">
                     <input
                       type="password"
-                      name="current-password"
-                      id="current-password"
+                      name="senhaAtual"
+                      id="senhaAtual"
+                      value={formData.senhaAtual}
+                      onChange={handleChange}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="new-password" className="block text-sm font-medium leading-6 text-gray-900">
+                  <label htmlFor="novaSenha" className="block text-sm font-medium leading-6 text-gray-900">
                     Nova senha
                   </label>
                   <div className="mt-2">
                     <input
                       type="password"
-                      name="new-password"
-                      id="new-password"
+                      name="novaSenha"
+                      id="novaSenha"
+                      value={formData.novaSenha}
+                      onChange={handleChange}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="confirm-password" className="block text-sm font-medium leading-6 text-gray-900">
+                  <label htmlFor="confirmarSenha" className="block text-sm font-medium leading-6 text-gray-900">
                     Confirmar nova senha
                   </label>
                   <div className="mt-2">
                     <input
                       type="password"
-                      name="confirm-password"
-                      id="confirm-password"
+                      name="confirmarSenha"
+                      id="confirmarSenha"
+                      value={formData.confirmarSenha}
+                      onChange={handleChange}
                       className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                     />
                   </div>

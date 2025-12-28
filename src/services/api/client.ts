@@ -178,3 +178,65 @@ export function getCurrentUser(): any | null {
   const tokens = getStoredTokens();
   return tokens?.user || null;
 }
+
+/**
+ * Fetch with authentication
+ * Wrapper around fetch API that automatically adds auth token
+ */
+export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const tokens = getStoredTokens();
+
+  const headers = {
+    ...options.headers,
+  };
+
+  if (tokens?.accessToken) {
+    (headers as Record<string, string>)['Authorization'] = `Bearer ${tokens.accessToken}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include'
+  });
+
+  // Handle 401 - try to refresh token
+  if (response.status === 401 && tokens?.refreshToken) {
+    try {
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ refreshToken: tokens.refreshToken })
+      });
+
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json();
+        const { accessToken } = refreshData.data;
+
+        // Update stored token
+        updateAccessToken(accessToken);
+
+        // Retry original request with new token
+        (headers as Record<string, string>)['Authorization'] = `Bearer ${accessToken}`;
+        return fetch(url, {
+          ...options,
+          headers,
+          credentials: 'include'
+        });
+      } else {
+        // Refresh failed, clear tokens and redirect
+        clearStoredTokens();
+        window.location.href = '/login';
+        throw new Error('Session expired');
+      }
+    } catch (error) {
+      clearStoredTokens();
+      window.location.href = '/login';
+      throw error;
+    }
+  }
+
+  return response;
+}

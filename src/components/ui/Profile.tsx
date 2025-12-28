@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { getCurrentUser } from '../../services/auth'
+import { authService } from '../../services/auth'
 import { UserIcon, BuildingOfficeIcon, CreditCardIcon, BanknotesIcon, CameraIcon } from '@heroicons/react/24/outline'
 import { API_URL } from '../../config/api'
+import { fetchWithAuth } from '../../services/api/client'
 
 interface Partner {
   id: string | number
@@ -57,23 +58,25 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        const user = await getCurrentUser()
-        if (user) {
-          // Buscar dados completos do parceiro
-          const response = await fetch(`${API_URL}/partners/${user.id}`, { credentials: 'include' })
+        const user = authService.getCurrentUser()
+        if (user?.id) {
+          // Buscar dados completos do usuário
+          const response = await fetchWithAuth(`${API_URL}/users/${user.id}`)
           if (response.ok) {
-            const partnerData = await response.json()
-            setCurrentUser(partnerData)
-            setFormData(partnerData)
-          } else {
-            // Se não existir dados de parceiro, usar dados básicos do usuário
-            const basicData = {
-              ...user,
-              company: {
+            const result = await response.json()
+            const userData = result.data || result
+            const partnerData = {
+              ...userData,
+              company: userData.company ? {
+                name: userData.company,
+                cnpj: '',
+                address: '',
+                phone: userData.phone || ''
+              } : {
                 name: '',
                 cnpj: '',
                 address: '',
-                phone: ''
+                phone: userData.phone || ''
               },
               bankData: {
                 bank: '',
@@ -83,8 +86,8 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
                 pix: ''
               }
             }
-            setCurrentUser(basicData)
-            setFormData(basicData)
+            setCurrentUser(partnerData)
+            setFormData(partnerData)
           }
         }
       } catch (error) {
@@ -97,38 +100,54 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
 
   const handleSave = async () => {
     try {
-      // Verificar se o parceiro já existe no banco de dados
-      const checkResponse = await fetch(`${API_URL}/partners/${currentUser?.id}`, { credentials: 'include' })
-      const partnerExists = checkResponse.ok
-      
-      const method = partnerExists ? 'PUT' : 'POST'
-      const url = partnerExists ? `${API_URL}/partners/${currentUser?.id}` : `${API_URL}/partners`
-      
-      const dataToSave = partnerExists ? formData : { ...formData, id: currentUser?.id }
-      
-      const response = await fetch(url, {
-        method,
+      if (!currentUser?.id) {
+        alert('Erro: usuário não identificado')
+        return
+      }
+
+      // Preparar dados para salvar (apenas campos suportados pela API)
+      const dataToSave = {
+        name: formData.name,
+        phone: formData.company?.phone || '',
+        company: formData.company?.name || ''
+      }
+
+      const response = await fetchWithAuth(`${API_URL}/users/${currentUser.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(dataToSave)
       })
 
       if (response.ok) {
-        const updatedData = await response.json()
-        setCurrentUser(updatedData)
+        const result = await response.json()
+        const updatedData = result.data || result
+
+        // Atualizar estado local
+        const partnerData = {
+          ...updatedData,
+          company: updatedData.company ? {
+            name: updatedData.company,
+            cnpj: formData.company?.cnpj || '',
+            address: formData.company?.address || '',
+            phone: updatedData.phone || ''
+          } : formData.company,
+          bankData: formData.bankData
+        }
+
+        setCurrentUser(partnerData)
+        setFormData(partnerData)
         setIsEditing(false)
         alert('Dados atualizados com sucesso!')
-        
+
         // Atualiza o usuário no Dashboard
         if (onUserUpdate) {
-          onUserUpdate(updatedData)
+          onUserUpdate(partnerData)
         }
       } else {
-        const errorText = await response.text()
-        console.error('Erro na resposta:', errorText)
-        throw new Error(`Erro ao salvar dados: ${response.status}`)
+        const error = await response.json()
+        throw new Error(error.error || `Erro ao salvar dados: ${response.status}`)
       }
     } catch (error) {
       console.error('Erro ao salvar:', error)
@@ -169,25 +188,31 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
       const reader = new FileReader()
       reader.onload = async (e) => {
         const base64 = e.target?.result as string
-        
+
+        if (!currentUser?.id) {
+          alert('Erro: usuário não identificado')
+          setUploadingPhoto(false)
+          return
+        }
+
         // Atualizar o perfil com a nova foto
-         const updatedUser = {
-           ...currentUser!,
-           profilePhoto: base64
-         }
+        const response = await fetchWithAuth(`${API_URL}/users/${currentUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            profileImageUrl: base64
+          })
+        })
 
-         const response = await fetch(`${API_URL}/partners/${currentUser?.id}`, {
-           method: 'PUT',
-           headers: {
-             'Content-Type': 'application/json'
-           },
-           credentials: 'include',
-           body: JSON.stringify(updatedUser)
-         })
-
-         if (response.ok) {
-           setCurrentUser(updatedUser)
-           setFormData(updatedUser)
+        if (response.ok) {
+          const updatedUser = {
+            ...currentUser,
+            profilePhoto: base64
+          }
+          setCurrentUser(updatedUser)
+          setFormData(updatedUser)
            alert('Foto atualizada com sucesso!')
          } else {
            throw new Error('Erro ao salvar foto')

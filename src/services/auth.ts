@@ -80,3 +80,11 @@ export function logout(): void {
   localStorage.removeItem('accessToken')
   localStorage.removeItem('refreshToken')
 }
+
+// Exportar como objeto authService para compatibilidade
+export const authService = {
+  login,
+  getCurrentUser,
+  setCurrentUser,
+  logout
+}

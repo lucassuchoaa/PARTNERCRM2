@@ -194,12 +194,13 @@ export const setTag = (key: string, value: string) => {
 
 /**
  * Performance monitoring for specific operations
+ * Using startSpan for modern Sentry API
  */
 export const startTransaction = (name: string, op: string) => {
-  return Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
     op,
-  });
+  }, (span) => span);
 };
 
 export default Sentry;
