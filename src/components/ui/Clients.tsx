@@ -16,6 +16,7 @@ interface Client {
   stage?: string
   temperature?: string
   lastUpdated?: string
+  currentProducts?: string[] | string
 }
 
 export default function Clients() {
@@ -168,6 +169,49 @@ export default function Clients() {
     return new Date(dateString).toLocaleDateString('pt-BR')
   }
 
+  const getProductBadges = (client: Client) => {
+    let products: string[] = [];
+
+    // Processar currentProducts
+    if (client.currentProducts) {
+      if (typeof client.currentProducts === 'string') {
+        try {
+          products = JSON.parse(client.currentProducts);
+        } catch (e) {
+          products = [];
+        }
+      } else if (Array.isArray(client.currentProducts)) {
+        products = client.currentProducts;
+      }
+    }
+
+    if (!products || products.length === 0) {
+      return <span className="text-xs text-gray-400">Nenhum produto</span>;
+    }
+
+    const productColors: Record<string, string> = {
+      'Folha de Pagamento': 'bg-purple-100 text-purple-800',
+      'Consignado': 'bg-green-100 text-green-800',
+      'Benefícios': 'bg-blue-100 text-blue-800',
+      'Benefícios Flexíveis': 'bg-blue-100 text-blue-800'
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {products.map((product, idx) => (
+          <span
+            key={idx}
+            className={`px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full ${
+              productColors[product] || 'bg-gray-100 text-gray-800'
+            }`}
+          >
+            {product}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -244,6 +288,9 @@ export default function Clients() {
                       CNPJ
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Produtos
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -271,6 +318,9 @@ export default function Clients() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-500">{client.cnpj}</div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {getProductBadges(client)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(client.status)}
