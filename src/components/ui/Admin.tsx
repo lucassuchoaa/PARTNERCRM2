@@ -291,12 +291,16 @@ export default function Admin() {
       // Adaptar formato do banco para o formato esperado pelo frontend
       const enhancedUsers = usersArray.map((user: any) => ({
         ...user,
+        roleId: user.role_id,
         managerId: user.manager_id,
         remunerationTableIds: user.remuneration_table_ids || [],
         createdAt: user.created_at,
         lastLogin: user.last_login,
         status: user.status || 'active'
       }))
+
+      console.log('Usuários carregados:', enhancedUsers.length)
+      console.log('Primeiro usuário:', enhancedUsers[0])
 
       // Separar usuários ativos dos pendentes
       setUsers(enhancedUsers.filter((u: User) => u.status !== 'pending'))
@@ -881,6 +885,9 @@ export default function Admin() {
       }
       
       // Criar novo usuário
+      console.log('Criando novo usuário:', newUser);
+      console.log('roleId antes de enviar:', newUser.roleId);
+
       const response = await fetchWithAuth(`${API_URL}/users`, {
         method: 'POST',
         headers: {
@@ -891,7 +898,7 @@ export default function Admin() {
           name: newUser.name,
           password: newUser.password,
           role: newUser.role,
-          roleId: newUser.roleId || null,
+          roleId: newUser.roleId || undefined, // undefined ao invés de null para não enviar o campo
           managerId: newUser.managerId || null,
           remunerationTableIds: newUser.remunerationTableIds || [],
           status: 'active'
@@ -1737,6 +1744,8 @@ export default function Admin() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
+                              console.log('Editando usuário:', user)
+                              console.log('roleId do usuário:', user.roleId)
                               setEditingUser(user)
                               setShowUserModal(true)
                             }}

@@ -62,6 +62,14 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { email, name, password, role, roleId, managerId, permissions } = req.body;
 
+    console.log('➕ Creating user');
+    console.log('➕ roleId received:', roleId);
+    console.log('➕ role received:', role);
+
+    // Normalizar roleId - converter empty string para null
+    const normalizedRoleId = roleId === '' ? null : roleId;
+    console.log('➕ normalizedRoleId:', normalizedRoleId);
+
     if (!email || !name || !password || !role) {
       return res.status(400).json({
         success: false,
@@ -90,7 +98,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       `INSERT INTO users (id, email, name, password, role, role_id, manager_id, permissions, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active')
        RETURNING id, email, name, role, role_id, status, manager_id, created_at, permissions`,
-      [userId, email.toLowerCase(), name, hashedPassword, role, roleId || null, managerId || null, permissions || []]
+      [userId, email.toLowerCase(), name, hashedPassword, role, normalizedRoleId, managerId || null, permissions || []]
     );
 
     return res.status(201).json({
@@ -118,6 +126,10 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     console.log('📝 roleId received:', roleId);
     console.log('📝 role received:', role);
 
+    // Normalizar roleId - converter empty string para null
+    const normalizedRoleId = roleId === '' ? null : roleId;
+    console.log('📝 normalizedRoleId:', normalizedRoleId);
+
     // Construir objeto de atualização apenas com campos fornecidos
     const updates: string[] = [];
     const values: any[] = [];
@@ -131,9 +143,9 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       updates.push(`role = $${paramCount++}`);
       values.push(role);
     }
-    if (roleId !== undefined && roleId !== null) {
+    if (normalizedRoleId !== undefined && normalizedRoleId !== null) {
       updates.push(`role_id = $${paramCount++}`);
-      values.push(roleId);
+      values.push(normalizedRoleId);
     }
     if (status !== undefined && status !== null) {
       updates.push(`status = $${paramCount++}`);

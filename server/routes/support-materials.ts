@@ -157,10 +157,20 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       type = 'pdf';
     }
 
-    // Criar URLs
-    const downloadUrl = `/uploads/support-materials/${file.filename}`;
+    // Criar URLs - usar URL completa do backend em produção
+    // Em produção, precisa da URL completa do backend (ex: https://api.seudominio.com)
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? (process.env.BACKEND_URL || process.env.API_URL || process.env.SERVER_URL || '')
+      : '';
+
+    console.log('🌐 Base URL for downloads:', baseUrl || '(relative path)');
+    console.log('🌐 NODE_ENV:', process.env.NODE_ENV);
+
+    const downloadUrl = `${baseUrl}/uploads/support-materials/${file.filename}`;
     const viewUrl = downloadUrl; // Mesmo URL para visualização
     const fileSize = `${(file.size / 1024).toFixed(2)} KB`;
+
+    console.log('📎 Final download URL:', downloadUrl);
 
     const result = await query(
       `INSERT INTO support_materials (title, category, type, description, download_url, view_url, file_size, duration)

@@ -88,6 +88,33 @@ export default function SupportMaterials() {
     ? materials 
     : materials.filter(material => material.category === selectedCategory)
 
+  // Helper para converter URLs relativas em absolutas
+  const getAbsoluteUrl = (url: string | undefined): string => {
+    if (!url) return ''
+
+    // Se a URL já é absoluta (começa com http:// ou https://), retornar como está
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+
+    // Se a URL é relativa (começa com /)
+    if (url.startsWith('/')) {
+      // Verificar se API_URL é absoluto (tem protocolo)
+      if (API_URL.startsWith('http://') || API_URL.startsWith('https://')) {
+        // API_URL é absoluto - adicionar a URL base
+        // Remover /api do final se existir, pois a URL já é /uploads/...
+        const baseUrl = API_URL.replace(/\/api$/, '')
+        return `${baseUrl}${url}`
+      } else {
+        // API_URL é relativo - assumir que estamos no mesmo servidor
+        // Isso funciona em deployments onde frontend e backend estão juntos
+        return url
+      }
+    }
+
+    return url
+  }
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'pdf':
@@ -126,11 +153,14 @@ export default function SupportMaterials() {
     }
 
     console.log(`Baixando: ${material.title}`)
-    console.log('Download URL:', material.downloadUrl)
+    console.log('Download URL original:', material.downloadUrl)
 
-    // Usar URL diretamente (o proxy do Vite vai lidar com /uploads)
+    // Converter para URL absoluta se necessário
+    const downloadUrl = getAbsoluteUrl(material.downloadUrl)
+    console.log('Download URL final:', downloadUrl)
+
     const link = document.createElement('a')
-    link.href = material.downloadUrl
+    link.href = downloadUrl
     link.download = material.title || 'download'
     link.target = '_blank'
     document.body.appendChild(link)
@@ -277,7 +307,7 @@ export default function SupportMaterials() {
                 {/* Viewer */}
                 <div className="w-full" style={{ height: '80vh' }}>
                   <iframe
-                    src={viewingMaterial.viewUrl || viewingMaterial.downloadUrl}
+                    src={getAbsoluteUrl(viewingMaterial.viewUrl || viewingMaterial.downloadUrl)}
                     className="w-full h-full border-0 rounded"
                     title={viewingMaterial.title}
                   />
