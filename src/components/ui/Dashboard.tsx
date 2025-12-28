@@ -110,17 +110,17 @@ export default function Dashboard() {
     if (product === 'all') {
       return prospects.filter(p => p.status === 'in-analysis' || p.status === 'approved').length
     }
-    
+
     // Simular contagem baseada no segmento do prospect
     const productMapping: { [key: string]: string[] } = {
-      'folha': ['Tecnologia', 'Serviços', 'Indústria'],
-      'consignado': ['Comércio', 'Serviços'],
-      'beneficios': ['Tecnologia', 'Comércio', 'Indústria']
+      'product-1': ['Tecnologia', 'Serviços', 'Indústria'], // Folha de Pagamento
+      'product-2': ['Comércio', 'Serviços'], // Crédito Consignado
+      'product-3': ['Tecnologia', 'Comércio', 'Indústria'] // Benefícios Flexíveis
     }
-    
+
     const relevantSegments = productMapping[product] || []
-    return prospects.filter(p => 
-      (p.status === 'in-analysis' || p.status === 'approved') && 
+    return prospects.filter(p =>
+      (p.status === 'in-analysis' || p.status === 'approved') &&
       relevantSegments.includes(p.segment)
     ).length
   }
@@ -719,7 +719,9 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {products.map((product) => {
+                    {products
+                      .filter(product => productFilter === 'all' || product.id === productFilter)
+                      .map((product) => {
                       const Icon = (HeroIcons as any)[product.icon] || HeroIcons.ShoppingCartIcon;
                       const colorClasses = {
                         blue: { bg: 'from-blue-50 to-indigo-50', iconBg: 'from-blue-500 to-purple-600', text: 'text-blue-600' },
