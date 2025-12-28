@@ -119,9 +119,14 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 // POST com upload de arquivo
 router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequest, res: Response) => {
   try {
+    console.log('📤 Upload request received');
+    console.log('📤 File:', req.file);
+    console.log('📤 Body:', req.body);
+
     const file = req.file;
 
     if (!file) {
+      console.error('❌ No file in request');
       return res.status(400).json({
         success: false,
         error: 'Nenhum arquivo enviado',
@@ -129,6 +134,7 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
       });
     }
 
+    console.log('✅ File received:', file.filename);
     const { title, category, description, duration } = req.body;
 
     if (!title || !category) {
@@ -162,6 +168,10 @@ router.post('/upload', authenticate, upload.single('file'), async (req: AuthRequ
        RETURNING *`,
       [title, category, type, description, downloadUrl, viewUrl, fileSize, duration || null]
     );
+
+    console.log('✅ Material saved to database:', result.rows[0]);
+    console.log('✅ Download URL:', downloadUrl);
+    console.log('✅ File path:', file.path);
 
     return res.status(201).json({
       success: true,

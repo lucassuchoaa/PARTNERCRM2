@@ -37,7 +37,8 @@
       "Bash(bash:*)",
       "Bash(git reset:*)",
       "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\\\\d nfe_uploads\")",
-      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\\\\d support_materials\")"
+      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\\\\d support_materials\")",
+      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"DELETE FROM support_materials WHERE download_url = ''#'' OR download_url IS NULL;\")"
     ],
     "deny": [],
     "ask": []

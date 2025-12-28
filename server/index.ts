@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { setupAuth, isAuthenticated } from './replitAuth';
 import { storage } from './storage';
 import authRoutes from './routes/auth';
@@ -178,6 +179,23 @@ async function startServer() {
   app.use('/api/partner_reports', partnerReportsRoutes);
   app.use('/api/debug', debugRoutes);
 
+  // Servir SPA em produção (depois de todas as rotas da API)
+  if (process.env.NODE_ENV === 'production') {
+    const distPath = path.join(__dirname, '..', 'dist');
+
+    // Servir arquivos estáticos da build
+    app.use(express.static(distPath));
+
+    // SPA fallback - servir index.html para rotas não encontradas (exceto /api)
+    app.get('*', (req, res, next) => {
+      // Não servir index.html para rotas da API
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+        return next();
+      }
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
+
   // Error handlers
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('❌ [Server Error] Path:', req.path);
@@ -192,11 +210,17 @@ async function startServer() {
   });
 
   app.use((req, res) => {
-    res.status(404).json({
-      success: false,
-      error: 'Rota não encontrada',
-      timestamp: new Date().toISOString()
-    });
+    // Apenas retornar 404 para rotas da API
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      res.status(404).json({
+        success: false,
+        error: 'Rota não encontrada',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Para outras rotas, já foi tratado pelo SPA fallback acima
+      res.status(404).send('Not found');
+    }
   });
 
   const HOST = process.env.HOST || '0.0.0.0';
