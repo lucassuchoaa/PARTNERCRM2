@@ -359,17 +359,49 @@ export default function Referrals() {
           // - Admin: vê todos
           // - Gerente: vê dos parceiros que gerencia + próprios
           // - Parceiro: vê apenas os próprios
-          const portfolioData = clientsData.map((client: any) => ({
+          const portfolioData = clientsData.map((client: any) => {
+            // Processar currentProducts (pode vir como array JSON do PostgreSQL)
+            let currentProducts = client.currentProducts;
+            if (typeof currentProducts === 'string') {
+              try {
+                currentProducts = JSON.parse(currentProducts);
+              } catch (e) {
+                currentProducts = [];
+              }
+            }
+            if (!Array.isArray(currentProducts) || currentProducts.length === 0) {
+              currentProducts = ['Folha de Pagamento'];
+            }
+
+            // Processar potentialProductsWithValues
+            let potentialProductsWithValues = client.potentialProductsWithValues;
+            if (typeof potentialProductsWithValues === 'string') {
+              try {
+                potentialProductsWithValues = JSON.parse(potentialProductsWithValues);
+              } catch (e) {
+                potentialProductsWithValues = [];
+              }
+            }
+
+            // Extrair potentialProducts da lista de potentialProductsWithValues
+            const potentialProducts = Array.isArray(potentialProductsWithValues)
+              ? potentialProductsWithValues.map((pv: any) => pv.product)
+              : (client.potentialProducts || getPotentialProducts(client));
+
+            return {
               id: client.id,
               companyName: client.companyName || client.name || 'Nome não informado',
               cnpj: client.cnpj || 'CNPJ não informado',
-              employeeCount: parseInt(client.employees || client.employeeCount) || Math.floor(Math.random() * 500) + 50,
+              employeeCount: parseInt(client.totalLives || client.employees || client.employeeCount) || Math.floor(Math.random() * 500) + 50,
               segment: client.segment || 'Não informado',
-              currentProducts: client.currentProducts || ['Folha de Pagamento'],
+              currentProducts,
               viabilityScore: client.viabilityScore || calculateViabilityScore(client),
-              potentialProducts: client.potentialProducts || getPotentialProducts(client),
-              lastAnalysis: client.lastAnalysis || new Date().toISOString().split('T')[0]
-            }))
+              potentialProducts,
+              potentialProductsWithValues: potentialProductsWithValues || [],
+              customRecommendations: client.customRecommendations || '',
+              lastAnalysis: client.lastUpdated || client.lastAnalysis || new Date().toISOString().split('T')[0]
+            }
+          })
           setPortfolioClients(portfolioData)
         }
       } catch (error) {

@@ -656,12 +656,7 @@ export default function Dashboard() {
                         <div className="ml-4 flex-1">
                           <p className="text-sm font-medium text-gray-600">Clientes Indicados</p>
                           <p className="text-2xl font-bold text-gray-900">{dashboardData.currentMonthReferrals}</p>
-                          <p className="text-sm text-gray-500 mb-1">Este mês</p>
-                          <p className={`text-sm font-medium ${
-                            dashboardData.referralsGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {dashboardData.referralsGrowth >= 0 ? '+' : ''}{dashboardData.referralsGrowth.toFixed(1)}% vs mês anterior ({dashboardData.previousMonthReferrals})
-                          </p>
+                          <p className="text-sm text-gray-500">Este mês</p>
                         </div>
                       </div>
                     </div>
@@ -683,11 +678,7 @@ export default function Dashboard() {
                               currency: 'BRL'
                             }).format(dashboardData.totalTransactions)}
                           </p>
-                          {dashboardData.commissionsGrowth !== 0 && (
-                          <p className={`text-sm font-medium ${dashboardData.commissionsGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {dashboardData.commissionsGrowth >= 0 ? '+' : ''}{dashboardData.commissionsGrowth.toFixed(0)}% este mês
-                          </p>
-                        )}
+                          <p className="text-sm text-gray-500">Total acumulado</p>
                         </div>
                       </div>
                     </div>

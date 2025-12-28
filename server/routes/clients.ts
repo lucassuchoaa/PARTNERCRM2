@@ -24,7 +24,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           registration_date as "registrationDate",
           last_contact_date as "lastContactDate",
           last_updated as "lastUpdated",
-          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
+          current_products as "currentProducts",
+          viability_score as "viabilityScore",
+          potential_products_with_values as "potentialProductsWithValues",
+          custom_recommendations as "customRecommendations"
         FROM clients
         ORDER BY last_updated DESC
       `);
@@ -40,7 +44,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           c.registration_date as "registrationDate",
           c.last_contact_date as "lastContactDate",
           c.last_updated as "lastUpdated",
-          c.notes, c.hubspot_id as "hubspotId", c.netsuite_id as "netsuiteId"
+          c.notes, c.hubspot_id as "hubspotId", c.netsuite_id as "netsuiteId",
+          c.current_products as "currentProducts",
+          c.viability_score as "viabilityScore",
+          c.potential_products_with_values as "potentialProductsWithValues",
+          c.custom_recommendations as "customRecommendations"
         FROM clients c
         WHERE c.partner_id IN (
           SELECT id FROM users WHERE manager_id = $1
@@ -60,7 +68,11 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           registration_date as "registrationDate",
           last_contact_date as "lastContactDate",
           last_updated as "lastUpdated",
-          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+          notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
+          current_products as "currentProducts",
+          viability_score as "viabilityScore",
+          potential_products_with_values as "potentialProductsWithValues",
+          custom_recommendations as "customRecommendations"
         FROM clients
         WHERE partner_id = $1
         ORDER BY last_updated DESC
@@ -79,7 +91,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT 
+      SELECT
         id, name, email, phone, cnpj, cpf, status, stage, temperature,
         total_lives as "totalLives",
         partner_id as "partnerId",
@@ -88,7 +100,11 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
         registration_date as "registrationDate",
         last_contact_date as "lastContactDate",
         last_updated as "lastUpdated",
-        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId"
+        notes, hubspot_id as "hubspotId", netsuite_id as "netsuiteId",
+        current_products as "currentProducts",
+        viability_score as "viabilityScore",
+        potential_products_with_values as "potentialProductsWithValues",
+        custom_recommendations as "customRecommendations"
       FROM clients WHERE id = $1
     `, [id]);
     
