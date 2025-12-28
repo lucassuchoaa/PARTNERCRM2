@@ -78,8 +78,12 @@ export default function Settings() {
 
     try {
       const currentUser = authService.getCurrentUser()
+      console.log('Current user:', currentUser)
+
       if (!currentUser?.id) {
-        setMessage({ type: 'error', text: 'Usuário não autenticado' })
+        console.error('User not found or missing id:', currentUser)
+        setMessage({ type: 'error', text: 'Usuário não autenticado. Por favor, faça login novamente.' })
+        setLoading(false)
         return
       }
 
@@ -121,8 +125,12 @@ export default function Settings() {
 
     try {
       const currentUser = authService.getCurrentUser()
+      console.log('Current user (password change):', currentUser)
+
       if (!currentUser?.id) {
-        setMessage({ type: 'error', text: 'Usuário não autenticado' })
+        console.error('User not found or missing id:', currentUser)
+        setMessage({ type: 'error', text: 'Usuário não autenticado. Por favor, faça login novamente.' })
+        setLoading(false)
         return
       }
 

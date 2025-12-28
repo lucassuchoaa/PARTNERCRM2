@@ -71,6 +71,28 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
+export function getCurrentUserSync(): User | null {
+  try {
+    const userJson = localStorage.getItem('user')
+    if (!userJson) return null
+
+    const user = JSON.parse(userJson)
+
+    // Validar campos mínimos
+    if (!user.id || !user.email || !user.role) {
+      console.warn('Dados de usuário incompletos, limpando localStorage')
+      logout()
+      return null
+    }
+
+    return user
+  } catch (error) {
+    console.error('Erro ao parsear usuário do localStorage:', error)
+    logout()
+    return null
+  }
+}
+
 export function setCurrentUser(user: User): void {
   localStorage.setItem('user', JSON.stringify(user))
 }
@@ -84,7 +106,8 @@ export function logout(): void {
 // Exportar como objeto authService para compatibilidade
 export const authService = {
   login,
-  getCurrentUser,
+  getCurrentUser: getCurrentUserSync, // Usar versão síncrona
+  getCurrentUserAsync: getCurrentUser, // Manter async disponível
   setCurrentUser,
   logout
 }

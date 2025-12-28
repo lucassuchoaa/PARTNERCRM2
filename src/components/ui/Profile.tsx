@@ -101,7 +101,8 @@ export default function Profile({ onUserUpdate }: ProfileProps) {
   const handleSave = async () => {
     try {
       if (!currentUser?.id) {
-        alert('Erro: usuário não identificado')
+        console.error('User not found:', currentUser)
+        alert('Erro: usuário não identificado. Por favor, faça login novamente.')
         return
       }
 
