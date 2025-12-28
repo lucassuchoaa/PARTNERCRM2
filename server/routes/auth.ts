@@ -397,7 +397,7 @@ router.post('/register', async (req, res) => {
       `INSERT INTO users (id, email, name, password, role, status, permissions)
        VALUES ($1, $2, $3, $4, 'partner', 'pending', $5)
        RETURNING id, email, name, role, status, created_at, updated_at`,
-      [newId, email.toLowerCase(), name, hashedPassword, JSON.stringify({})]
+      [newId, email.toLowerCase(), name, hashedPassword, []]
     );
 
     const newUser = result.rows[0];
