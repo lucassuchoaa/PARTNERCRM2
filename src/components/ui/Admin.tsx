@@ -81,6 +81,8 @@ export default function Admin() {
   const [supportMaterials, setSupportMaterials] = useState<any[]>([])
   const [showMaterialModal, setShowMaterialModal] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<any>(null)
+  const [uploadMode, setUploadMode] = useState<'link' | 'file'>('link') // Modo de adicionar material
+  const [materialFile, setMaterialFile] = useState<File | null>(null) // Arquivo selecionado
   const [newMaterial, setNewMaterial] = useState({
     title: '',
     category: 'folha-pagamento',
@@ -541,33 +543,44 @@ export default function Admin() {
   
   const handleAddMaterial = async () => {
     try {
-      // Adicionar data de criação
-      const materialToAdd = {
-        ...newMaterial,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-      
-      const response = await fetchWithAuth(`${API_URL}/support-materials`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: newMaterial.title,
-          category: newMaterial.category,
-          type: newMaterial.type,
-          description: newMaterial.description,
-          downloadUrl: newMaterial.downloadUrl,
-          viewUrl: newMaterial.viewUrl,
-          fileSize: newMaterial.fileSize,
-          duration: newMaterial.duration
+      let response;
+
+      if (uploadMode === 'file' && materialFile) {
+        // Upload de arquivo
+        const formData = new FormData()
+        formData.append('file', materialFile)
+        formData.append('title', newMaterial.title)
+        formData.append('category', newMaterial.category)
+        formData.append('description', newMaterial.description)
+        if (newMaterial.duration) {
+          formData.append('duration', newMaterial.duration)
+        }
+
+        response = await fetchWithAuth(`${API_URL}/support-materials/upload`, {
+          method: 'POST',
+          body: formData
         })
-      })
-      
+      } else {
+        // Link/URL (modo antigo)
+        response = await fetchWithAuth(`${API_URL}/support-materials`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            title: newMaterial.title,
+            category: newMaterial.category,
+            type: newMaterial.type,
+            description: newMaterial.description,
+            downloadUrl: newMaterial.downloadUrl,
+            viewUrl: newMaterial.viewUrl,
+            fileSize: newMaterial.fileSize,
+            duration: newMaterial.duration
+          })
+        })
+      }
+
       if (response.ok) {
-        const result = await response.json()
-        const addedMaterial = result.data || result
         await fetchSupportMaterials() // Recarregar da API
         setShowMaterialModal(false)
         setNewMaterial({
@@ -580,9 +593,12 @@ export default function Admin() {
           duration: '',
           fileSize: ''
         })
+        setMaterialFile(null)
+        setUploadMode('link')
         alert('Material de apoio adicionado com sucesso!')
       } else {
-        alert('Erro ao adicionar material de apoio')
+        const error = await response.json()
+        alert(error.error || 'Erro ao adicionar material de apoio')
       }
     } catch (error) {
       console.error('Erro ao adicionar material de apoio:', error)
@@ -2012,19 +2028,6 @@ export default function Admin() {
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
-                  <select
-                    id="type"
-                    value={editingMaterial ? editingMaterial.type : newMaterial.type}
-                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, type: e.target.value}) : setNewMaterial({...newMaterial, type: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  >
-                    <option value="pdf">PDF</option>
-                    <option value="video">Vídeo</option>
-                    <option value="doc">Documento</option>
-                  </select>
-                </div>
-                <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descrição</label>
                   <textarea
                     id="description"
@@ -2034,50 +2037,150 @@ export default function Admin() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                   />
                 </div>
-                <div>
-                  <label htmlFor="downloadUrl" className="block text-sm font-medium text-gray-700">URL de Download</label>
-                  <input
-                    type="text"
-                    id="downloadUrl"
-                    value={editingMaterial ? editingMaterial.downloadUrl : newMaterial.downloadUrl}
-                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, downloadUrl: e.target.value}) : setNewMaterial({...newMaterial, downloadUrl: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="viewUrl" className="block text-sm font-medium text-gray-700">URL de Visualização (opcional)</label>
-                  <input
-                    type="text"
-                    id="viewUrl"
-                    value={editingMaterial ? (editingMaterial.viewUrl || '') : newMaterial.viewUrl}
-                    onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, viewUrl: e.target.value}) : setNewMaterial({...newMaterial, viewUrl: e.target.value})}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                {!editingMaterial && (
                   <div>
-                    <label htmlFor="fileSize" className="block text-sm font-medium text-gray-700">Tamanho do Arquivo (opcional)</label>
-                    <input
-                      type="text"
-                      id="fileSize"
-                      value={editingMaterial ? (editingMaterial.fileSize || '') : newMaterial.fileSize}
-                      onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, fileSize: e.target.value}) : setNewMaterial({...newMaterial, fileSize: e.target.value})}
-                      placeholder="Ex: 2.5 MB"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Método de Envio</label>
+                    <div className="flex space-x-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          value="file"
+                          checked={uploadMode === 'file'}
+                          onChange={(e) => setUploadMode('file')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Upload de Arquivo</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          value="link"
+                          checked={uploadMode === 'link'}
+                          onChange={(e) => setUploadMode('link')}
+                          className="mr-2 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-700">Link/URL</span>
+                      </label>
+                    </div>
                   </div>
-                  <div>
-                    <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duração (para vídeos, opcional)</label>
-                    <input
-                      type="text"
-                      id="duration"
-                      value={editingMaterial ? (editingMaterial.duration || '') : newMaterial.duration}
-                      onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, duration: e.target.value}) : setNewMaterial({...newMaterial, duration: e.target.value})}
-                      placeholder="Ex: 10:30"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
+                )}
+
+                {!editingMaterial && uploadMode === 'file' ? (
+                  <>
+                    <div>
+                      <label htmlFor="file" className="block text-sm font-medium text-gray-700">Arquivo</label>
+                      <input
+                        type="file"
+                        id="file"
+                        onChange={(e) => setMaterialFile(e.target.files?.[0] || null)}
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.mp4,.mov"
+                        className="mt-1 block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-indigo-50 file:text-indigo-700
+                          hover:file:bg-indigo-100"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Aceita: PDF, Documentos Office, Imagens, Vídeos (máx 50MB)
+                      </p>
+                      {materialFile && (
+                        <p className="mt-2 text-sm text-green-600">
+                          ✓ Arquivo selecionado: {materialFile.name} ({(materialFile.size / 1024).toFixed(2)} KB)
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duração (para vídeos, opcional)</label>
+                      <input
+                        type="text"
+                        id="duration"
+                        value={newMaterial.duration}
+                        onChange={(e) => setNewMaterial({...newMaterial, duration: e.target.value})}
+                        placeholder="Ex: 10:30"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {!editingMaterial && (
+                      <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select
+                          id="type"
+                          value={newMaterial.type}
+                          onChange={(e) => setNewMaterial({...newMaterial, type: e.target.value})}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        >
+                          <option value="pdf">PDF</option>
+                          <option value="video">Vídeo</option>
+                          <option value="doc">Documento</option>
+                        </select>
+                      </div>
+                    )}
+                    {editingMaterial && (
+                      <div>
+                        <label htmlFor="type" className="block text-sm font-medium text-gray-700">Tipo</label>
+                        <select
+                          id="type"
+                          value={editingMaterial.type}
+                          onChange={(e) => setEditingMaterial({...editingMaterial, type: e.target.value})}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        >
+                          <option value="pdf">PDF</option>
+                          <option value="video">Vídeo</option>
+                          <option value="doc">Documento</option>
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label htmlFor="downloadUrl" className="block text-sm font-medium text-gray-700">URL de Download</label>
+                      <input
+                        type="text"
+                        id="downloadUrl"
+                        value={editingMaterial ? editingMaterial.downloadUrl : newMaterial.downloadUrl}
+                        onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, downloadUrl: e.target.value}) : setNewMaterial({...newMaterial, downloadUrl: e.target.value})}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="viewUrl" className="block text-sm font-medium text-gray-700">URL de Visualização (opcional)</label>
+                      <input
+                        type="text"
+                        id="viewUrl"
+                        value={editingMaterial ? (editingMaterial.viewUrl || '') : newMaterial.viewUrl}
+                        onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, viewUrl: e.target.value}) : setNewMaterial({...newMaterial, viewUrl: e.target.value})}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="fileSize" className="block text-sm font-medium text-gray-700">Tamanho do Arquivo (opcional)</label>
+                        <input
+                          type="text"
+                          id="fileSize"
+                          value={editingMaterial ? (editingMaterial.fileSize || '') : newMaterial.fileSize}
+                          onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, fileSize: e.target.value}) : setNewMaterial({...newMaterial, fileSize: e.target.value})}
+                          placeholder="Ex: 2.5 MB"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="duration" className="block text-sm font-medium text-gray-700">Duração (para vídeos, opcional)</label>
+                        <input
+                          type="text"
+                          id="duration"
+                          value={editingMaterial ? (editingMaterial.duration || '') : newMaterial.duration}
+                          onChange={(e) => editingMaterial ? setEditingMaterial({...editingMaterial, duration: e.target.value}) : setNewMaterial({...newMaterial, duration: e.target.value})}
+                          placeholder="Ex: 10:30"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                 <button

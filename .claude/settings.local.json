@@ -35,7 +35,9 @@
       "Bash(env)",
       "Bash(chmod:*)",
       "Bash(bash:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\\\\d nfe_uploads\")",
+      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\\\\d support_materials\")"
     ],
     "deny": [],
     "ask": []

@@ -3,31 +3,37 @@ import { DocumentArrowDownIcon, PaperAirplaneIcon, CalendarIcon, DocumentArrowUp
 import { getCurrentUser } from '../../services/auth'
 import { sendNotificationEmail } from '../../services/api/emailService'
 import { API_URL } from '../../config/api'
-
-interface MonthlyReport {
-  id: number
-  month: string
-  year: number
-  totalRevenue: number
-  totalClients: number
-  totalLives: number
-  reportGenerated: boolean
-  invoiceSent: boolean
-  nfeUploaded: boolean
-  nfeUploadDate?: string
-}
+import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
 interface PartnerReport {
+  id: string
+  partnerId: string
+  month: number
+  year: number
+  totalReferrals: number
+  approvedReferrals: number
+  rejectedReferrals: number
+  pendingReferrals: number
+  totalCommission: number
+  paidCommission: number
+  pendingCommission: number
+  createdAt: string
+  updatedAt: string
+}
+
+interface NfeUpload {
   id: number
   fileName: string
   partnerId: number
   partnerName: string
-  referenceMonth: number
-  referenceYear: number
-  uploadDate: string
+  month: string
+  year: number
   fileType: string
-  size: number
+  filePath?: string
+  fileUrl?: string
   status: string
+  uploadDate: string
+  processedAt?: string
 }
 
 interface User {
@@ -38,62 +44,38 @@ interface User {
 }
 
 export default function Reports() {
-  const [reports, setReports] = useState<MonthlyReport[]>([])
-  const [partnerReports, setPartnerReports] = useState<PartnerReport[]>([])
+  const [reports, setReports] = useState<PartnerReport[]>([])
+  const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [dateFilter, setDateFilter] = useState<'current' | 'last' | 'custom'>('current')
+  const [dateFilter, setDateFilter] = useState<'current' | 'last' | 'all' | 'custom'>('all')
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
-  const [filteredReports, setFilteredReports] = useState<MonthlyReport[]>([])
+  const [filteredReports, setFilteredReports] = useState<PartnerReport[]>([])
+
+  const monthNames = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ]
 
   useEffect(() => {
     const initializeData = async () => {
-      // Buscar usuário atual
-      const user = await getCurrentUser()
-      setCurrentUser(user)
-      
-      if (user) {
-        // Buscar relatórios específicos do parceiro
-        await fetchPartnerReports(user.id)
-      }
-      
-      // Simular dados de relatórios mensais
-      const generateReports = () => {
-        const months = [
-          'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-        ]
-        
-        const currentYear = new Date().getFullYear()
-        const currentMonth = new Date().getMonth()
-        
-        const reportsData: MonthlyReport[] = []
-        
-        // Gerar relatórios para os últimos 12 meses
-        for (let i = 11; i >= 0; i--) {
-          const monthIndex = (currentMonth - i + 12) % 12
-          const year = currentMonth - i < 0 ? currentYear - 1 : currentYear
-          
-          reportsData.push({
-            id: i + 1,
-            month: months[monthIndex],
-            year: year,
-            totalRevenue: Math.floor(Math.random() * 50000) + 10000,
-            totalClients: Math.floor(Math.random() * 20) + 5,
-            totalLives: Math.floor(Math.random() * 500) + 100,
-            reportGenerated: i < 10, // Últimos 10 meses têm relatórios
-            invoiceSent: i < 8, // Últimos 8 meses têm notas fiscais enviadas
-            nfeUploaded: i < 6, // Últimos 6 meses têm NFe enviadas
-            nfeUploadDate: i < 6 ? new Date(year, monthIndex, 15).toISOString() : undefined
-          })
+      try {
+        // Buscar usuário atual
+        const user = await getCurrentUser()
+        setCurrentUser(user)
+
+        if (user) {
+          // Buscar relatórios de parceiros
+          await fetchPartnerReports()
+          // Buscar NFE uploads
+          await fetchNfeUploads()
         }
-        
-        setReports(reportsData.reverse())
+      } catch (error) {
+        console.error('Erro ao inicializar dados:', error)
+      } finally {
         setLoading(false)
       }
-
-      generateReports()
     }
 
     initializeData()
@@ -103,105 +85,124 @@ export default function Reports() {
   useEffect(() => {
     const filterReports = () => {
       const currentDate = new Date()
-      const currentMonth = currentDate.getMonth()
+      const currentMonth = currentDate.getMonth() + 1 // 1-12
       const currentYear = currentDate.getFullYear()
-      
+
       let filtered = [...reports]
-      
+
       switch (dateFilter) {
         case 'current':
-          filtered = reports.filter(report => 
-            report.month === getMonthName(currentMonth) && report.year === currentYear
+          filtered = reports.filter(report =>
+            report.month === currentMonth && report.year === currentYear
           )
           break
         case 'last':
-          const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
-          const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-          filtered = reports.filter(report => 
-            report.month === getMonthName(lastMonth) && report.year === lastMonthYear
+          const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1
+          const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear
+          filtered = reports.filter(report =>
+            report.month === lastMonth && report.year === lastMonthYear
           )
           break
         case 'custom':
           if (customStartDate && customEndDate) {
             const startDate = new Date(customStartDate)
             const endDate = new Date(customEndDate)
+            endDate.setMonth(endDate.getMonth() + 1) // Incluir o mês final completo
+
             filtered = reports.filter(report => {
-              const reportDate = new Date(report.year, getMonthIndex(report.month))
-              return reportDate >= startDate && reportDate <= endDate
+              const reportDate = new Date(report.year, report.month - 1)
+              return reportDate >= startDate && reportDate < endDate
             })
           }
           break
+        case 'all':
         default:
           filtered = reports
       }
-      
+
       setFilteredReports(filtered)
     }
-    
+
     filterReports()
   }, [reports, dateFilter, customStartDate, customEndDate])
 
-  const getMonthName = (monthIndex: number) => {
-    const months = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ]
-    return months[monthIndex]
-  }
-
-  const getMonthIndex = (monthName: string) => {
-    const months = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ]
-    return months.indexOf(monthName)
-  }
-
-  const fetchPartnerReports = async (partnerId: number) => {
+  const fetchPartnerReports = async () => {
     try {
-      const response = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
-      const allReports = await response.json()
-      
-      // Filtrar relatórios apenas do parceiro logado
-      const userReports = allReports.filter((report: PartnerReport) => report.partnerId === partnerId)
-      setPartnerReports(userReports)
+      const response = await fetchWithAuth(`${API_URL}/partner_reports`)
+
+      if (!response.ok) {
+        console.error('Erro ao buscar relatórios')
+        setReports([])
+        return
+      }
+
+      const data = await response.json()
+      setReports(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Erro ao buscar relatórios do parceiro:', error)
-      setPartnerReports([])
+      console.error('Erro ao buscar relatórios de parceiros:', error)
+      setReports([])
     }
   }
 
-  const handleDownloadReport = (reportId: number, month: string, year: number) => {
+  const fetchNfeUploads = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/nfe_uploads`)
+
+      if (!response.ok) {
+        console.error('Erro ao buscar NFe uploads')
+        setNfeUploads([])
+        return
+      }
+
+      const data = await response.json()
+      setNfeUploads(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Erro ao buscar NFe uploads:', error)
+      setNfeUploads([])
+    }
+  }
+
+  const handleDownloadReport = async (report: PartnerReport) => {
     if (!currentUser) {
       alert('Usuário não autenticado')
       return
     }
 
-    // Verificar se existe relatório disponível para este parceiro
-    const availableReport = partnerReports.find(report => {
-      return report.referenceMonth === (new Date().getMonth() - (12 - reportId)) + 1 && 
-             report.referenceYear === year &&
-             report.status === 'available'
-    })
+    // Verificar se existe NFE upload para este período
+    const nfeUpload = nfeUploads.find(nfe =>
+      nfe.partnerId === currentUser.id &&
+      parseInt(nfe.month) === report.month &&
+      nfe.year === report.year &&
+      (nfe.status === 'processed' || nfe.status === 'available')
+    )
 
-    if (!availableReport) {
-      alert(`Relatório de ${month} ${year} não está disponível para download.`)
+    if (!nfeUpload || !nfeUpload.fileUrl) {
+      alert(`Relatório de ${monthNames[report.month - 1]} ${report.year} não está disponível para download.`)
       return
     }
-    
-    // Simular download do relatório
-    console.log(`Baixando relatório: ${availableReport.fileName}`)
-    
-    // Aqui você implementaria a lógica real de download
-    alert(`Baixando relatório: ${availableReport.fileName}`)
+
+    // Fazer download do arquivo
+    try {
+      const response = await fetch(nfeUpload.fileUrl)
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = nfeUpload.fileName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Erro ao baixar relatório:', error)
+      alert('Erro ao baixar relatório. Tente novamente.')
+    }
   }
 
-  const handleSendInvoice = async (reportId: number, month: string, year: number) => {
+  const handleSendInvoice = async (report: PartnerReport) => {
     try {
-      // Encontrar o relatório
-      const report = reports.find(r => r.id === reportId)
-      if (!report || !currentUser) {
-        alert('Relatório ou usuário não encontrado')
+      if (!currentUser) {
+        alert('Usuário não autenticado')
         return
       }
 
@@ -209,20 +210,13 @@ export default function Reports() {
       const emailResult = await sendNotificationEmail({
         recipientEmail: currentUser.email,
         recipientName: currentUser.name,
-        title: `Nota Fiscal - ${month}/${year}`,
-        message: `Sua nota fiscal referente ao período de ${month}/${year} foi processada e está sendo enviada. Em breve você receberá o documento oficial por email.`,
+        title: `Nota Fiscal - ${monthNames[report.month - 1]}/${report.year}`,
+        message: `Sua nota fiscal referente ao período de ${monthNames[report.month - 1]}/${report.year} foi processada.\n\nResumo:\n- Total de Indicações: ${report.totalReferrals}\n- Aprovadas: ${report.approvedReferrals}\n- Comissão Total: ${formatCurrency(report.totalCommission)}\n- Comissão Paga: ${formatCurrency(report.paidCommission)}`,
         type: 'info'
       })
 
       if (emailResult.success) {
-        // Atualizar o estado para marcar como enviado
-        setReports(prev => prev.map(report => 
-          report.id === reportId 
-            ? { ...report, invoiceSent: true }
-            : report
-        ))
-        
-        alert(`Nota fiscal de ${month}/${year} enviada com sucesso por email!`)
+        alert(`Nota fiscal de ${monthNames[report.month - 1]}/${report.year} enviada com sucesso por email!`)
       } else {
         throw new Error(emailResult.error || 'Erro ao enviar email')
       }
@@ -232,9 +226,9 @@ export default function Reports() {
     }
   }
 
-  const handleNfeUpload = async (event: React.ChangeEvent<HTMLInputElement>, reportId: number, month: string, year: number) => {
+  const handleNfeUpload = async (event: React.ChangeEvent<HTMLInputElement>, report: PartnerReport) => {
     const file = event.target.files?.[0]
-    if (!file) return
+    if (!file || !currentUser) return
 
     // Validar tipo de arquivo
     const allowedTypes = ['application/pdf', 'application/xml', 'text/xml']
@@ -243,40 +237,37 @@ export default function Reports() {
       return
     }
 
+    // Validar tamanho do arquivo (máx 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('O arquivo deve ter no máximo 10MB.')
+      return
+    }
+
     try {
-      // Simular upload para o servidor
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('partnerId', currentUser?.id.toString() || '')
-      formData.append('partnerName', currentUser?.name || '')
-      formData.append('month', month)
-      formData.append('year', year.toString())
-      formData.append('uploadDate', new Date().toISOString())
+      formData.append('partnerId', currentUser.id.toString())
+      formData.append('partnerName', currentUser.name)
+      formData.append('month', report.month.toString())
+      formData.append('year', report.year.toString())
+      formData.append('fileType', file.type.includes('xml') ? 'xml' : 'pdf')
 
-      // Criar nome do arquivo: parceiro-mes-ano-data_upload
-      const uploadDate = new Date().toISOString().split('T')[0]
-      const fileName = `${currentUser?.name.replace(/\s+/g, '_')}-${month}-${year}-${uploadDate}.${file.name.split('.').pop()}`
-      
-      console.log(`Uploading NFe: ${fileName}`)
-      
-      // Simular requisição para API
-      // await fetch('http://localhost:3001/nfe-uploads', {
-      //   method: 'POST',
-      //   body: formData
-      // })
+      // Upload para o servidor
+      const response = await fetchWithAuth(`${API_URL}/nfe_uploads`, {
+        method: 'POST',
+        body: formData
+      })
 
-      // Atualizar estado local
-      setReports(prev => prev.map(report => 
-        report.id === reportId 
-          ? { 
-              ...report, 
-              nfeUploaded: true, 
-              nfeUploadDate: new Date().toISOString() 
-            }
-          : report
-      ))
+      if (!response.ok) {
+        throw new Error('Erro ao fazer upload')
+      }
 
-      alert(`NFe de ${month} ${year} enviada com sucesso!\nArquivo: ${fileName}`)
+      const result = await response.json()
+
+      // Atualizar lista de NFE uploads
+      await fetchNfeUploads()
+
+      alert(`NFe de ${monthNames[report.month - 1]} ${report.year} enviada com sucesso!`)
     } catch (error) {
       console.error('Erro ao enviar NFe:', error)
       alert('Erro ao enviar NFe. Tente novamente.')
@@ -291,6 +282,14 @@ export default function Reports() {
       style: 'currency',
       currency: 'BRL'
     }).format(value)
+  }
+
+  const hasNfeUploadForReport = (report: PartnerReport): boolean => {
+    return nfeUploads.some(nfe =>
+      nfe.partnerId === currentUser?.id &&
+      parseInt(nfe.month) === report.month &&
+      nfe.year === report.year
+    )
   }
 
   if (loading) {
@@ -310,62 +309,66 @@ export default function Reports() {
             Visualize e gerencie os relatórios de produção mensal e notas fiscais.
           </p>
         </div>
-        <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <button
-            type="button"
-            className="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            Gerar Relatório Atual
-          </button>
-        </div>
       </div>
-      
+
       {/* Filtros de Data */}
       <div className="mt-6 bg-white shadow rounded-lg p-6">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 flex-wrap gap-4">
           <div className="flex items-center">
             <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
             <span className="text-sm font-medium text-gray-700">Filtrar por período:</span>
           </div>
-          
-          <div className="flex space-x-4">
+
+          <div className="flex space-x-4 flex-wrap gap-2">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="dateFilter"
+                value="all"
+                checked={dateFilter === 'all'}
+                onChange={(e) => setDateFilter(e.target.value as any)}
+                className="mr-2 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-700">Todos</span>
+            </label>
+
             <label className="flex items-center">
               <input
                 type="radio"
                 name="dateFilter"
                 value="current"
                 checked={dateFilter === 'current'}
-                onChange={(e) => setDateFilter(e.target.value as 'current' | 'last' | 'custom')}
+                onChange={(e) => setDateFilter(e.target.value as any)}
                 className="mr-2 text-indigo-600 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-700">Mês Atual</span>
             </label>
-            
+
             <label className="flex items-center">
               <input
                 type="radio"
                 name="dateFilter"
                 value="last"
                 checked={dateFilter === 'last'}
-                onChange={(e) => setDateFilter(e.target.value as 'current' | 'last' | 'custom')}
+                onChange={(e) => setDateFilter(e.target.value as any)}
                 className="mr-2 text-indigo-600 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-700">Mês Passado</span>
             </label>
-            
+
             <label className="flex items-center">
               <input
                 type="radio"
                 name="dateFilter"
                 value="custom"
                 checked={dateFilter === 'custom'}
-                onChange={(e) => setDateFilter(e.target.value as 'current' | 'last' | 'custom')}
+                onChange={(e) => setDateFilter(e.target.value as any)}
                 className="mr-2 text-indigo-600 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-700">Personalizado</span>
             </label>
           </div>
-          
+
           {dateFilter === 'custom' && (
             <div className="flex space-x-2">
               <div>
@@ -390,7 +393,7 @@ export default function Reports() {
           )}
         </div>
       </div>
-      
+
       <div className="mt-8 flow-root">
         <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
@@ -405,19 +408,19 @@ export default function Reports() {
                       </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Receita Total
+                      Total Indicações
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Clientes Ativos
+                      Aprovadas
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total de Vidas
+                      Comissão Total
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Relatório
+                      Comissão Paga
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nota Fiscal
+                      Ações
                     </th>
                     {currentUser?.role === 'partner' && (
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -427,76 +430,54 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {(dateFilter === 'current' || dateFilter === 'last' || dateFilter === 'custom' ? filteredReports : reports).map((report) => (
+                  {filteredReports.map((report) => (
                     <tr key={report.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          {report.month} {report.year}
+                          {monthNames[report.month - 1]} {report.year}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {formatCurrency(report.totalRevenue)}
+                          {report.totalReferrals}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-green-600 font-medium">
+                          {report.approvedReferrals}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {report.totalClients}
+                          {formatCurrency(report.totalCommission)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {report.totalLives.toLocaleString('pt-BR')}
+                        <div className="text-sm text-green-600 font-medium">
+                          {formatCurrency(report.paidCommission)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {(() => {
-                          // Verificar se existe relatório disponível para este período
-                          const availableReport = partnerReports.find(partnerReport => {
-                            return partnerReport.referenceMonth === (new Date().getMonth() - (12 - report.id)) + 1 && 
-                                   partnerReport.referenceYear === report.year &&
-                                   partnerReport.status === 'available'
-                          })
-                          
-                          return availableReport ? (
-                            <button
-                              onClick={() => handleDownloadReport(report.id, report.month, report.year)}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                              <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
-                              Baixar
-                            </button>
-                          ) : (
-                            <span className="inline-flex items-center px-3 py-2 text-sm text-gray-500">
-                              Não disponível
-                            </span>
-                          )
-                        })()} 
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {report.reportGenerated ? (
-                          report.invoiceSent ? (
-                            <span className="inline-flex items-center px-3 py-2 text-sm text-green-700 bg-green-100 rounded-md">
-                              ✓ Enviada
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleSendInvoice(report.id, report.month, report.year)}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                            >
-                              <PaperAirplaneIcon className="h-4 w-4 mr-1" />
-                              Enviar
-                            </button>
-                          )
-                        ) : (
-                          <span className="inline-flex items-center px-3 py-2 text-sm text-gray-500">
-                            Aguardando relatório
-                          </span>
-                        )}
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleDownloadReport(report)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                            Baixar
+                          </button>
+                          <button
+                            onClick={() => handleSendInvoice(report)}
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          >
+                            <PaperAirplaneIcon className="h-4 w-4 mr-1" />
+                            Enviar
+                          </button>
+                        </div>
                       </td>
                       {currentUser?.role === 'partner' && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          {report.nfeUploaded ? (
+                          {hasNfeUploadForReport(report) ? (
                             <span className="inline-flex items-center px-3 py-2 text-sm text-blue-700 bg-blue-100 rounded-md">
                               ✓ Enviada
                             </span>
@@ -508,7 +489,7 @@ export default function Reports() {
                                 type="file"
                                 className="hidden"
                                 accept=".pdf,.xml"
-                                onChange={(e) => handleNfeUpload(e, report.id, report.month, report.year)}
+                                onChange={(e) => handleNfeUpload(e, report)}
                               />
                             </label>
                           )}
@@ -522,13 +503,13 @@ export default function Reports() {
           </div>
         </div>
       </div>
-      
-      {(dateFilter === 'current' || dateFilter === 'last' || dateFilter === 'custom' ? filteredReports : reports).length === 0 && (
+
+      {filteredReports.length === 0 && (
         <div className="text-center py-12">
           <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">Nenhum relatório encontrado</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {dateFilter === 'custom' && (!customStartDate || !customEndDate) 
+            {dateFilter === 'custom' && (!customStartDate || !customEndDate)
               ? 'Selecione as datas de início e fim para filtrar os relatórios.'
               : 'Nenhum relatório encontrado para o período selecionado.'}
           </p>

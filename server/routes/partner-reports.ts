@@ -282,4 +282,208 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST - Gerar relatório automaticamente baseado em prospects
+router.post('/generate/:partnerId/:year/:month', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+    const { partnerId, year, month } = req.params;
+
+    // Apenas admin pode gerar relatórios
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Apenas administradores podem gerar relatórios' });
+    }
+
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({ error: 'Ano ou mês inválido' });
+    }
+
+    // Verificar se já existe relatório para este período
+    const existing = await pool.query(
+      'SELECT id FROM partner_reports WHERE partner_id = $1 AND month = $2 AND year = $3',
+      [partnerId, monthNum, yearNum]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Já existe relatório para este período' });
+    }
+
+    // Buscar prospects do parceiro neste período
+    const prospects = await pool.query(`
+      SELECT
+        status,
+        COUNT(*) as count
+      FROM prospects
+      WHERE partner_id = $1
+        AND EXTRACT(MONTH FROM submitted_at) = $2
+        AND EXTRACT(YEAR FROM submitted_at) = $3
+      GROUP BY status
+    `, [partnerId, monthNum, yearNum]);
+
+    let totalReferrals = 0;
+    let approvedReferrals = 0;
+    let rejectedReferrals = 0;
+    let pendingReferrals = 0;
+
+    prospects.rows.forEach(row => {
+      const count = parseInt(row.count);
+      totalReferrals += count;
+
+      if (row.status === 'approved') approvedReferrals = count;
+      else if (row.status === 'rejected') rejectedReferrals = count;
+      else if (row.status === 'pending' || row.status === 'validated' || row.status === 'in-analysis') {
+        pendingReferrals += count;
+      }
+    });
+
+    // Calcular comissões (exemplo: R$ 100 por indicação aprovada)
+    const comissionPerApproval = 100;
+    const totalCommission = approvedReferrals * comissionPerApproval;
+    const paidCommission = totalCommission; // Por padrão, pago totalmente
+    const pendingCommission = 0;
+
+    // Criar relatório
+    const result = await pool.query(`
+      INSERT INTO partner_reports (
+        partner_id, month, year,
+        total_referrals, approved_referrals, rejected_referrals, pending_referrals,
+        total_commission, paid_commission, pending_commission
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING
+        id,
+        partner_id as "partnerId",
+        month,
+        year,
+        total_referrals as "totalReferrals",
+        approved_referrals as "approvedReferrals",
+        rejected_referrals as "rejectedReferrals",
+        pending_referrals as "pendingReferrals",
+        total_commission as "totalCommission",
+        paid_commission as "paidCommission",
+        pending_commission as "pendingCommission",
+        created_at as "createdAt",
+        updated_at as "updatedAt"
+    `, [
+      partnerId, monthNum, yearNum,
+      totalReferrals, approvedReferrals, rejectedReferrals, pendingReferrals,
+      totalCommission, paidCommission, pendingCommission
+    ]);
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error generating partner report:', error);
+    res.status(500).json({ error: 'Erro ao gerar relatório' });
+  }
+});
+
+// POST - Gerar relatórios para todos os parceiros de um mês
+router.post('/generate-all/:year/:month', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user?.role;
+    const { year, month } = req.params;
+
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Apenas administradores podem gerar relatórios' });
+    }
+
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month);
+
+    if (isNaN(yearNum) || isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({ error: 'Ano ou mês inválido' });
+    }
+
+    // Buscar todos os parceiros que têm prospects neste período
+    const partners = await pool.query(`
+      SELECT DISTINCT partner_id
+      FROM prospects
+      WHERE EXTRACT(MONTH FROM submitted_at) = $1
+        AND EXTRACT(YEAR FROM submitted_at) = $2
+        AND partner_id IS NOT NULL
+    `, [monthNum, yearNum]);
+
+    const generated = [];
+    const errors = [];
+
+    for (const partner of partners.rows) {
+      try {
+        // Verificar se já existe
+        const existing = await pool.query(
+          'SELECT id FROM partner_reports WHERE partner_id = $1 AND month = $2 AND year = $3',
+          [partner.partner_id, monthNum, yearNum]
+        );
+
+        if (existing.rows.length > 0) {
+          continue; // Pular se já existe
+        }
+
+        // Buscar prospects do parceiro
+        const prospects = await pool.query(`
+          SELECT
+            status,
+            COUNT(*) as count
+          FROM prospects
+          WHERE partner_id = $1
+            AND EXTRACT(MONTH FROM submitted_at) = $2
+            AND EXTRACT(YEAR FROM submitted_at) = $3
+          GROUP BY status
+        `, [partner.partner_id, monthNum, yearNum]);
+
+        let totalReferrals = 0;
+        let approvedReferrals = 0;
+        let rejectedReferrals = 0;
+        let pendingReferrals = 0;
+
+        prospects.rows.forEach(row => {
+          const count = parseInt(row.count);
+          totalReferrals += count;
+
+          if (row.status === 'approved') approvedReferrals = count;
+          else if (row.status === 'rejected') rejectedReferrals = count;
+          else if (row.status === 'pending' || row.status === 'validated' || row.status === 'in-analysis') {
+            pendingReferrals += count;
+          }
+        });
+
+        const comissionPerApproval = 100;
+        const totalCommission = approvedReferrals * comissionPerApproval;
+        const paidCommission = totalCommission;
+        const pendingCommission = 0;
+
+        // Criar relatório
+        const result = await pool.query(`
+          INSERT INTO partner_reports (
+            partner_id, month, year,
+            total_referrals, approved_referrals, rejected_referrals, pending_referrals,
+            total_commission, paid_commission, pending_commission
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING id, partner_id as "partnerId"
+        `, [
+          partner.partner_id, monthNum, yearNum,
+          totalReferrals, approvedReferrals, rejectedReferrals, pendingReferrals,
+          totalCommission, paidCommission, pendingCommission
+        ]);
+
+        generated.push(result.rows[0]);
+      } catch (error: any) {
+        errors.push({ partnerId: partner.partner_id, error: error.message });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      generated: generated.length,
+      errors: errors.length,
+      details: { generated, errors }
+    });
+  } catch (error) {
+    console.error('Error generating all partner reports:', error);
+    res.status(500).json({ error: 'Erro ao gerar relatórios' });
+  }
+});
+
 export default router;

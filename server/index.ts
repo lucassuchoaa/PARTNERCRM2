@@ -98,6 +98,9 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // Servir arquivos estáticos da pasta uploads
+  app.use('/uploads', express.static('uploads'));
+
   // Setup Replit Auth (conditional)
   if (replitAuthEnabled) {
     await setupAuth(app);
