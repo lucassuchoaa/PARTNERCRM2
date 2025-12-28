@@ -93,6 +93,7 @@ export default function Admin() {
   })
   const [users, setUsers] = useState<User[]>([])
   const [pendingUsers, setPendingUsers] = useState<User[]>([])
+  const [selectedManagers, setSelectedManagers] = useState<Record<number, string>>({})
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -307,23 +308,93 @@ export default function Admin() {
   }
 
   const handleApproveUser = async (userId: number) => {
+    const managerId = selectedManagers[userId]
+
+    if (!managerId) {
+      alert('Por favor, selecione um gerente responsável antes de aprovar.')
+      return
+    }
+
     try {
-      const response = await fetchWithAuth(`${API_URL}/users/${userId}`, {
+      const pendingUser = pendingUsers.find(u => u.id === userId)
+      if (!pendingUser) return
+
+      // 1. Atualizar usuário para ativo e vincular ao gerente
+      const updateUserResponse = await fetchWithAuth(`${API_URL}/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          status: 'active'
+          status: 'active',
+          managerId: managerId
         })
       })
 
-      if (response.ok) {
-        alert('Usuário aprovado com sucesso!')
-        fetchUsers() // Recarregar lista
-      } else {
+      if (!updateUserResponse.ok) {
         alert('Erro ao aprovar usuário')
+        return
       }
+
+      // 2. Criar entrada na tabela de parceiros
+      const manager = managers.find(m => m.id === managerId)
+      const partnerData = {
+        id: userId.toString(),
+        name: pendingUser.name,
+        email: pendingUser.email,
+        role: 'partner',
+        managerId: managerId,
+        managerName: manager?.name || '',
+        remunerationTableIds: [1],
+        company: {
+          name: '',
+          cnpj: '',
+          address: '',
+          phone: ''
+        },
+        bankData: {
+          bank: '',
+          agency: '',
+          account: '',
+          accountType: 'corrente',
+          pix: ''
+        }
+      }
+
+      await fetchWithAuth(`${API_URL}/partners`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(partnerData)
+      })
+
+      // 3. Atualizar lista de parceiros do gerente
+      if (manager) {
+        const updatedManager = {
+          ...manager,
+          partnersIds: [...(manager?.partnersIds || []), userId.toString()]
+        }
+
+        await fetchWithAuth(`${API_URL}/managers/${managerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedManager)
+        })
+      }
+
+      alert('Parceiro aprovado e vinculado ao gerente com sucesso!')
+
+      // Limpar seleção do gerente para este usuário
+      setSelectedManagers(prev => {
+        const newState = { ...prev }
+        delete newState[userId]
+        return newState
+      })
+
+      fetchUsers() // Recarregar lista
     } catch (error) {
       console.error('Erro ao aprovar usuário:', error)
       alert('Erro ao aprovar usuário')
@@ -1504,6 +1575,9 @@ export default function Admin() {
                         Data de Cadastro
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Gerente Responsável *
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ações
                       </th>
                     </tr>
@@ -1519,6 +1593,23 @@ export default function Admin() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(user.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={selectedManagers[user.id] || ''}
+                            onChange={(e) => setSelectedManagers(prev => ({
+                              ...prev,
+                              [user.id]: e.target.value
+                            }))}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                          >
+                            <option value="">Selecione um gerente</option>
+                            {managers.map((manager) => (
+                              <option key={manager.id} value={manager.id}>
+                                {manager.name}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
