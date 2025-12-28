@@ -1,17 +1,28 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { getCurrentUser } from "../services/auth";
 
 export function useAuth() {
-  const { data: user, isLoading, error } = useQuery({
-    queryKey: ["auth-user"],
-    queryFn: async () => {
-      // Buscar usuário do localStorage
-      const user = await getCurrentUser();
-      return user;
-    },
-    retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        setIsLoading(true);
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        setError(null);
+      } catch (err) {
+        setUser(null);
+        setError(err as Error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return {
     user: user || null,

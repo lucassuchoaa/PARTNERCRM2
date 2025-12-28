@@ -41,8 +41,6 @@ export default defineConfig(({ mode }) => ({
           'react-vendor': ['react', 'react-dom'],
           // Separate chunk for large UI libraries
           'ui-vendor': ['@headlessui/react', '@heroicons/react'],
-          // Query library separate
-          'query-vendor': ['@tanstack/react-query'],
         }
       }
     },
