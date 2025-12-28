@@ -8,6 +8,7 @@ import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 interface PartnerReport {
   id: string
   partnerId: string
+  partnerName?: string
   month: number
   year: number
   totalReferrals: number
@@ -407,6 +408,11 @@ export default function Reports() {
                         Período
                       </div>
                     </th>
+                    {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Parceiro
+                      </th>
+                    )}
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Indicações
                     </th>
@@ -437,6 +443,13 @@ export default function Reports() {
                           {monthNames[report.month - 1]} {report.year}
                         </div>
                       </td>
+                      {(currentUser?.role === 'admin' || currentUser?.role === 'manager') && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {(report as any).partnerName || 'N/A'}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
                           {report.totalReferrals}

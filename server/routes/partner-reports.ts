@@ -10,34 +10,19 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id;
     const userRole = req.user?.role;
 
+    console.log('📊 Fetching partner reports');
+    console.log('📊 User ID:', userId);
+    console.log('📊 User Role:', userRole);
+
     let result;
 
     if (userRole === 'admin') {
       // Admin vê todos os relatórios
       result = await pool.query(`
         SELECT
-          id,
-          partner_id as "partnerId",
-          month,
-          year,
-          total_referrals as "totalReferrals",
-          approved_referrals as "approvedReferrals",
-          rejected_referrals as "rejectedReferrals",
-          pending_referrals as "pendingReferrals",
-          total_commission as "totalCommission",
-          paid_commission as "paidCommission",
-          pending_commission as "pendingCommission",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM partner_reports
-        ORDER BY year DESC, month DESC
-      `);
-    } else if (userRole === 'manager') {
-      // Gerente vê relatórios dos parceiros que gerencia + próprios
-      result = await pool.query(`
-        SELECT
           pr.id,
           pr.partner_id as "partnerId",
+          u.name as "partnerName",
           pr.month,
           pr.year,
           pr.total_referrals as "totalReferrals",
@@ -50,6 +35,29 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
           pr.created_at as "createdAt",
           pr.updated_at as "updatedAt"
         FROM partner_reports pr
+        LEFT JOIN users u ON pr.partner_id = u.id
+        ORDER BY pr.year DESC, pr.month DESC
+      `);
+    } else if (userRole === 'manager') {
+      // Gerente vê relatórios dos parceiros que gerencia + próprios
+      result = await pool.query(`
+        SELECT
+          pr.id,
+          pr.partner_id as "partnerId",
+          u.name as "partnerName",
+          pr.month,
+          pr.year,
+          pr.total_referrals as "totalReferrals",
+          pr.approved_referrals as "approvedReferrals",
+          pr.rejected_referrals as "rejectedReferrals",
+          pr.pending_referrals as "pendingReferrals",
+          pr.total_commission as "totalCommission",
+          pr.paid_commission as "paidCommission",
+          pr.pending_commission as "pendingCommission",
+          pr.created_at as "createdAt",
+          pr.updated_at as "updatedAt"
+        FROM partner_reports pr
+        LEFT JOIN users u ON pr.partner_id = u.id
         WHERE pr.partner_id IN (
           SELECT id FROM users WHERE manager_id = $1
         )
@@ -60,24 +68,29 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       // Parceiro vê apenas seus próprios relatórios
       result = await pool.query(`
         SELECT
-          id,
-          partner_id as "partnerId",
-          month,
-          year,
-          total_referrals as "totalReferrals",
-          approved_referrals as "approvedReferrals",
-          rejected_referrals as "rejectedReferrals",
-          pending_referrals as "pendingReferrals",
-          total_commission as "totalCommission",
-          paid_commission as "paidCommission",
-          pending_commission as "pendingCommission",
-          created_at as "createdAt",
-          updated_at as "updatedAt"
-        FROM partner_reports
-        WHERE partner_id = $1
-        ORDER BY year DESC, month DESC
+          pr.id,
+          pr.partner_id as "partnerId",
+          u.name as "partnerName",
+          pr.month,
+          pr.year,
+          pr.total_referrals as "totalReferrals",
+          pr.approved_referrals as "approvedReferrals",
+          pr.rejected_referrals as "rejectedReferrals",
+          pr.pending_referrals as "pendingReferrals",
+          pr.total_commission as "totalCommission",
+          pr.paid_commission as "paidCommission",
+          pr.pending_commission as "pendingCommission",
+          pr.created_at as "createdAt",
+          pr.updated_at as "updatedAt"
+        FROM partner_reports pr
+        LEFT JOIN users u ON pr.partner_id = u.id
+        WHERE pr.partner_id = $1
+        ORDER BY pr.year DESC, pr.month DESC
       `, [userId]);
     }
+
+    console.log('📊 Results found:', result.rows.length);
+    console.log('📊 Sample data:', result.rows[0]);
 
     res.json(result.rows);
   } catch (error) {
