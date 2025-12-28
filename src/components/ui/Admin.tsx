@@ -829,6 +829,9 @@ export default function Admin() {
     try {
       if (editingUser) {
         // Editar usuário existente
+        console.log('Salvando usuário:', editingUser);
+        console.log('roleId antes de enviar:', (editingUser as any).roleId);
+
         const response = await fetchWithAuth(`${API_URL}/users/${editingUser.id}`, {
           method: 'PUT',
           headers: {
@@ -839,7 +842,7 @@ export default function Admin() {
             name: editingUser.name,
             password: (editingUser as any).password,
             role: editingUser.role,
-            roleId: (editingUser as any).roleId || null,
+            roleId: (editingUser as any).roleId,
             managerId: (editingUser as any).managerId || null,
             remunerationTableIds: (editingUser as any).remunerationTableIds || [],
             status: editingUser.status
@@ -2703,19 +2706,24 @@ export default function Admin() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Função</label>
                   <select
-                    value={editingUser ? (editingUser as any).roleId || editingUser.role : newUser.roleId || newUser.role}
+                    value={editingUser ? (editingUser as any).roleId || '' : newUser.roleId || ''}
                     onChange={(e) => {
-                      const selectedRole = roles.find(r => r.id === e.target.value)
+                      const selectedRoleId = e.target.value
+                      const selectedRole = roles.find(r => r.id === selectedRoleId)
+
+                      console.log('Role selecionada:', selectedRole)
+                      console.log('Role ID:', selectedRoleId)
+
                       if (editingUser) {
                         setEditingUser({
                           ...editingUser,
-                          roleId: selectedRole?.id || '',
+                          roleId: selectedRoleId,
                           role: selectedRole?.name.toLowerCase().includes('admin') ? 'admin' : selectedRole?.name.toLowerCase().includes('gerente') ? 'manager' : 'partner'
                         } as any)
                       } else {
                         setNewUser({
                           ...newUser,
-                          roleId: selectedRole?.id || '',
+                          roleId: selectedRoleId,
                           role: selectedRole?.name.toLowerCase().includes('admin') ? 'admin' : selectedRole?.name.toLowerCase().includes('gerente') ? 'manager' : 'partner'
                         })
                       }

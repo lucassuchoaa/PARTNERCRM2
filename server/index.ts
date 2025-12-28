@@ -99,8 +99,25 @@ async function startServer() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Servir arquivos estáticos da pasta uploads
-  app.use('/uploads', express.static('uploads'));
+  // Servir arquivos estáticos da pasta uploads (caminho absoluto)
+  const uploadsPath = path.join(process.cwd(), 'uploads');
+  console.log('📁 Uploads directory:', uploadsPath);
+
+  // Verificar se o diretório existe
+  const fs = require('fs');
+  if (!fs.existsSync(uploadsPath)) {
+    console.warn('⚠️ Uploads directory does not exist, creating:', uploadsPath);
+    fs.mkdirSync(uploadsPath, { recursive: true });
+  }
+
+  app.use('/uploads', (req, res, next) => {
+    console.log('📥 Upload request:', req.method, req.path);
+    next();
+  }, express.static(uploadsPath, {
+    setHeaders: (res, filePath) => {
+      console.log('✅ Serving file:', filePath);
+    }
+  }));
 
   // Setup Replit Auth (conditional)
   if (replitAuthEnabled) {
@@ -182,16 +199,25 @@ async function startServer() {
   // Servir SPA em produção (depois de todas as rotas da API)
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(__dirname, '..', 'dist');
+    console.log('📦 Dist directory:', distPath);
 
-    // Servir arquivos estáticos da build
-    app.use(express.static(distPath));
-
-    // SPA fallback - servir index.html para rotas não encontradas (exceto /api)
-    app.get('*', (req, res, next) => {
-      // Não servir index.html para rotas da API
+    // Servir arquivos estáticos da build (exceto /uploads e /api)
+    app.use((req, res, next) => {
+      // Skip static file serving for API and uploads
       if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
         return next();
       }
+      express.static(distPath)(req, res, next);
+    });
+
+    // SPA fallback - servir index.html para rotas não encontradas (exceto /api e /uploads)
+    app.get('*', (req, res, next) => {
+      // Não servir index.html para rotas da API e uploads
+      if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+        console.log('⏭️ Skipping SPA fallback for:', req.path);
+        return next();
+      }
+      console.log('📄 Serving SPA for:', req.path);
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
