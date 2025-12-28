@@ -148,7 +148,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { name, description, permissions } = req.body;
 
+    console.log('🎭 Creating new role');
+    console.log('🎭 Name:', name);
+    console.log('🎭 Description:', description);
+    console.log('🎭 Permissions:', permissions);
+
     if (!name) {
+      console.error('❌ Nome da função não fornecido');
       return res.status(400).json({
         success: false,
         error: 'Nome da função é obrigatório',
@@ -163,6 +169,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     );
 
     if (existing.rows.length > 0) {
+      console.error('❌ Função já existe:', name);
       return res.status(409).json({
         success: false,
         error: 'Já existe uma função com este nome',
@@ -170,11 +177,14 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       });
     }
 
+    console.log('💾 Inserindo role no banco de dados...');
     const result = await pool.query(`
       INSERT INTO roles (name, description, permissions, is_system, is_active)
       VALUES ($1, $2, $3, false, true)
       RETURNING *
     `, [name, description || '', JSON.stringify(permissions || [])]);
+
+    console.log('✅ Role criada com sucesso:', result.rows[0]);
 
     return res.status(201).json({
       success: true,
@@ -183,7 +193,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
-    console.error('Error creating role:', error);
+    console.error('❌ Error creating role:', error);
+    console.error('❌ Error stack:', error.stack);
     return res.status(500).json({
       success: false,
       error: 'Erro ao criar função',

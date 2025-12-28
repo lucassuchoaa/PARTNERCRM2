@@ -1718,14 +1718,22 @@ export default function Admin() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.role === 'admin' 
-                            ? 'bg-red-100 text-red-800' 
+                          user.role === 'admin'
+                            ? 'bg-red-100 text-red-800'
                             : user.role === 'manager'
                             ? 'bg-purple-100 text-purple-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {user.role === 'admin' ? 'Administrador' : 
-                           user.role === 'manager' ? 'Gerente de Parceiro' : 'Parceiro'}
+                          {(() => {
+                            // Se tem roleId, buscar nome da função
+                            if ((user as any).roleId) {
+                              const userRole = roles.find(r => r.id === (user as any).roleId)
+                              if (userRole) return userRole.name
+                            }
+                            // Fallback para mapeamento antigo
+                            return user.role === 'admin' ? 'Administrador' :
+                                   user.role === 'manager' ? 'Gerente de Parceiro' : 'Parceiro'
+                          })()}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

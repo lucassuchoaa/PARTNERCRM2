@@ -181,13 +181,20 @@ export default function RoleManagement() {
 
       const method = editingRole ? 'PUT' : 'POST'
 
+      console.log('[RoleManagement] Salvando funcao...')
+      console.log('[RoleManagement] URL:', url)
+      console.log('[RoleManagement] Method:', method)
+      console.log('[RoleManagement] Form data:', formData)
+
       const response = await fetchWithAuth(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
 
+      console.log('[RoleManagement] Response status:', response.status)
       const data = await response.json()
+      console.log('[RoleManagement] Response data:', data)
 
       if (data.success) {
         setSuccess(editingRole ? 'Funcao atualizada com sucesso!' : 'Funcao criada com sucesso!')
@@ -196,10 +203,11 @@ export default function RoleManagement() {
           handleCloseModal()
         }, 1500)
       } else {
+        console.error('[RoleManagement] Erro do servidor:', data.error)
         setError(data.error || 'Erro ao salvar funcao')
       }
     } catch (error) {
-      console.error('Erro ao salvar funcao:', error)
+      console.error('[RoleManagement] Erro ao salvar funcao:', error)
       setError('Erro ao salvar funcao')
     }
   }
