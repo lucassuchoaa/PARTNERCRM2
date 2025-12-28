@@ -29,11 +29,30 @@ export default function SupportMaterials() {
         const response = await fetchWithAuth(`${API_URL}/support-materials`)
         if (response.ok) {
           const data = await response.json()
+          let rawMaterials = []
+
           if (data.success && Array.isArray(data.data)) {
-            setMaterials(data.data)
+            rawMaterials = data.data
           } else if (Array.isArray(data)) {
-            setMaterials(data)
+            rawMaterials = data
           }
+
+          // Mapear snake_case do backend para camelCase do frontend
+          const mappedMaterials = rawMaterials.map((material: any) => ({
+            id: material.id,
+            title: material.title,
+            category: material.category,
+            type: material.type,
+            description: material.description,
+            downloadUrl: material.download_url || material.downloadUrl,
+            viewUrl: material.view_url || material.viewUrl,
+            duration: material.duration,
+            fileSize: material.file_size || material.fileSize,
+            createdAt: material.created_at || material.createdAt,
+            updatedAt: material.updated_at || material.updatedAt
+          }))
+
+          setMaterials(mappedMaterials)
         } else {
           console.error('Erro ao buscar materiais de apoio:', response.status)
         }
@@ -99,13 +118,57 @@ export default function SupportMaterials() {
   }
 
   const handleDownload = (material: SupportMaterial) => {
+    if (!material.downloadUrl) {
+      console.error('URL de download não disponível')
+      alert('Arquivo não disponível para download')
+      return
+    }
+
     console.log(`Baixando: ${material.title}`)
-    alert(`Baixando: ${material.title}`)
+
+    // Construir URL completa se for relativa
+    let downloadUrl = material.downloadUrl
+    if (downloadUrl.startsWith('/')) {
+      // URL relativa - construir URL completa
+      const baseUrl = API_URL.replace('/api', '')
+      downloadUrl = `${baseUrl}${material.downloadUrl}`
+    }
+
+    console.log('Download URL:', downloadUrl)
+
+    // Criar link temporário e fazer download
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = material.title || 'download'
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   const handleView = (material: SupportMaterial) => {
+    const urlToOpen = material.viewUrl || material.downloadUrl
+
+    if (!urlToOpen) {
+      console.error('URL de visualização não disponível')
+      alert('Arquivo não disponível para visualização')
+      return
+    }
+
     console.log(`Visualizando: ${material.title}`)
-    alert(`Abrindo: ${material.title}`)
+
+    // Construir URL completa se for relativa
+    let viewUrl = urlToOpen
+    if (viewUrl.startsWith('/')) {
+      // URL relativa - construir URL completa
+      const baseUrl = API_URL.replace('/api', '')
+      viewUrl = `${baseUrl}${urlToOpen}`
+    }
+
+    console.log('View URL:', viewUrl)
+
+    // Abrir em nova aba
+    window.open(viewUrl, '_blank', 'noopener,noreferrer')
   }
 
   return (
