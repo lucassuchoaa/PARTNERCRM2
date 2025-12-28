@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   name text NOT NULL,
   password text NOT NULL,
   role text NOT NULL CHECK (role IN ('admin', 'manager', 'partner')),
-  status text DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  status text DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'pending')),
   manager_id text,
   remuneration_table_ids integer[] DEFAULT '{}',
   created_at timestamp with time zone DEFAULT now(),
