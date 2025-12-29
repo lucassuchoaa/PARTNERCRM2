@@ -173,7 +173,7 @@ export const uploads = pgTable('uploads', {
   filePath: text('file_path').notNull(),
   fileUrl: text('file_url'),
   uploadedBy: text('uploaded_by'),
-  partnerId: integer('partner_id'),
+  partnerId: text('partner_id'),
   partnerName: text('partner_name'),
   referenceMonth: integer('reference_month'),
   referenceYear: integer('reference_year'),

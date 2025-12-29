@@ -51,7 +51,7 @@ interface UploadedFile {
   size: number | string
   status: 'pending' | 'approved' | 'rejected' | 'processed' | 'available'
   downloadCount: number
-  partnerId?: number
+  partnerId?: string
   partnerName?: string
   referenceMonth?: number
   referenceYear?: number
