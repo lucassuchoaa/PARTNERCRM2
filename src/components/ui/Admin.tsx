@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   UsersIcon,
+  UserIcon,
   DocumentArrowUpIcon,
   DocumentArrowDownIcon,
   TrashIcon,
@@ -50,6 +51,10 @@ interface UploadedFile {
   size: number | string
   status: 'pending' | 'approved' | 'rejected' | 'processed' | 'available'
   downloadCount: number
+  partnerId?: number
+  partnerName?: string
+  referenceMonth?: number
+  referenceYear?: number
 }
 
 interface NfeUpload {
@@ -149,6 +154,8 @@ export default function Admin() {
   const [nfeCustomEndDate, setNfeCustomEndDate] = useState('')
   const [filteredFiles, setFilteredFiles] = useState<UploadedFile[]>([])
   const [filteredNfeUploads, setFilteredNfeUploads] = useState<NfeUpload[]>([])
+  const [nfePartnerFilter, setNfePartnerFilter] = useState<string>('all')
+  const [filesPartnerFilter, setFilesPartnerFilter] = useState<string>('all')
 
   useEffect(() => {
     const checkUserAccess = async () => {
@@ -181,18 +188,24 @@ export default function Admin() {
     checkUserAccess()
   }, [])
 
-  // Filtrar arquivos baseado no filtro de data selecionado
+  // Filtrar arquivos baseado no filtro de data e parceiro selecionado
   useEffect(() => {
     const filterFiles = () => {
       const currentDate = new Date()
       const currentMonth = currentDate.getMonth()
       const currentYear = currentDate.getFullYear()
-      
+
       let filtered = [...uploadedFiles]
-      
+
+      // Filtro por parceiro
+      if (filesPartnerFilter !== 'all') {
+        filtered = filtered.filter(file => file.partnerId?.toString() === filesPartnerFilter)
+      }
+
+      // Filtro por data
       switch (filesDateFilter) {
         case 'current':
-          filtered = uploadedFiles.filter(file => {
+          filtered = filtered.filter(file => {
             const fileDate = new Date(file.uploadDate)
             return fileDate.getMonth() === currentMonth && fileDate.getFullYear() === currentYear
           })
@@ -200,7 +213,7 @@ export default function Admin() {
         case 'last':
           const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
           const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-          filtered = uploadedFiles.filter(file => {
+          filtered = filtered.filter(file => {
             const fileDate = new Date(file.uploadDate)
             return fileDate.getMonth() === lastMonth && fileDate.getFullYear() === lastMonthYear
           })
@@ -210,7 +223,7 @@ export default function Admin() {
             const startDate = new Date(filesCustomStartDate)
             const endDate = new Date(filesCustomEndDate)
             endDate.setMonth(endDate.getMonth() + 1) // Incluir o mês final completo
-            filtered = uploadedFiles.filter(file => {
+            filtered = filtered.filter(file => {
               const fileDate = new Date(file.uploadDate)
               return fileDate >= startDate && fileDate < endDate
             })
@@ -218,27 +231,33 @@ export default function Admin() {
           break
         case 'all':
         default:
-          filtered = uploadedFiles
+          // mantém filtered como está após filtro de parceiro
       }
-      
+
       setFilteredFiles(filtered)
     }
-    
-    filterFiles()
-  }, [uploadedFiles, filesDateFilter, filesCustomStartDate, filesCustomEndDate])
 
-  // Filtrar NFe uploads baseado no filtro de data selecionado
+    filterFiles()
+  }, [uploadedFiles, filesDateFilter, filesCustomStartDate, filesCustomEndDate, filesPartnerFilter])
+
+  // Filtrar NFe uploads baseado no filtro de data e parceiro selecionado
   useEffect(() => {
     const filterNfeUploads = () => {
       const currentDate = new Date()
       const currentMonth = currentDate.getMonth()
       const currentYear = currentDate.getFullYear()
-      
+
       let filtered = [...nfeUploads]
-      
+
+      // Filtro por parceiro
+      if (nfePartnerFilter !== 'all') {
+        filtered = filtered.filter(nfe => nfe.partnerId.toString() === nfePartnerFilter)
+      }
+
+      // Filtro por data
       switch (nfeDateFilter) {
         case 'current':
-          filtered = nfeUploads.filter(nfe => {
+          filtered = filtered.filter(nfe => {
             const nfeDate = new Date(nfe.uploadDate)
             return nfeDate.getMonth() === currentMonth && nfeDate.getFullYear() === currentYear
           })
@@ -246,7 +265,7 @@ export default function Admin() {
         case 'last':
           const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
           const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
-          filtered = nfeUploads.filter(nfe => {
+          filtered = filtered.filter(nfe => {
             const nfeDate = new Date(nfe.uploadDate)
             return nfeDate.getMonth() === lastMonth && nfeDate.getFullYear() === lastMonthYear
           })
@@ -256,7 +275,7 @@ export default function Admin() {
             const startDate = new Date(nfeCustomStartDate)
             const endDate = new Date(nfeCustomEndDate)
             endDate.setMonth(endDate.getMonth() + 1) // Incluir o mês final completo
-            filtered = nfeUploads.filter(nfe => {
+            filtered = filtered.filter(nfe => {
               const nfeDate = new Date(nfe.uploadDate)
               return nfeDate >= startDate && nfeDate < endDate
             })
@@ -264,14 +283,14 @@ export default function Admin() {
           break
         case 'all':
         default:
-          filtered = nfeUploads
+          // mantém filtered como está após filtro de parceiro
       }
-      
+
       setFilteredNfeUploads(filtered)
     }
-    
+
     filterNfeUploads()
-  }, [nfeUploads, nfeDateFilter, nfeCustomStartDate, nfeCustomEndDate])
+  }, [nfeUploads, nfeDateFilter, nfeCustomStartDate, nfeCustomEndDate, nfePartnerFilter])
 
   const fetchUsers = async () => {
     try {
@@ -1051,7 +1070,11 @@ export default function Admin() {
         uploadDate: new Date().toISOString(),
         size: selectedFile.size,
         status: 'approved',
-        downloadCount: 0
+        downloadCount: 0,
+        partnerId: selectedPartner.id,
+        partnerName: selectedPartner.name,
+        referenceMonth: parseInt(selectedMonth),
+        referenceYear: parseInt(selectedYear)
       }
 
       // Adicionar à lista de arquivos
@@ -2244,14 +2267,43 @@ export default function Admin() {
               </div>
             </div>
 
-            {/* Filtros de Data para Arquivos */}
-            <div className="mb-6 bg-white shadow rounded-lg p-4">
+            {/* Filtros para Arquivos */}
+            <div className="mb-6 bg-white shadow rounded-lg p-4 space-y-4">
+              {/* Filtro por Parceiro */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
-                  <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
-                  <span className="text-sm font-medium text-gray-700">Filtrar por data de upload:</span>
+                  <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm font-medium text-gray-700">Filtrar por parceiro:</span>
                 </div>
-                
+                <select
+                  value={filesPartnerFilter}
+                  onChange={(e) => setFilesPartnerFilter(e.target.value)}
+                  className="block w-64 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                >
+                  <option value="all">Todos os parceiros</option>
+                  {users.filter(u => u.role === 'partner').map(partner => (
+                    <option key={partner.id} value={partner.id.toString()}>
+                      {partner.name}
+                    </option>
+                  ))}
+                </select>
+                {filesPartnerFilter !== 'all' && (
+                  <button
+                    onClick={() => setFilesPartnerFilter('all')}
+                    className="text-sm text-indigo-600 hover:text-indigo-800"
+                  >
+                    Limpar filtro
+                  </button>
+                )}
+              </div>
+
+              {/* Filtro por Data */}
+              <div className="flex items-center space-x-4 flex-wrap gap-y-2">
+                <div className="flex items-center">
+                  <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <span className="text-sm font-medium text-gray-700">Filtrar por data:</span>
+                </div>
+
                 <div className="flex space-x-4">
                   <label className="flex items-center">
                     <input
@@ -2264,7 +2316,7 @@ export default function Admin() {
                     />
                     <span className="text-sm text-gray-700">Todos</span>
                   </label>
-                  
+
                   <label className="flex items-center">
                     <input
                       type="radio"
@@ -2276,7 +2328,7 @@ export default function Admin() {
                     />
                     <span className="text-sm text-gray-700">Mês Atual</span>
                   </label>
-                  
+
                   <label className="flex items-center">
                     <input
                       type="radio"
@@ -2288,7 +2340,7 @@ export default function Admin() {
                     />
                     <span className="text-sm text-gray-700">Mês Passado</span>
                   </label>
-                  
+
                   <label className="flex items-center">
                     <input
                       type="radio"
@@ -2301,7 +2353,7 @@ export default function Admin() {
                     <span className="text-sm text-gray-700">Personalizado</span>
                   </label>
                 </div>
-                
+
                 {filesDateFilter === 'custom' && (
                   <div className="flex space-x-2">
                     <div>
@@ -2333,10 +2385,13 @@ export default function Admin() {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Parceiro
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Arquivo
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tamanho
+                      Referência
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Upload
@@ -2345,24 +2400,47 @@ export default function Admin() {
                       Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Downloads
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ações
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {(filesDateFilter === 'all' ? uploadedFiles : filteredFiles).map((file) => (
+                  {filteredFiles.map((file) => {
+                    const partner = file.partnerId ? users.find(u => u.id === file.partnerId) : null
+                    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+                    return (
                     <tr key={file.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <UserIcon className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <div className="ml-3">
+                            <p className="text-sm font-medium text-gray-900">
+                              {file.partnerName || partner?.name || 'Não vinculado'}
+                            </p>
+                            {partner?.email && (
+                              <p className="text-xs text-gray-500">{partner.email}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{file.fileName}</div>
-                          <div className="text-sm text-gray-500">{file.fileType || 'PDF'}</div>
+                          <div className="text-sm text-gray-500">
+                            {file.fileType || 'PDF'} • {typeof file.size === 'string' ? file.size : formatFileSize(file.size || 0)}
+                          </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {typeof file.size === 'string' ? file.size : formatFileSize(file.size || 0)}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {file.referenceMonth && file.referenceYear ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {monthNames[file.referenceMonth - 1]}/{file.referenceYear}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
@@ -2388,9 +2466,6 @@ export default function Admin() {
                           <option value="approved">Aprovado</option>
                           <option value="rejected">Rejeitado</option>
                         </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {file.downloadCount || 0}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-2">
@@ -2418,10 +2493,19 @@ export default function Admin() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
+            {filteredFiles.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <DocumentTextIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>Nenhum relatório encontrado</p>
+                {(filesPartnerFilter !== 'all' || filesDateFilter !== 'all') && (
+                  <p className="text-sm mt-1">Tente ajustar os filtros</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -2434,14 +2518,43 @@ export default function Admin() {
                   Uploads de NFe dos Parceiros
                 </h3>
                 
-                {/* Filtros de Data para NFe */}
-                <div className="mb-6 bg-gray-50 rounded-lg p-4">
+                {/* Filtros para NFe */}
+                <div className="mb-6 bg-gray-50 rounded-lg p-4 space-y-4">
+                  {/* Filtro por Parceiro */}
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                      <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
-                      <span className="text-sm font-medium text-gray-700">Filtrar por data de upload:</span>
+                      <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">Filtrar por parceiro:</span>
                     </div>
-                    
+                    <select
+                      value={nfePartnerFilter}
+                      onChange={(e) => setNfePartnerFilter(e.target.value)}
+                      className="block w-64 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                    >
+                      <option value="all">Todos os parceiros</option>
+                      {users.filter(u => u.role === 'partner').map(partner => (
+                        <option key={partner.id} value={partner.id.toString()}>
+                          {partner.name}
+                        </option>
+                      ))}
+                    </select>
+                    {nfePartnerFilter !== 'all' && (
+                      <button
+                        onClick={() => setNfePartnerFilter('all')}
+                        className="text-sm text-indigo-600 hover:text-indigo-800"
+                      >
+                        Limpar filtro
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filtro por Data */}
+                  <div className="flex items-center space-x-4 flex-wrap gap-y-2">
+                    <div className="flex items-center">
+                      <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      <span className="text-sm font-medium text-gray-700">Filtrar por data:</span>
+                    </div>
+
                     <div className="flex space-x-4">
                       <label className="flex items-center">
                         <input
@@ -2454,7 +2567,7 @@ export default function Admin() {
                         />
                         <span className="text-sm text-gray-700">Todos</span>
                       </label>
-                      
+
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -2466,7 +2579,7 @@ export default function Admin() {
                         />
                         <span className="text-sm text-gray-700">Mês Atual</span>
                       </label>
-                      
+
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -2478,7 +2591,7 @@ export default function Admin() {
                         />
                         <span className="text-sm text-gray-700">Mês Passado</span>
                       </label>
-                      
+
                       <label className="flex items-center">
                         <input
                           type="radio"
@@ -2491,7 +2604,7 @@ export default function Admin() {
                         <span className="text-sm text-gray-700">Personalizado</span>
                       </label>
                     </div>
-                    
+
                     {nfeDateFilter === 'custom' && (
                       <div className="flex space-x-2">
                         <div>
@@ -2541,10 +2654,24 @@ export default function Admin() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {(nfeDateFilter === 'all' ? nfeUploads : filteredNfeUploads).map((nfe) => (
-                        <tr key={nfe.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {users.find(u => u.id.toString() === nfe.partnerId.toString())?.name || 'Parceiro não encontrado'}
+                      {filteredNfeUploads.map((nfe) => {
+                        const partner = users.find(u => u.id.toString() === nfe.partnerId.toString())
+                        return (
+                        <tr key={nfe.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                <UserIcon className="h-4 w-4 text-indigo-600" />
+                              </div>
+                              <div className="ml-3">
+                                <p className="text-sm font-medium text-gray-900">
+                                  {partner?.name || 'Parceiro não encontrado'}
+                                </p>
+                                {partner?.email && (
+                                  <p className="text-xs text-gray-500">{partner.email}</p>
+                                )}
+                              </div>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {nfe.fileName}
@@ -2587,10 +2714,19 @@ export default function Admin() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>
+                {filteredNfeUploads.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <DocumentTextIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                    <p>Nenhum upload de NFe encontrado</p>
+                    {(nfePartnerFilter !== 'all' || nfeDateFilter !== 'all') && (
+                      <p className="text-sm mt-1">Tente ajustar os filtros</p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
