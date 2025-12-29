@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { DocumentArrowDownIcon, PaperAirplaneIcon, CalendarIcon, DocumentArrowUpIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { CalendarIcon, DocumentArrowUpIcon, DocumentArrowDownIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { getCurrentUser } from '../../services/auth'
-import { sendNotificationEmail } from '../../services/api/emailService'
 import { API_URL } from '../../config/api'
 import { fetchWithAuth } from '../../services/api/fetch-with-auth'
 
@@ -202,70 +201,6 @@ export default function Reports() {
     }
   }
 
-  const handleDownloadReport = async (report: PartnerReport) => {
-    if (!currentUser) {
-      alert('Usuário não autenticado')
-      return
-    }
-
-    // Verificar se existe NFE upload para este período
-    const nfeUpload = nfeUploads.find(nfe =>
-      nfe.partnerId === currentUser.id &&
-      parseInt(nfe.month) === report.month &&
-      nfe.year === report.year &&
-      (nfe.status === 'processed' || nfe.status === 'available')
-    )
-
-    if (!nfeUpload || !nfeUpload.fileUrl) {
-      alert(`Relatório de ${monthNames[report.month - 1]} ${report.year} não está disponível para download.`)
-      return
-    }
-
-    // Fazer download do arquivo
-    try {
-      const response = await fetch(nfeUpload.fileUrl)
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = nfeUpload.fileName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    } catch (error) {
-      console.error('Erro ao baixar relatório:', error)
-      alert('Erro ao baixar relatório. Tente novamente.')
-    }
-  }
-
-  const handleSendInvoice = async (report: PartnerReport) => {
-    try {
-      if (!currentUser) {
-        alert('Usuário não autenticado')
-        return
-      }
-
-      // Enviar email com a nota fiscal
-      const emailResult = await sendNotificationEmail({
-        recipientEmail: currentUser.email,
-        recipientName: currentUser.name,
-        title: `Nota Fiscal - ${monthNames[report.month - 1]}/${report.year}`,
-        message: `Sua nota fiscal referente ao período de ${monthNames[report.month - 1]}/${report.year} foi processada.\n\nResumo:\n- Total de Indicações: ${report.totalReferrals}\n- Aprovadas: ${report.approvedReferrals}\n- Comissão Total: ${formatCurrency(report.totalCommission)}\n- Comissão Paga: ${formatCurrency(report.paidCommission)}`,
-        type: 'info'
-      })
-
-      if (emailResult.success) {
-        alert(`Nota fiscal de ${monthNames[report.month - 1]}/${report.year} enviada com sucesso por email!`)
-      } else {
-        throw new Error(emailResult.error || 'Erro ao enviar email')
-      }
-    } catch (error) {
-      console.error('Erro ao enviar nota fiscal:', error)
-      alert('Erro ao enviar nota fiscal. Tente novamente.')
-    }
-  }
-
   const handleNfeUpload = async (event: React.ChangeEvent<HTMLInputElement>, report: PartnerReport) => {
     const file = event.target.files?.[0]
     if (!file || !currentUser) return
@@ -453,19 +388,7 @@ export default function Reports() {
                       </th>
                     )}
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Total Indicações
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Aprovadas
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Comissão Total
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Comissão Paga
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
                     </th>
                     {currentUser?.role === 'partner' && (
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -491,40 +414,7 @@ export default function Reports() {
                       )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {report.totalReferrals}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-green-600 font-medium">
-                          {report.approvedReferrals}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
                           {formatCurrency(report.totalCommission)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-green-600 font-medium">
-                          {formatCurrency(report.paidCommission)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleDownloadReport(report)}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
-                            Baixar
-                          </button>
-                          <button
-                            onClick={() => handleSendInvoice(report)}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                          >
-                            <PaperAirplaneIcon className="h-4 w-4 mr-1" />
-                            Enviar
-                          </button>
                         </div>
                       </td>
                       {currentUser?.role === 'partner' && (
