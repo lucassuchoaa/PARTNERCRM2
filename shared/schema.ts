@@ -187,7 +187,7 @@ export const uploads = pgTable('uploads', {
 export const nfeUploads = pgTable('nfe_uploads', {
   id: serial('id').primaryKey(),
   fileName: text('file_name').notNull(),
-  partnerId: integer('partner_id').notNull(),
+  partnerId: text('partner_id').notNull(),
   partnerName: text('partner_name'),
   month: text('month').notNull(),
   year: integer('year').notNull(),
