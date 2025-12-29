@@ -524,8 +524,27 @@ export default function Reports() {
                         onClick={async (e) => {
                           e.preventDefault()
                           try {
-                            // Criar um link invisível com autenticação
-                            const token = localStorage.getItem('token')
+                            // Buscar token corretamente
+                            let token = null
+                            const authTokensJson = localStorage.getItem('auth_tokens')
+                            if (authTokensJson) {
+                              try {
+                                const authTokens = JSON.parse(authTokensJson)
+                                token = authTokens.accessToken
+                              } catch {
+                                // Ignora erro de parse
+                              }
+                            }
+                            // Fallback para formato antigo
+                            if (!token) {
+                              token = localStorage.getItem('accessToken')
+                            }
+
+                            if (!token) {
+                              alert('Você precisa estar autenticado para baixar arquivos. Por favor, faça login novamente.')
+                              return
+                            }
+
                             const downloadUrl = `${API_URL}/uploads/download/${upload.id}`
 
                             const response = await fetch(downloadUrl, {
@@ -536,11 +555,34 @@ export default function Reports() {
                             })
 
                             if (!response.ok) {
-                              throw new Error('Erro ao baixar arquivo')
+                              // Tentar obter mensagem de erro do servidor
+                              let errorMessage = 'Erro ao baixar arquivo'
+                              try {
+                                const errorData = await response.json()
+                                errorMessage = errorData.error || errorMessage
+                              } catch (e) {
+                                // Se não conseguir parsear JSON, usar mensagem padrão
+                              }
+
+                              if (response.status === 404) {
+                                errorMessage = 'Arquivo não encontrado. O arquivo pode ter sido removido ou ainda não foi carregado no servidor.'
+                              } else if (response.status === 403) {
+                                errorMessage = 'Você não tem permissão para baixar este arquivo.'
+                              } else if (response.status === 401) {
+                                errorMessage = 'Sua sessão expirou. Por favor, faça login novamente.'
+                              }
+
+                              throw new Error(errorMessage)
                             }
 
                             // Criar blob e fazer download
                             const blob = await response.blob()
+
+                            // Verificar se o blob tem conteúdo
+                            if (blob.size === 0) {
+                              throw new Error('O arquivo está vazio ou não pôde ser carregado.')
+                            }
+
                             const url = window.URL.createObjectURL(blob)
                             const a = document.createElement('a')
                             a.style.display = 'none'
@@ -554,9 +596,9 @@ export default function Reports() {
                               window.URL.revokeObjectURL(url)
                               document.body.removeChild(a)
                             }, 100)
-                          } catch (error) {
+                          } catch (error: any) {
                             console.error('Erro ao baixar arquivo:', error)
-                            alert('Erro ao baixar arquivo. Tente novamente.')
+                            alert(error.message || 'Erro ao baixar arquivo. Tente novamente.')
                           }
                         }}
                       >

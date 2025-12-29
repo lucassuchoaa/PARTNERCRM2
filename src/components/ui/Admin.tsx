@@ -1271,7 +1271,27 @@ export default function Admin() {
 
   const handleFileDownload = async (nfeId: number, fileName: string, partnerId?: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Buscar token corretamente
+      let token = null
+      const authTokensJson = localStorage.getItem('auth_tokens')
+      if (authTokensJson) {
+        try {
+          const authTokens = JSON.parse(authTokensJson)
+          token = authTokens.accessToken
+        } catch {
+          // Ignora erro de parse
+        }
+      }
+      // Fallback para formato antigo
+      if (!token) {
+        token = localStorage.getItem('accessToken')
+      }
+
+      if (!token) {
+        alert('Você precisa estar autenticado. Por favor, faça login novamente.')
+        return
+      }
+
       const downloadUrl = `${API_URL}/nfe_uploads/download/${nfeId}`
 
       const response = await fetch(downloadUrl, {
@@ -1282,7 +1302,13 @@ export default function Admin() {
       })
 
       if (!response.ok) {
-        throw new Error('Erro ao baixar arquivo')
+        let errorMessage = 'Erro ao baixar arquivo'
+        if (response.status === 401) {
+          errorMessage = 'Sua sessão expirou. Por favor, faça login novamente.'
+        } else if (response.status === 404) {
+          errorMessage = 'Arquivo não encontrado no servidor.'
+        }
+        throw new Error(errorMessage)
       }
 
       // Criar blob e fazer download
@@ -1322,7 +1348,27 @@ export default function Admin() {
 
   const handleFileView = async (nfeId: number, fileName: string) => {
     try {
-      const token = localStorage.getItem('token')
+      // Buscar token corretamente
+      let token = null
+      const authTokensJson = localStorage.getItem('auth_tokens')
+      if (authTokensJson) {
+        try {
+          const authTokens = JSON.parse(authTokensJson)
+          token = authTokens.accessToken
+        } catch {
+          // Ignora erro de parse
+        }
+      }
+      // Fallback para formato antigo
+      if (!token) {
+        token = localStorage.getItem('accessToken')
+      }
+
+      if (!token) {
+        alert('Você precisa estar autenticado. Por favor, faça login novamente.')
+        return
+      }
+
       const downloadUrl = `${API_URL}/nfe_uploads/download/${nfeId}`
 
       const response = await fetch(downloadUrl, {
