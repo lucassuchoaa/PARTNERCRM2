@@ -131,32 +131,89 @@ router.post('/', authenticate, upload.single('file'), async (req: AuthRequest, r
   }
 });
 
+// GET - Download de NFe por ID
+router.get('/download/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(`
+      SELECT file_path as "filePath", file_name as "fileName"
+      FROM nfe_uploads WHERE id = $1
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Arquivo não encontrado' });
+    }
+
+    const { filePath, fileName } = result.rows[0];
+
+    // Verificar se o arquivo existe
+    if (filePath && fs.existsSync(filePath)) {
+      res.download(filePath, fileName);
+    } else {
+      res.status(404).json({ error: 'Arquivo não encontrado no servidor' });
+    }
+  } catch (error) {
+    console.error('Error downloading NFe:', error);
+    res.status(500).json({ error: 'Erro ao baixar arquivo' });
+  }
+});
+
 // PATCH - Atualizar status de processamento
 router.patch('/:id/process', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
     const result = await pool.query(`
-      UPDATE nfe_uploads SET 
+      UPDATE nfe_uploads SET
         status = $1,
         processed_at = NOW()
       WHERE id = $2
-      RETURNING 
+      RETURNING
         id, file_name as "fileName", partner_id as "partnerId",
         partner_name as "partnerName", month, year,
         file_type as "fileType", status,
         processed_at as "processedAt"
     `, [status, id]);
-    
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'NFe upload não encontrado' });
     }
-    
+
     res.json(result.rows[0]);
   } catch (error) {
     console.error('Error processing NFe upload:', error);
     res.status(500).json({ error: 'Erro ao processar NFe upload' });
+  }
+});
+
+// DELETE - Remover NFe upload
+router.delete('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userRole = req.user?.role;
+
+    if (userRole !== 'admin') {
+      return res.status(403).json({ error: 'Apenas administradores podem excluir NFe uploads' });
+    }
+
+    // Buscar arquivo para deletar do disco
+    const fileResult = await pool.query(`SELECT file_path as "filePath" FROM nfe_uploads WHERE id = $1`, [id]);
+
+    if (fileResult.rows.length > 0 && fileResult.rows[0].filePath) {
+      const filePath = fileResult.rows[0].filePath;
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await pool.query(`DELETE FROM nfe_uploads WHERE id = $1`, [id]);
+
+    res.json({ success: true, message: 'NFe upload excluído com sucesso' });
+  } catch (error) {
+    console.error('Error deleting NFe upload:', error);
+    res.status(500).json({ error: 'Erro ao excluir NFe upload' });
   }
 });
 

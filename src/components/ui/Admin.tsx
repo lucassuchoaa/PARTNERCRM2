@@ -1269,16 +1269,38 @@ export default function Admin() {
     alert('Notificação enviada com sucesso!')
   }
 
-  const handleFileDownload = async (fileName: string, partnerId?: string) => {
+  const handleFileDownload = async (nfeId: number, fileName: string, partnerId?: string) => {
     try {
-      // Simular download do arquivo
-      const link = document.createElement('a')
-      link.href = `#` // Em produção, seria a URL real do arquivo
-      link.download = fileName
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
+      const token = localStorage.getItem('token')
+      const downloadUrl = `${API_URL}/nfe_uploads/download/${nfeId}`
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao baixar arquivo')
+      }
+
+      // Criar blob e fazer download
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.style.display = 'none'
+      a.href = url
+      a.download = fileName
+      document.body.appendChild(a)
+      a.click()
+
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }, 100)
+
       // Se for um arquivo de parceiro, enviar notificação
       if (partnerId) {
         const partner = users.find(u => u.id.toString() === partnerId)
@@ -1292,24 +1314,37 @@ export default function Admin() {
           })
         }
       }
-      
-      alert(`Download iniciado: ${fileName}`)
     } catch (error) {
       console.error('Erro no download:', error)
       alert('Erro ao fazer download do arquivo')
     }
   }
 
-  const handleFileView = (fileName: string, fileType: string) => {
+  const handleFileView = async (nfeId: number, fileName: string) => {
     try {
-      // Simular visualização do arquivo
-      if (fileType.toLowerCase().includes('pdf')) {
-        // Para PDFs, simular abertura em nova aba
-        alert(`Visualizando PDF: ${fileName}\n\nEm produção, o arquivo seria aberto em uma nova aba.`)
-      } else {
-        // Para outros tipos, mostrar modal de visualização
-        alert(`Visualizando arquivo: ${fileName}\nTipo: ${fileType}\n\nEm produção, o arquivo seria exibido em um modal ou nova aba.`)
+      const token = localStorage.getItem('token')
+      const downloadUrl = `${API_URL}/nfe_uploads/download/${nfeId}`
+
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Erro ao visualizar arquivo')
       }
+
+      // Criar blob e abrir em nova aba
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+
+      // Cleanup após um tempo
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url)
+      }, 60000) // 1 minuto
     } catch (error) {
       console.error('Erro ao visualizar arquivo:', error)
       alert('Erro ao visualizar arquivo')
@@ -2702,13 +2737,14 @@ export default function Admin() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
                               <button
-                                onClick={() => handleFileDownload(nfe.fileName, nfe.partnerId.toString())}
+                                onClick={() => handleFileDownload(nfe.id, nfe.fileName, nfe.partnerId.toString())}
                                 className="text-blue-600 hover:text-blue-900"
                                 title="Download"
                               >
                                 <DocumentArrowDownIcon className="h-4 w-4" />
                               </button>
                               <button
+                                onClick={() => handleFileView(nfe.id, nfe.fileName)}
                                 className="text-indigo-600 hover:text-indigo-900"
                                 title="Visualizar"
                               >

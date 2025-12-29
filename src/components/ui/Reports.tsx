@@ -517,35 +517,52 @@ export default function Reports() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={async () => {
+                      <a
+                        href={`${API_URL}/uploads/download/${upload.id}`}
+                        download
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 cursor-pointer"
+                        onClick={async (e) => {
+                          e.preventDefault()
                           try {
-                            const response = await fetchWithAuth(`${API_URL}/uploads/download/${upload.id}`)
+                            // Criar um link invisível com autenticação
+                            const token = localStorage.getItem('token')
+                            const downloadUrl = `${API_URL}/uploads/download/${upload.id}`
+
+                            const response = await fetch(downloadUrl, {
+                              method: 'GET',
+                              headers: {
+                                'Authorization': `Bearer ${token}`
+                              }
+                            })
 
                             if (!response.ok) {
                               throw new Error('Erro ao baixar arquivo')
                             }
 
-                            // Criar blob do arquivo e fazer download
+                            // Criar blob e fazer download
                             const blob = await response.blob()
                             const url = window.URL.createObjectURL(blob)
                             const a = document.createElement('a')
+                            a.style.display = 'none'
                             a.href = url
-                            a.download = upload.fileName || 'relatorio.pdf'
+                            a.download = upload.originalName || upload.fileName || 'relatorio.pdf'
                             document.body.appendChild(a)
                             a.click()
-                            window.URL.revokeObjectURL(url)
-                            document.body.removeChild(a)
+
+                            // Cleanup
+                            setTimeout(() => {
+                              window.URL.revokeObjectURL(url)
+                              document.body.removeChild(a)
+                            }, 100)
                           } catch (error) {
                             console.error('Erro ao baixar arquivo:', error)
                             alert('Erro ao baixar arquivo. Tente novamente.')
                           }
                         }}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
                       >
                         <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                         Baixar
-                      </button>
+                      </a>
                     </td>
                   </tr>
                 ))}
