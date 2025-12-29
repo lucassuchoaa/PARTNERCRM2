@@ -1062,36 +1062,48 @@ export default function Admin() {
       const fileExtension = selectedFile.name.split('.').pop()
       const fileName = `relatorio_${selectedPartner.name.toLowerCase().replace(/\s+/g, '_')}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.${fileExtension}`
 
-      const newFile: UploadedFile = {
-        id: Date.now(),
+      // Salvar o upload no banco de dados
+      const uploadData = {
         fileName: fileName,
+        originalName: selectedFile.name,
         fileType: fileExtension?.toUpperCase() || 'PDF',
-        uploadedBy: 'admin@somapay.com.br',
-        uploadDate: new Date().toISOString(),
+        filePath: `/uploads/reports/${fileName}`,
+        fileUrl: `/uploads/reports/${fileName}`,
+        uploadedBy: currentUser?.email || 'admin',
         size: selectedFile.size,
         status: 'approved',
-        downloadCount: 0,
         partnerId: selectedPartner.id,
         partnerName: selectedPartner.name,
         referenceMonth: parseInt(selectedMonth),
         referenceYear: parseInt(selectedYear)
       }
 
-      // Adicionar à lista de arquivos
-      setUploadedFiles(prev => [newFile, ...prev])
+      const uploadResponse = await fetchWithAuth(`${API_URL}/uploads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(uploadData)
+      })
 
-      // Adicionar aos relatórios do parceiro no db.json
+      if (uploadResponse.ok) {
+        const savedUpload = await uploadResponse.json()
+        // Adicionar à lista de arquivos com o ID do banco
+        setUploadedFiles(prev => [savedUpload, ...prev])
+      }
+
+      // Criar relatório de performance para o parceiro
        const reportData = {
-         id: Date.now(),
-         fileName: fileName,
          partnerId: selectedPartner.id,
-         partnerName: selectedPartner.name,
-         referenceMonth: parseInt(selectedMonth),
-         referenceYear: parseInt(selectedYear),
-         uploadDate: new Date().toISOString(),
-         fileType: fileExtension?.toUpperCase() || 'PDF',
-         size: selectedFile.size,
-         status: 'available'
+         month: parseInt(selectedMonth),
+         year: parseInt(selectedYear),
+         totalReferrals: 0,
+         approvedReferrals: 0,
+         rejectedReferrals: 0,
+         pendingReferrals: 0,
+         totalCommission: 0,
+         paidCommission: 0,
+         pendingCommission: 0
        }
 
       await fetchWithAuth(`${API_URL}/partner_reports`, {

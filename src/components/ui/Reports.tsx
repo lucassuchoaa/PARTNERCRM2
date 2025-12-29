@@ -38,15 +38,34 @@ interface NfeUpload {
 }
 
 interface User {
-  id: number
+  id: number | string
   email: string
   name: string
   role: string
 }
 
+interface ReportUpload {
+  id: number
+  fileName: string
+  originalName?: string
+  fileType: string
+  filePath?: string
+  fileUrl?: string
+  uploadedBy?: string
+  partnerId?: string
+  partnerName?: string
+  referenceMonth?: number
+  referenceYear?: number
+  size?: number
+  status: string
+  downloadCount?: number
+  uploadDate: string
+}
+
 export default function Reports() {
   const [reports, setReports] = useState<PartnerReport[]>([])
   const [nfeUploads, setNfeUploads] = useState<NfeUpload[]>([])
+  const [reportUploads, setReportUploads] = useState<ReportUpload[]>([])
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [dateFilter, setDateFilter] = useState<'current' | 'last' | 'all' | 'custom'>('all')
@@ -71,6 +90,8 @@ export default function Reports() {
           await fetchPartnerReports()
           // Buscar NFE uploads
           await fetchNfeUploads()
+          // Buscar uploads de relatórios (PDFs)
+          await fetchReportUploads()
         }
       } catch (error) {
         console.error('Erro ao inicializar dados:', error)
@@ -160,6 +181,24 @@ export default function Reports() {
     } catch (error) {
       console.error('Erro ao buscar NFe uploads:', error)
       setNfeUploads([])
+    }
+  }
+
+  const fetchReportUploads = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/uploads`)
+
+      if (!response.ok) {
+        console.error('Erro ao buscar uploads de relatórios')
+        setReportUploads([])
+        return
+      }
+
+      const data = await response.json()
+      setReportUploads(Array.isArray(data) ? data : [])
+    } catch (error) {
+      console.error('Erro ao buscar uploads de relatórios:', error)
+      setReportUploads([])
     }
   }
 
@@ -517,7 +556,7 @@ export default function Reports() {
         </div>
       </div>
 
-      {filteredReports.length === 0 && (
+      {filteredReports.length === 0 && reportUploads.length === 0 && (
         <div className="text-center py-12">
           <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">Nenhum relatório encontrado</h3>
@@ -526,6 +565,87 @@ export default function Reports() {
               ? 'Selecione as datas de início e fim para filtrar os relatórios.'
               : 'Nenhum relatório encontrado para o período selecionado.'}
           </p>
+        </div>
+      )}
+
+      {/* Seção de Arquivos de Relatórios */}
+      {reportUploads.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-base font-semibold leading-6 text-gray-900 mb-4">Arquivos Disponíveis</h2>
+          <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Arquivo
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Referência
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data Upload
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {reportUploads.map((upload) => (
+                  <tr key={upload.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{upload.fileName}</div>
+                        <div className="text-sm text-gray-500">{upload.fileType || 'PDF'}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {upload.referenceMonth && upload.referenceYear ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                          {monthNames[upload.referenceMonth - 1]}/{upload.referenceYear}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(upload.uploadDate).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        upload.status === 'approved' || upload.status === 'available'
+                          ? 'bg-green-100 text-green-800'
+                          : upload.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {upload.status === 'approved' || upload.status === 'available' ? 'Disponível' :
+                         upload.status === 'pending' ? 'Pendente' : upload.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => {
+                          if (upload.fileUrl) {
+                            window.open(upload.fileUrl, '_blank')
+                          } else {
+                            alert('Arquivo não disponível para download.')
+                          }
+                        }}
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                      >
+                        <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
+                        Baixar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
