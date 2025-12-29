@@ -2,18 +2,48 @@ import { Router, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { filterUsersByPermission, getViewableRoles, canCreateRole, canViewRole, getCreatableRoles } from '../config/roleHierarchy';
 
 const router = Router();
 
+// Rota para obter roles permitidos para o usuário atual
+router.get('/allowed-roles', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const userRole = req.user?.role || 'client';
+    const creatableRoles = getCreatableRoles(userRole);
+
+    return res.json({
+      success: true,
+      data: creatableRoles,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Get allowed roles error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao buscar roles permitidas',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const userRole = req.user?.role || 'client';
+
+    // Buscar todos os usuários
     const result = await query(
       'SELECT id, email, name, role, role_id, status, manager_id, created_at, last_login, permissions, phone, company, first_name, last_name, profile_image_url FROM users ORDER BY created_at DESC'
     );
 
+    // Filtrar usuários baseado nas permissões
+    const filteredUsers = filterUsersByPermission(result.rows, userRole);
+
+    console.log(`👥 User with role '${userRole}' can view ${filteredUsers.length} of ${result.rows.length} users`);
+
     return res.json({
       success: true,
-      data: result.rows,
+      data: filteredUsers,
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -61,10 +91,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { email, name, password, role, roleId, managerId, permissions } = req.body;
+    const creatorRole = req.user?.role || 'client';
 
     console.log('➕ Creating user');
+    console.log('➕ Creator role:', creatorRole);
+    console.log('➕ Target role:', role);
     console.log('➕ roleId received:', roleId);
-    console.log('➕ role received:', role);
 
     // Normalizar roleId - converter empty string para null
     const normalizedRoleId = roleId === '' ? null : roleId;
@@ -74,6 +106,16 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       return res.status(400).json({
         success: false,
         error: 'Campos obrigatórios: email, name, password, role',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Verificar se o criador tem permissão para criar este role
+    if (!canCreateRole(creatorRole, role)) {
+      console.log(`❌ User with role '${creatorRole}' cannot create role '${role}'`);
+      return res.status(403).json({
+        success: false,
+        error: `Você não tem permissão para criar usuários com o papel '${role}'`,
         timestamp: new Date().toISOString()
       });
     }
@@ -101,6 +143,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       [userId, email.toLowerCase(), name, hashedPassword, role, normalizedRoleId, managerId || null, permissions || []]
     );
 
+    console.log(`✅ User created successfully with role '${role}' by '${creatorRole}'`);
+
     return res.status(201).json({
       success: true,
       data: result.rows[0],
@@ -121,10 +165,22 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { name, role, roleId, status, managerId, permissions, phone, company, firstName, lastName, profileImageUrl } = req.body;
+    const editorRole = req.user?.role || 'client';
 
     console.log('📝 Updating user:', id);
+    console.log('📝 Editor role:', editorRole);
+    console.log('📝 New role:', role);
     console.log('📝 roleId received:', roleId);
-    console.log('📝 role received:', role);
+
+    // Se está tentando alterar o role, verificar permissão
+    if (role && !canCreateRole(editorRole, role)) {
+      console.log(`❌ User with role '${editorRole}' cannot set role to '${role}'`);
+      return res.status(403).json({
+        success: false,
+        error: `Você não tem permissão para definir o papel '${role}'`,
+        timestamp: new Date().toISOString()
+      });
+    }
 
     // Normalizar roleId - converter empty string para null
     const normalizedRoleId = roleId === '' ? null : roleId;

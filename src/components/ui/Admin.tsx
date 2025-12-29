@@ -119,6 +119,7 @@ export default function Admin() {
   const [managers, setManagers] = useState<any[]>([])
   const [remunerationTables, setRemunerationTables] = useState<any[]>([])
   const [roles, setRoles] = useState<any[]>([])
+  const [allowedRoles, setAllowedRoles] = useState<string[]>([])
   const [showRemunerationModal, setShowRemunerationModal] = useState(false)
   const [editingRemuneration, setEditingRemuneration] = useState<any>(null)
   const [newRemuneration, setNewRemuneration] = useState({
@@ -178,6 +179,7 @@ export default function Admin() {
         fetchManagers()
         fetchRemunerationTables()
         fetchRoles()
+        fetchAllowedRoles()
         fetchSupportMaterials()
       } catch (error) {
         console.error('Erro ao verificar acesso:', error)
@@ -516,6 +518,27 @@ export default function Admin() {
     } catch (error) {
       console.error('Erro ao buscar roles:', error)
       setRoles([])
+    }
+  }
+
+  const fetchAllowedRoles = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/users/allowed-roles`)
+
+      if (!response.ok) {
+        console.error('Erro ao buscar roles permitidas')
+        setAllowedRoles([])
+        return
+      }
+
+      const result = await response.json()
+      const allowedRolesList = result.data || []
+
+      console.log('Roles permitidas:', allowedRolesList)
+      setAllowedRoles(allowedRolesList)
+    } catch (error) {
+      console.error('Erro ao buscar roles permitidas:', error)
+      setAllowedRoles([])
     }
   }
 
@@ -2969,11 +2992,27 @@ export default function Admin() {
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   >
                     <option value="">Selecione uma função</option>
-                    {roles.map(role => (
-                      <option key={role.id} value={role.id}>
-                        {role.name} {role.is_system ? '(Sistema)' : ''}
-                      </option>
-                    ))}
+                    {roles
+                      .filter(role => {
+                        // Filtrar apenas roles permitidas baseado na hierarquia
+                        const roleName = role.name.toLowerCase()
+                        return allowedRoles.some(allowed => {
+                          const allowedLower = allowed.toLowerCase()
+                          // Verificar se a role do banco corresponde à role permitida
+                          return roleName.includes(allowedLower) ||
+                                 (allowedLower === 'admin' && roleName.includes('administrador')) ||
+                                 (allowedLower === 'administrator' && roleName.includes('administrador')) ||
+                                 (allowedLower === 'manager' && roleName.includes('gerente')) ||
+                                 (allowedLower === 'partner' && roleName.includes('parceiro')) ||
+                                 (allowedLower === 'client' && roleName.includes('cliente'))
+                        })
+                      })
+                      .map(role => (
+                        <option key={role.id} value={role.id}>
+                          {role.name} {role.is_system ? '(Sistema)' : ''}
+                        </option>
+                      ))
+                    }
                   </select>
                 </div>
                 {(newUser.role === 'partner' || (editingUser && editingUser.role === 'partner')) && (
