@@ -139,6 +139,11 @@ async function startProductionServer() {
   console.log('✅ Registered route: /api/partner_reports');
   console.log('✅ Registered route: /api/email');
 
+  // Servir arquivos de uploads estáticos
+  const uploadsPath = join(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadsPath));
+  console.log('✅ Serving uploads from:', uploadsPath);
+
   const distPath = join(__dirname, '../dist');
   app.use(express.static(distPath, {
     setHeaders: (res, path) => {

@@ -1058,38 +1058,26 @@ export default function Admin() {
     }
 
     try {
-      // Criar nome do arquivo com informações do parceiro e período de referência
-      const fileExtension = selectedFile.name.split('.').pop()
-      const fileName = `relatorio_${selectedPartner.name.toLowerCase().replace(/\s+/g, '_')}_${selectedYear}_${String(selectedMonth).padStart(2, '0')}.${fileExtension}`
+      // Fazer upload real do arquivo usando FormData
+      const formData = new FormData()
+      formData.append('file', selectedFile)
+      formData.append('partnerId', selectedPartner.id.toString())
+      formData.append('partnerName', selectedPartner.name)
+      formData.append('referenceMonth', selectedMonth)
+      formData.append('referenceYear', selectedYear)
 
-      // Salvar o upload no banco de dados
-      const uploadData = {
-        fileName: fileName,
-        originalName: selectedFile.name,
-        fileType: fileExtension?.toUpperCase() || 'PDF',
-        filePath: `/uploads/reports/${fileName}`,
-        fileUrl: `/uploads/reports/${fileName}`,
-        uploadedBy: currentUser?.email || 'admin',
-        size: selectedFile.size,
-        status: 'approved',
-        partnerId: selectedPartner.id,
-        partnerName: selectedPartner.name,
-        referenceMonth: parseInt(selectedMonth),
-        referenceYear: parseInt(selectedYear)
-      }
-
-      const uploadResponse = await fetchWithAuth(`${API_URL}/uploads`, {
+      const uploadResponse = await fetchWithAuth(`${API_URL}/uploads/file`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(uploadData)
+        body: formData
+        // Não definir Content-Type - o browser vai definir automaticamente com boundary
       })
 
       if (uploadResponse.ok) {
         const savedUpload = await uploadResponse.json()
         // Adicionar à lista de arquivos com o ID do banco
         setUploadedFiles(prev => [savedUpload, ...prev])
+      } else {
+        throw new Error('Erro ao fazer upload do arquivo')
       }
 
       // Criar relatório de performance para o parceiro

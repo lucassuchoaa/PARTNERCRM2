@@ -96,6 +96,19 @@ function generateNotificationTemplate(data: NotificationEmailData): string {
 // POST - Enviar email genérico
 router.post('/send', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Verificar se Resend está configurado
+    if (!resend) {
+      console.warn('⚠️ Resend not configured - email will not be sent');
+      return res.json({
+        success: true,
+        data: {
+          success: true,
+          messageId: 'email-disabled',
+          note: 'Email service not configured'
+        }
+      });
+    }
+
     const { to, subject, html, from } = req.body;
 
     if (!to || !subject || !html) {
@@ -131,6 +144,19 @@ router.post('/send', authenticate, async (req: AuthRequest, res: Response) => {
 // POST - Enviar email de notificação
 router.post('/notification', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    // Verificar se Resend está configurado
+    if (!resend) {
+      console.warn('⚠️ Resend not configured - email will not be sent');
+      return res.json({
+        success: true,
+        data: {
+          success: true,
+          messageId: 'email-disabled',
+          note: 'Email service not configured'
+        }
+      });
+    }
+
     const { recipientEmail, recipientName, title, message, type } = req.body as NotificationEmailData;
 
     if (!recipientEmail || !recipientName || !title || !message || !type) {

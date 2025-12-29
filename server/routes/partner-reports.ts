@@ -145,7 +145,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// POST - Criar novo relatório (apenas admin)
+// POST - Criar ou atualizar relatório (apenas admin)
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const userRole = req.user?.role;
@@ -167,6 +167,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
       pendingCommission = 0
     } = req.body;
 
+    // Usar UPSERT para evitar erro de duplicidade
     const result = await pool.query(`
       INSERT INTO partner_reports (
         partner_id, month, year,
@@ -174,6 +175,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         total_commission, paid_commission, pending_commission
       )
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ON CONFLICT (partner_id, month, year) DO UPDATE SET
+        updated_at = NOW()
       RETURNING
         id,
         partner_id as "partnerId",
