@@ -113,6 +113,7 @@ export default function Admin() {
   const [selectedPartnerId, setSelectedPartnerId] = useState('')
   const [selectedMonth, setSelectedMonth] = useState('')
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [reportValue, setReportValue] = useState('')
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [accessDenied, setAccessDenied] = useState(false)
   const [managers, setManagers] = useState<any[]>([])
@@ -1081,6 +1082,7 @@ export default function Admin() {
       }
 
       // Criar relatório de performance para o parceiro
+       const totalCommissionValue = parseFloat(reportValue) || 0
        const reportData = {
          partnerId: selectedPartner.id,
          month: parseInt(selectedMonth),
@@ -1089,8 +1091,8 @@ export default function Admin() {
          approvedReferrals: 0,
          rejectedReferrals: 0,
          pendingReferrals: 0,
-         totalCommission: 0,
-         paidCommission: 0,
+         totalCommission: totalCommissionValue,
+         paidCommission: totalCommissionValue,
          pendingCommission: 0
        }
 
@@ -1136,6 +1138,7 @@ export default function Admin() {
        setSelectedPartnerId('')
        setSelectedMonth('')
        setSelectedYear(new Date().getFullYear().toString())
+       setReportValue('')
        alert(`Relatório de ${selectedMonth}/${selectedYear} enviado com sucesso para ${selectedPartner.name}!`)
     } catch (error) {
       console.error('Erro ao fazer upload do relatório:', error)
@@ -3060,6 +3063,18 @@ export default function Admin() {
                      </select>
                    </div>
                  </div>
+                 <div>
+                   <label className="block text-sm font-medium text-gray-700">Valor do Relatório (R$)</label>
+                   <input
+                     type="number"
+                     step="0.01"
+                     min="0"
+                     value={reportValue}
+                     onChange={(e) => setReportValue(e.target.value)}
+                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                     placeholder="0.00"
+                   />
+                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Arquivo do Relatório</label>
                   <input
@@ -3081,6 +3096,7 @@ export default function Admin() {
                     setShowUploadModal(false)
                     setSelectedFile(null)
                     setSelectedPartnerId('')
+                    setReportValue('')
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                 >

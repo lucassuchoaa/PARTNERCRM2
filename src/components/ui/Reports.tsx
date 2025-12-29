@@ -518,11 +518,27 @@ export default function Reports() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => {
-                          if (upload.fileUrl) {
-                            window.open(upload.fileUrl, '_blank')
-                          } else {
-                            alert('Arquivo não disponível para download.')
+                        onClick={async () => {
+                          try {
+                            const response = await fetchWithAuth(`${API_URL}/uploads/download/${upload.id}`)
+
+                            if (!response.ok) {
+                              throw new Error('Erro ao baixar arquivo')
+                            }
+
+                            // Criar blob do arquivo e fazer download
+                            const blob = await response.blob()
+                            const url = window.URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = upload.fileName || 'relatorio.pdf'
+                            document.body.appendChild(a)
+                            a.click()
+                            window.URL.revokeObjectURL(url)
+                            document.body.removeChild(a)
+                          } catch (error) {
+                            console.error('Erro ao baixar arquivo:', error)
+                            alert('Erro ao baixar arquivo. Tente novamente.')
                           }
                         }}
                         className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
