@@ -106,26 +106,22 @@ export default function ManagerDashboard() {
         if (user) {
           setCurrentUser(user)
 
-          // Buscar dados do gerente (parceiros vinculados)
-          let partnersIds: string[] = []
+          // Buscar parceiros vinculados ao gerente
           let myPartners: Partner[] = []
 
-          const managerResponse = await fetch(`${API_URL}/managers/${user.id}`, { credentials: 'include' })
-          if (managerResponse.ok) {
-            const managerData = await managerResponse.json()
-            partnersIds = managerData.partnersIds || []
-
-            // Buscar parceiros completos vinculados ao gerente
-            const partnersResponse = await fetch(`${API_URL}/partners`, { credentials: 'include' })
-            if (partnersResponse.ok) {
-              const allPartners = await partnersResponse.json()
-              myPartners = allPartners.filter((partner: Partner) =>
-                partnersIds.includes(partner.id)
-              )
-              setPartners(myPartners)
-            }
+          // Buscar todos os usuários e filtrar os parceiros vinculados a este gerente
+          const usersResponse = await fetch(`${API_URL}/users`, { credentials: 'include' })
+          if (usersResponse.ok) {
+            const allUsers = await usersResponse.json()
+            // Filtrar usuários que são parceiros e estão vinculados a este gerente
+            myPartners = allUsers.filter((u: any) =>
+              u.role === 'partner' &&
+              u.managerId === user.id &&
+              u.status === 'active'
+            )
+            setPartners(myPartners)
           } else {
-            // Gerente nao encontrado ou sem parceiros - definir arrays vazios
+            // Erro ao buscar usuários - definir array vazio
             setPartners([])
           }
 
