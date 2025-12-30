@@ -9,19 +9,55 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const result = await pool.query(`
       SELECT
-        id,
-        email,
-        name,
-        role,
-        manager_id as "managerId",
-        created_at as "createdAt",
-        status
-      FROM users
-      WHERE role = 'partner'
-      ORDER BY name ASC
+        u.id,
+        u.email,
+        u.name,
+        u.role,
+        u.manager_id as "managerId",
+        u.created_at as "createdAt",
+        u.status,
+        u.phone,
+        u.company,
+        u.cnpj,
+        u.address,
+        u.bank_name,
+        u.bank_agency,
+        u.bank_account,
+        u.bank_account_type,
+        u.pix_key,
+        m.name as "managerName"
+      FROM users u
+      LEFT JOIN users m ON u.manager_id = m.id
+      WHERE u.role = 'partner'
+      ORDER BY u.name ASC
     `);
 
-    res.json(result.rows);
+    // Transformar dados para o formato esperado pelo frontend
+    const transformedData = result.rows.map(row => ({
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      managerId: row.managerId,
+      managerName: row.managerName,
+      createdAt: row.createdAt,
+      status: row.status,
+      company: row.company || row.cnpj ? {
+        name: row.company || '',
+        cnpj: row.cnpj || '',
+        address: row.address || '',
+        phone: row.phone || ''
+      } : undefined,
+      bankData: row.bank_name ? {
+        bank: row.bank_name,
+        agency: row.bank_agency || '',
+        account: row.bank_account || '',
+        accountType: row.bank_account_type || '',
+        pix: row.pix_key || ''
+      } : undefined
+    }));
+
+    res.json(transformedData);
   } catch (error) {
     console.error('Error fetching partners:', error);
     res.status(500).json({ error: 'Erro ao buscar parceiros' });
@@ -35,22 +71,58 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
     const result = await pool.query(`
       SELECT
-        id,
-        email,
-        name,
-        role,
-        manager_id as "managerId",
-        created_at as "createdAt",
-        status
-      FROM users
-      WHERE id = $1 AND role = 'partner'
+        u.id,
+        u.email,
+        u.name,
+        u.role,
+        u.manager_id as "managerId",
+        u.created_at as "createdAt",
+        u.status,
+        u.phone,
+        u.company,
+        u.cnpj,
+        u.address,
+        u.bank_name,
+        u.bank_agency,
+        u.bank_account,
+        u.bank_account_type,
+        u.pix_key,
+        m.name as "managerName"
+      FROM users u
+      LEFT JOIN users m ON u.manager_id = m.id
+      WHERE u.id = $1 AND u.role = 'partner'
     `, [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Parceiro não encontrado' });
     }
 
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    const transformedData = {
+      id: row.id,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      managerId: row.managerId,
+      managerName: row.managerName,
+      createdAt: row.createdAt,
+      status: row.status,
+      company: row.company || row.cnpj ? {
+        name: row.company || '',
+        cnpj: row.cnpj || '',
+        address: row.address || '',
+        phone: row.phone || ''
+      } : undefined,
+      bankData: row.bank_name ? {
+        bank: row.bank_name,
+        agency: row.bank_agency || '',
+        account: row.bank_account || '',
+        accountType: row.bank_account_type || '',
+        pix: row.pix_key || ''
+      } : undefined
+    };
+
+    res.json(transformedData);
   } catch (error) {
     console.error('Error fetching partner:', error);
     res.status(500).json({ error: 'Erro ao buscar parceiro' });

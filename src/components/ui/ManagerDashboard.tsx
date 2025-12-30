@@ -105,64 +105,62 @@ export default function ManagerDashboard() {
         const user = await getCurrentUser()
         if (user) {
           setCurrentUser(user)
-          
-          // Buscar dados do gerente
+
+          // Buscar dados do gerente (parceiros vinculados)
+          let partnersIds: string[] = []
+          let myPartners: Partner[] = []
+
           const managerResponse = await fetch(`${API_URL}/managers/${user.id}`, { credentials: 'include' })
           if (managerResponse.ok) {
             const managerData = await managerResponse.json()
-            
-            // Buscar parceiros vinculados ao gerente
+            partnersIds = managerData.partnersIds || []
+
+            // Buscar parceiros completos vinculados ao gerente
             const partnersResponse = await fetch(`${API_URL}/partners`, { credentials: 'include' })
             if (partnersResponse.ok) {
               const allPartners = await partnersResponse.json()
-              const myPartners = allPartners.filter((partner: Partner) => 
-                managerData.partnersIds.includes(partner.id)
+              myPartners = allPartners.filter((partner: Partner) =>
+                partnersIds.includes(partner.id)
               )
               setPartners(myPartners)
-              
-              // Buscar prospects dos parceiros
-              const prospectsResponse = await fetch(`${API_URL}/prospects`, { credentials: 'include' })
-              let myProspects: Prospect[] = []
-              if (prospectsResponse.ok) {
-                const allProspects = await prospectsResponse.json()
-                myProspects = allProspects.filter((prospect: Prospect) => 
-                  managerData.partnersIds.includes(prospect.partnerId.toString())
-                )
-                setProspects(myProspects)
-              }
-              
-              // Buscar clientes dos parceiros
-              const clientsResponse = await fetch(`${API_URL}/clients`, { credentials: 'include' })
-              let myClients: Client[] = []
-              if (clientsResponse.ok) {
-                const allClients = await clientsResponse.json()
-                myClients = allClients.filter((client: Client) => 
-                  client.partnerId && managerData.partnersIds.includes(client.partnerId.toString())
-                )
-                setClients(myClients)
-              }
-              
-              // Buscar relatórios dos parceiros
-              const reportsResponse = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
-              if (reportsResponse.ok) {
-                const allReports = await reportsResponse.json()
-                const myReports = allReports.filter((report: any) => 
-                  managerData.partnersIds.includes(report.partnerId?.toString())
-                )
-                setPartnerReports(myReports)
-              }
-              
-              // Calcular estatísticas
-              const pendingProspects = myProspects.filter((p: Prospect) => p.status === 'pending' || p.status === 'in-analysis').length
-              
-              setDashboardData({
-                totalPartners: myPartners.length,
-                totalProspects: myProspects.length,
-                totalClients: myClients.length,
-                pendingProspects
-              })
             }
+          } else {
+            // Gerente nao encontrado ou sem parceiros - definir arrays vazios
+            setPartners([])
           }
+
+          // Buscar prospects - a API ja filtra automaticamente por role
+          const prospectsResponse = await fetch(`${API_URL}/prospects`, { credentials: 'include' })
+          let myProspects: Prospect[] = []
+          if (prospectsResponse.ok) {
+            myProspects = await prospectsResponse.json()
+            setProspects(myProspects)
+          }
+
+          // Buscar clientes - a API ja filtra automaticamente por role
+          const clientsResponse = await fetch(`${API_URL}/clients`, { credentials: 'include' })
+          let myClients: Client[] = []
+          if (clientsResponse.ok) {
+            myClients = await clientsResponse.json()
+            setClients(myClients)
+          }
+
+          // Buscar relatorios dos parceiros - a API ja filtra automaticamente por role
+          const reportsResponse = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
+          if (reportsResponse.ok) {
+            const myReports = await reportsResponse.json()
+            setPartnerReports(myReports)
+          }
+
+          // Calcular estatisticas
+          const pendingProspects = myProspects.filter((p: Prospect) => p.status === 'pending' || p.status === 'in-analysis').length
+
+          setDashboardData({
+            totalPartners: myPartners.length,
+            totalProspects: myProspects.length,
+            totalClients: myClients.length,
+            pendingProspects
+          })
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error)
@@ -214,25 +212,33 @@ export default function ManagerDashboard() {
 
   const validateProspect = async (prospect: Prospect) => {
     try {
+      const validationData = {
+        isValidated: true,
+        validatedBy: currentUser?.name || 'Gerente',
+        validatedAt: new Date().toISOString(),
+        notes: 'Validado pelo gerente',
+        isApproved: true
+      }
+
       const updatedProspect = {
         ...prospect,
         status: 'validated' as const,
-        managerValidation: {
-          isValidated: true,
-          validatedBy: currentUser?.name || 'Gerente',
-          validatedAt: new Date().toISOString(),
-          notes: 'Validado pelo gerente',
-          isApproved: true
-        }
+        managerValidation: validationData
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
-        method: 'PUT',
+      // Usar endpoint de validação com campos corretos para o backend
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(updatedProspect)
+        body: JSON.stringify({
+          isApproved: true,
+          validatedBy: currentUser?.name || 'Gerente',
+          validationNotes: 'Validado pelo gerente',
+          status: 'validated'
+        })
       })
 
       if (response.ok) {
@@ -240,6 +246,9 @@ export default function ManagerDashboard() {
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Indicação de ${prospect.companyName} validada com sucesso!`)
+      } else {
+        const errorData = await response.json()
+        alert(`Erro: ${errorData.error || 'Falha ao validar indicação'}`)
       }
     } catch (error) {
       console.error('Erro ao validar prospect:', error)
@@ -249,27 +258,35 @@ export default function ManagerDashboard() {
 
   const rejectProspect = async (prospect: Prospect) => {
     const reason = prompt('Motivo da rejeição (opcional):') || 'Rejeitado pelo gerente'
-    
+
     try {
+      const validationData = {
+        isValidated: true,
+        validatedBy: currentUser?.name || 'Gerente',
+        validatedAt: new Date().toISOString(),
+        notes: reason,
+        isApproved: false
+      }
+
       const updatedProspect = {
         ...prospect,
         status: 'rejected' as const,
-        managerValidation: {
-          isValidated: true,
-          validatedBy: currentUser?.name || 'Gerente',
-          validatedAt: new Date().toISOString(),
-          notes: reason,
-          isApproved: false
-        }
+        managerValidation: validationData
       }
 
-      const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
-        method: 'PUT',
+      // Usar endpoint de validação com campos corretos para o backend
+      const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
-        body: JSON.stringify(updatedProspect)
+        body: JSON.stringify({
+          isApproved: false,
+          validatedBy: currentUser?.name || 'Gerente',
+          validationNotes: reason,
+          status: 'rejected'
+        })
       })
 
       if (response.ok) {
@@ -277,6 +294,9 @@ export default function ManagerDashboard() {
           p.id === prospect.id ? updatedProspect : p
         ))
         alert(`Indicação de ${prospect.companyName} rejeitada.`)
+      } else {
+        const errorData = await response.json()
+        alert(`Erro: ${errorData.error || 'Falha ao rejeitar indicação'}`)
       }
     } catch (error) {
       console.error('Erro ao rejeitar prospect:', error)
@@ -462,22 +482,36 @@ export default function ManagerDashboard() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {partners.map((partner) => (
-                              <tr key={partner.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                  {partner.name}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {partner.company?.name || 'Não informado'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {partner.company?.cnpj || 'Não informado'}
-                                </td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                  {partner.email}
+                            {partners.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="px-6 py-12 text-center">
+                                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                  </svg>
+                                  <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum parceiro vinculado</h3>
+                                  <p className="mt-1 text-sm text-gray-500">
+                                    Ainda nao ha parceiros associados a voce. Entre em contato com o administrador para vincular parceiros.
+                                  </p>
                                 </td>
                               </tr>
-                            ))}
+                            ) : (
+                              partners.map((partner) => (
+                                <tr key={partner.id}>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {partner.name}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {partner.company?.name || 'Nao informado'}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {partner.company?.cnpj || 'Nao informado'}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {partner.email}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -524,94 +558,111 @@ export default function ManagerDashboard() {
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
-                            {prospects.map((prospect) => {
-                              const partner = partners.find(p => p.id === prospect.partnerId.toString())
-                              return (
-                                <tr key={prospect.id}>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {prospect.companyName}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {prospect.contactName}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {partner?.name || 'Não encontrado'}
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap">
-                                    <div className="flex flex-col space-y-1">
-                                      {getStatusBadge(prospect.status)}
-                                      <select
-                                        value={prospect.status}
-                                        onChange={(e) => changeProspectStatus(prospect, e.target.value as Prospect['status'])}
-                                        className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
-                                      >
-                                        <option value="pending">Pendente</option>
-                                        <option value="validated">Validado</option>
-                                        <option value="in-analysis">Em Análise</option>
-                                        <option value="approved">Aprovado</option>
-                                        <option value="rejected">Rejeitado</option>
-                                      </select>
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <div className="flex flex-col space-y-1">
-                                      <span>{new Date(prospect.submittedAt).toLocaleDateString('pt-BR')}</span>
-                                      {prospect.managerValidation?.validatedAt && (
-                                        <span className="text-xs text-gray-400">
-                                          Validado: {new Date(prospect.managerValidation.validatedAt).toLocaleDateString('pt-BR')}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div className="flex space-x-2">
-                                      {prospect.status === 'pending' && (
-                                        <>
-                                          <button
-                                            onClick={() => validateProspect(prospect)}
-                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                                            title="Validar indicação"
-                                          >
-                                            <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                            Validar
-                                          </button>
-                                          <button
-                                            onClick={() => rejectProspect(prospect)}
-                                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                                            title="Rejeitar indicação"
-                                          >
-                                            <XCircleIcon className="h-4 w-4 mr-1" />
-                                            Rejeitar
-                                          </button>
-                                        </>
-                                      )}
-                                      {prospect.status === 'validated' && (
-                                        <span className="inline-flex items-center px-3 py-2 text-sm text-green-600">
-                                          <CheckCircleIcon className="h-4 w-4 mr-1" />
-                                          Validado por {prospect.managerValidation?.validatedBy}
-                                        </span>
-                                      )}
-                                      {prospect.status === 'rejected' && (
-                                        <span className="inline-flex items-center px-3 py-2 text-sm text-red-600">
-                                          <XCircleIcon className="h-4 w-4 mr-1" />
-                                          Rejeitado por {prospect.managerValidation?.validatedBy}
-                                        </span>
-                                      )}
-                                      {(prospect.status === 'in-analysis' || prospect.status === 'approved') && (
-                                        <span className="inline-flex items-center px-3 py-2 text-sm text-blue-600">
-                                          {prospect.status === 'in-analysis' ? 'Em análise' : 'Aprovado'}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {prospect.managerValidation?.notes && (
-                                      <div className="mt-1 text-xs text-gray-500">
-                                        Obs: {prospect.managerValidation.notes}
+                            {prospects.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center">
+                                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma indicacao encontrada</h3>
+                                  <p className="mt-1 text-sm text-gray-500">
+                                    {partners.length === 0
+                                      ? 'Voce ainda nao possui parceiros vinculados. As indicacoes aparecerao aqui quando seus parceiros enviarem.'
+                                      : 'Seus parceiros ainda nao enviaram indicacoes. As indicacoes aparecerao aqui quando forem submetidas.'
+                                    }
+                                  </p>
+                                </td>
+                              </tr>
+                            ) : (
+                              prospects.map((prospect) => {
+                                const partner = partners.find(p => p.id === prospect.partnerId.toString())
+                                return (
+                                  <tr key={prospect.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                      {prospect.companyName}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {prospect.contactName}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      {partner?.name || 'Nao encontrado'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <div className="flex flex-col space-y-1">
+                                        {getStatusBadge(prospect.status)}
+                                        <select
+                                          value={prospect.status}
+                                          onChange={(e) => changeProspectStatus(prospect, e.target.value as Prospect['status'])}
+                                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                                        >
+                                          <option value="pending">Pendente</option>
+                                          <option value="validated">Validado</option>
+                                          <option value="in-analysis">Em Analise</option>
+                                          <option value="approved">Aprovado</option>
+                                          <option value="rejected">Rejeitado</option>
+                                        </select>
                                       </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              )
-                            })}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      <div className="flex flex-col space-y-1">
+                                        <span>{new Date(prospect.submittedAt).toLocaleDateString('pt-BR')}</span>
+                                        {prospect.managerValidation?.validatedAt && (
+                                          <span className="text-xs text-gray-400">
+                                            Validado: {new Date(prospect.managerValidation.validatedAt).toLocaleDateString('pt-BR')}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                      <div className="flex space-x-2">
+                                        {prospect.status === 'pending' && (
+                                          <>
+                                            <button
+                                              onClick={() => validateProspect(prospect)}
+                                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                                              title="Validar indicacao"
+                                            >
+                                              <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                              Validar
+                                            </button>
+                                            <button
+                                              onClick={() => rejectProspect(prospect)}
+                                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                                              title="Rejeitar indicacao"
+                                            >
+                                              <XCircleIcon className="h-4 w-4 mr-1" />
+                                              Rejeitar
+                                            </button>
+                                          </>
+                                        )}
+                                        {prospect.status === 'validated' && (
+                                          <span className="inline-flex items-center px-3 py-2 text-sm text-green-600">
+                                            <CheckCircleIcon className="h-4 w-4 mr-1" />
+                                            Validado por {prospect.managerValidation?.validatedBy}
+                                          </span>
+                                        )}
+                                        {prospect.status === 'rejected' && (
+                                          <span className="inline-flex items-center px-3 py-2 text-sm text-red-600">
+                                            <XCircleIcon className="h-4 w-4 mr-1" />
+                                            Rejeitado por {prospect.managerValidation?.validatedBy}
+                                          </span>
+                                        )}
+                                        {(prospect.status === 'in-analysis' || prospect.status === 'approved') && (
+                                          <span className="inline-flex items-center px-3 py-2 text-sm text-blue-600">
+                                            {prospect.status === 'in-analysis' ? 'Em analise' : 'Aprovado'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {prospect.managerValidation?.notes && (
+                                        <div className="mt-1 text-xs text-gray-500">
+                                          Obs: {prospect.managerValidation.notes}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })
+                            )}
                           </tbody>
                         </table>
                       </div>
