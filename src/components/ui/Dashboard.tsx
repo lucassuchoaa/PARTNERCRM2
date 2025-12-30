@@ -60,22 +60,32 @@ interface Notification {
   createdAt: string
 }
 
-const getNavigation = (isAdmin: boolean) => {
-  const baseNavigation = [
+const getNavigation = (userRole: string) => {
+  const role = (userRole || 'client').toLowerCase()
+
+  // Menus disponíveis para cada role
+  const menusByRole: Record<string, string[]> = {
+    'superadmin': ['dashboard', 'clients', 'reports', 'support-materials', 'referrals', 'admin'],
+    'administrator': ['dashboard', 'clients', 'reports', 'support-materials', 'referrals', 'admin'],
+    'admin': ['dashboard', 'clients', 'reports', 'support-materials', 'referrals', 'admin'],
+    'manager': ['dashboard', 'clients', 'reports', 'support-materials', 'referrals', 'admin'],
+    'partner': ['dashboard', 'clients', 'reports', 'support-materials', 'referrals'],
+    'client': ['dashboard', 'support-materials']
+  }
+
+  const allowedMenus = menusByRole[role] || menusByRole['client']
+
+  const allMenus = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true, view: 'dashboard' },
     { name: 'Clientes', href: '#', icon: UsersIcon, current: false, view: 'clients' },
     { name: 'Relatórios', href: '#', icon: ChartBarIcon, current: false, view: 'reports' },
     { name: 'Material de Apoio', href: '#', icon: BookOpenIcon, current: false, view: 'support-materials' },
     { name: 'Indicações', href: '#', icon: UserPlusIcon, current: false, view: 'referrals' },
+    { name: 'Administração', href: '#', icon: CogIcon, current: false, view: 'admin' },
   ]
-  
-  if (isAdmin) {
-    baseNavigation.push(
-      { name: 'Administração', href: '#', icon: CogIcon, current: false, view: 'admin' }
-    )
-  }
-  
-  return baseNavigation
+
+  // Filtrar apenas os menus permitidos para este role
+  return allMenus.filter(menu => allowedMenus.includes(menu.view))
 }
 
 function classNames(...classes: string[]) {
@@ -350,7 +360,7 @@ export default function Dashboard() {
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
                         <ul role="list" className="-mx-2 space-y-1">
-                          {getNavigation(currentUser?.role === 'admin').map((item: any) => (
+                          {getNavigation(currentUser?.role || 'client').map((item: any) => (
                             <li key={item.name}>
                               <button
                                 onClick={() => {
@@ -396,7 +406,7 @@ export default function Dashboard() {
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {getNavigation(currentUser?.role === 'admin').map((item: any) => (
+                  {getNavigation(currentUser?.role || 'client').map((item: any) => (
                     <li key={item.name}>
                       <button
                         onClick={() => setCurrentView(item.view)}
