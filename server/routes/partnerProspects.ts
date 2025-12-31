@@ -81,37 +81,69 @@ router.post('/public', async (req: Request, res: Response) => {
       phone,
       company,
       cnpj,
-      referredByPartnerSlug
+      referredByPartnerSlug,
+      referredByManagerSlug
     } = req.body;
 
-    if (!name || !email || !referredByPartnerSlug) {
+    if (!name || !email || (!referredByPartnerSlug && !referredByManagerSlug)) {
       return res.status(400).json({
-        error: 'Nome, email e código do parceiro são obrigatórios'
+        error: 'Nome, email e código do parceiro/gerente são obrigatórios'
       });
     }
 
-    // Buscar ID e nome do parceiro pelo slug
-    const partnerResult = await pool.query(`
-      SELECT id, name
-      FROM users
-      WHERE partner_slug = $1 AND role = 'partner' AND status = 'active'
-    `, [referredByPartnerSlug]);
+    let referrer;
+    let referrerId;
+    let referrerName;
+    let referrerRole;
+    let managerId = null;
 
-    if (partnerResult.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Parceiro não encontrado ou inativo'
-      });
+    // Buscar por slug de parceiro ou gerente
+    if (referredByPartnerSlug) {
+      const partnerResult = await pool.query(`
+        SELECT id, name, role, manager_id
+        FROM users
+        WHERE partner_slug = $1 AND role = 'partner' AND status = 'active'
+      `, [referredByPartnerSlug]);
+
+      if (partnerResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'Parceiro não encontrado ou inativo'
+        });
+      }
+
+      referrer = partnerResult.rows[0];
+      referrerId = referrer.id;
+      referrerName = referrer.name;
+      referrerRole = referrer.role;
+      managerId = referrer.manager_id;
+    } else if (referredByManagerSlug) {
+      const managerResult = await pool.query(`
+        SELECT id, name, role
+        FROM users
+        WHERE manager_slug = $1 AND role = 'manager' AND status = 'active'
+      `, [referredByManagerSlug]);
+
+      if (managerResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'Gerente não encontrado ou inativo'
+        });
+      }
+
+      referrer = managerResult.rows[0];
+      referrerId = referrer.id;
+      referrerName = referrer.name;
+      referrerRole = referrer.role;
+      // Se foi indicado por gerente, o próprio gerente será o manager_id
+      managerId = referrer.id;
     }
-
-    const partner = partnerResult.rows[0];
 
     // Criar prospect de parceiro
     const result = await pool.query(`
       INSERT INTO partner_prospects (
         name, email, phone, company, cnpj,
-        referred_by_partner_id, referred_by_partner_name
+        referred_by_partner_id, referred_by_partner_name, manager_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING
         id, name, email, phone, company, cnpj,
         referred_by_partner_id as "referredByPartnerId",
@@ -124,8 +156,9 @@ router.post('/public', async (req: Request, res: Response) => {
       phone,
       company,
       cnpj,
-      partner.id,
-      partner.name
+      referrerId,
+      referrerName,
+      managerId
     ]);
 
     res.status(201).json({
@@ -290,6 +323,33 @@ router.get('/public/partner/:slug', async (req: Request, res: Response) => {
     console.error('Error fetching partner info:', error);
     res.status(500).json({
       error: 'Erro ao buscar informações do parceiro'
+    });
+  }
+});
+
+// GET - Buscar informações públicas do gerente pelo slug (para landing page)
+router.get('/public/manager/:slug', async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    const result = await pool.query(`
+      SELECT
+        id, name, email, company, manager_slug as "managerSlug"
+      FROM users
+      WHERE manager_slug = $1 AND role = 'manager' AND status = 'active'
+    `, [slug]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Gerente não encontrado'
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error fetching manager info:', error);
+    res.status(500).json({
+      error: 'Erro ao buscar informações do gerente'
     });
   }
 });
