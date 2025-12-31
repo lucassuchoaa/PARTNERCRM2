@@ -47,7 +47,9 @@
       "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"\nINSERT INTO prospects \\(company_name, contact_name, email, phone, cnpj, employees, segment, partner_id, status\\) \nVALUES \n  \\(''Empresa Teste LTDA'', ''Maria Silva'', ''maria@empresa.com'', ''11999998888'', ''12.345.678/0001-90'', ''50-100'', ''Tecnologia'', ''3'', ''pending''\\),\n  \\(''Comercio XYZ'', ''Jose Santos'', ''jose@xyz.com'', ''11888887777'', ''98.765.432/0001-10'', ''10-50'', ''Comercio'', ''4'', ''pending''\\);\n\")",
       "Bash(npm run build:server:*)",
       "Bash(npm run)",
-      "Bash(vercel:*)"
+      "Bash(vercel:*)",
+      "Bash(PGPASSWORD='npg_tQTsRLA9yFr5' psql postgresql://neondb_owner:npg_tQTsRLA9yFr5@ep-snowy-moon-ah9gkdw9.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require -c \"SELECT COUNT\\(*\\) as total, role FROM users GROUP BY role;\")",
+      "Bash(tar:*)"
     ],
     "deny": [],
     "ask": []
