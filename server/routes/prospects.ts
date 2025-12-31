@@ -295,7 +295,7 @@ router.patch('/:id/validate', authenticate, async (req: AuthRequest, res: Respon
           row.email,
           row.phone,
           row.cnpj,
-          'ativo',
+          'active',
           'prospeccao',
           'quente',
           1,
