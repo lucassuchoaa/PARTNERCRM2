@@ -24,6 +24,7 @@ import initRoutes from './routes/init';
 import analyticsRoutes from './routes/analytics';
 import rolesRoutes from './routes/roles';
 import partnerReportsRoutes from './routes/partner-reports';
+import partnerProspectsRoutes from './routes/partnerProspects';
 import emailRoutes from './routes/email';
 
 dotenv.config();
@@ -135,6 +136,7 @@ async function startProductionServer() {
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/roles', rolesRoutes);
   app.use('/api/partner_reports', partnerReportsRoutes);
+  app.use('/api/partner_prospects', partnerProspectsRoutes);
   app.use('/api/email', emailRoutes);
   console.log('✅ Registered route: /api/partner_reports');
   console.log('✅ Registered route: /api/email');
