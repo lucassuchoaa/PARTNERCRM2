@@ -13,6 +13,7 @@ const SignupPage = lazy(() => import('./pages/SignupPage'))
 const Checkout = lazy(() => import('./pages/Checkout'))
 const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess'))
 const DiagnosticoRoles = lazy(() => import('./components/DiagnosticoRoles'))
+const PartnerLandingPage = lazy(() => import('./components/ui/PartnerLandingPage'))
 
 function useHashLocation() {
   const [hash, setHash] = useState(window.location.hash)
@@ -151,6 +152,23 @@ export default function App() {
           }
         >
           <DiagnosticoRoles />
+        </Suspense>
+      )
+    }
+
+    // Partner landing page route (#parceiro/slug-do-parceiro)
+    if (hash.startsWith('#parceiro/')) {
+      const slug = hash.replace('#parceiro/', '')
+      return (
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-600 border-t-transparent" aria-label="Carregando"></div>
+              <span className="sr-only">Carregando página do parceiro...</span>
+            </div>
+          }
+        >
+          <PartnerLandingPage slug={slug} />
         </Suspense>
       )
     }

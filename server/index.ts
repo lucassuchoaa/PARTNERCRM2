@@ -25,6 +25,7 @@ import emailRoutes from './routes/email';
 import rolesRoutes from './routes/roles';
 import analyticsRoutes from './routes/analytics';
 import partnerReportsRoutes from './routes/partner-reports';
+import partnerProspectsRoutes from './routes/partnerProspects';
 import debugRoutes from './routes/debug';
 
 dotenv.config();
@@ -194,6 +195,7 @@ async function startServer() {
   app.use('/api/roles', rolesRoutes);
   app.use('/api/analytics', analyticsRoutes);
   app.use('/api/partner_reports', partnerReportsRoutes);
+  app.use('/api/partner_prospects', partnerProspectsRoutes);
   app.use('/api/debug', debugRoutes);
 
   // Servir SPA em produção (depois de todas as rotas da API)
