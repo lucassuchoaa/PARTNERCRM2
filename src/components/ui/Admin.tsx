@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   UsersIcon,
   UserIcon,
+  UserGroupIcon,
   DocumentArrowUpIcon,
   DocumentArrowDownIcon,
   TrashIcon,
@@ -31,6 +32,7 @@ import PricingManagement from './PricingManagement'
 import ChatAnalytics from './ChatAnalytics'
 import ChatBotTraining from './ChatBotTraining'
 import RoleManagement from './RoleManagement'
+import PartnerProspectManagement from './PartnerProspectManagement'
 
 interface User {
   id: number
@@ -1513,6 +1515,17 @@ export default function Admin() {
                 )}
               </button>
               <button
+                onClick={() => setActiveTab('partner-prospects')}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === 'partner-prospects'
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <UserGroupIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                Prospects de Parceiros
+              </button>
+              <button
                 onClick={() => setActiveTab('notifications')}
                 className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                   activeTab === 'notifications'
@@ -1697,6 +1710,10 @@ export default function Admin() {
 
         {activeTab === 'roles' && (
           <RoleManagement />
+        )}
+
+        {activeTab === 'partner-prospects' && (
+          <PartnerProspectManagement />
         )}
 
         {activeTab === 'approvals' && (

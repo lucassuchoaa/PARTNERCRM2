@@ -8,6 +8,7 @@ import { API_URL } from '../../config/api'
 import Profile from './Profile'
 import Admin from './Admin'
 import ChatBotHybrid from './ChatBotHybrid'
+import PartnerReferralCard from './PartnerReferralCard'
 import { productService } from '../../services/productService'
 
 interface Partner {
@@ -1184,6 +1185,11 @@ export default function ManagerDashboard() {
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Partner Referral Card */}
+                <div className="mt-8">
+                  <PartnerReferralCard />
                 </div>
 
                 {/* Recent Activity */}

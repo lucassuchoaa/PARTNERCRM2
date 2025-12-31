@@ -10,6 +10,7 @@ import SupportMaterials from './SupportMaterials'
 import Referrals from './Referrals'
 import Admin from './Admin'
 import ChatBotHybrid from './ChatBotHybrid'
+import PartnerReferralCard from './PartnerReferralCard'
 
 import Profile from './Profile'
 import { useAuth } from '../../hooks/useAuth'
@@ -697,6 +698,13 @@ export default function Dashboard() {
 
 
                 </div>
+
+                {/* Partner Referral Card - Only for partners */}
+                {currentUser?.role === 'partner' && (
+                  <div className="mb-8">
+                    <PartnerReferralCard />
+                  </div>
+                )}
 
                 {/* Produtos - Seção customizável */}
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mb-8">
