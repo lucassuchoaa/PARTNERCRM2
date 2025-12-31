@@ -238,10 +238,12 @@ export default function ManagerDashboard() {
       }
 
       // Usar endpoint de validação com campos corretos para o backend
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -286,10 +288,12 @@ export default function ManagerDashboard() {
       }
 
       // Usar endpoint de validação com campos corretos para o backend
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`${API_URL}/prospects/${prospect.id}/validate`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify({

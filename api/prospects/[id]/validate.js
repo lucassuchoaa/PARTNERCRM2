@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../_lib/supabaseClient';
+import { authenticate } from '../../_lib/auth';
 
 export default async function handler(req, res) {
   // CORS
@@ -34,6 +35,26 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'PATCH') {
+      // Autenticar usuário
+      const authResult = await authenticate(req, supabase);
+
+      if (!authResult.authenticated) {
+        return res.status(authResult.statusCode).json({
+          success: false,
+          error: authResult.error
+        });
+      }
+
+      const { user } = authResult;
+
+      // Apenas gerentes e admins podem validar prospects
+      if (user.role !== 'manager' && user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Apenas gerentes podem validar prospects'
+        });
+      }
+
       const { id } = req.query;
       const { isApproved, validatedBy, validationNotes, status } = req.body;
 
