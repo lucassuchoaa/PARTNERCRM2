@@ -109,24 +109,29 @@ export default function ManagerDashboard() {
           // Buscar parceiros vinculados ao gerente
           let myPartners: Partner[] = []
 
-          // Buscar todos os usuários e filtrar os parceiros vinculados a este gerente
-          const usersResponse = await fetch(`${API_URL}/users`, { credentials: 'include' })
-          if (usersResponse.ok) {
-            const allUsers = await usersResponse.json()
-            // Filtrar usuários que são parceiros e estão vinculados a este gerente
-            myPartners = allUsers.filter((u: any) =>
-              u.role === 'partner' &&
-              u.managerId === user.id &&
-              u.status === 'active'
-            )
+          // Backend já filtra parceiros por manager_id - apenas buscar
+          const token = localStorage.getItem('accessToken')
+          const partnersResponse = await fetch(`${API_URL}/partners`, {
+            credentials: 'include',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          if (partnersResponse.ok) {
+            myPartners = await partnersResponse.json()
             setPartners(myPartners)
           } else {
-            // Erro ao buscar usuários - definir array vazio
+            // Erro ao buscar parceiros - definir array vazio
             setPartners([])
           }
 
           // Buscar prospects - a API ja filtra automaticamente por role
-          const prospectsResponse = await fetch(`${API_URL}/prospects`, { credentials: 'include' })
+          const prospectsResponse = await fetch(`${API_URL}/prospects`, {
+            credentials: 'include',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
           let myProspects: Prospect[] = []
           if (prospectsResponse.ok) {
             myProspects = await prospectsResponse.json()
@@ -134,7 +139,12 @@ export default function ManagerDashboard() {
           }
 
           // Buscar clientes - a API ja filtra automaticamente por role
-          const clientsResponse = await fetch(`${API_URL}/clients`, { credentials: 'include' })
+          const clientsResponse = await fetch(`${API_URL}/clients`, {
+            credentials: 'include',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
           let myClients: Client[] = []
           if (clientsResponse.ok) {
             myClients = await clientsResponse.json()
@@ -142,7 +152,12 @@ export default function ManagerDashboard() {
           }
 
           // Buscar relatorios dos parceiros - a API ja filtra automaticamente por role
-          const reportsResponse = await fetch(`${API_URL}/partner_reports`, { credentials: 'include' })
+          const reportsResponse = await fetch(`${API_URL}/partner_reports`, {
+            credentials: 'include',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
           if (reportsResponse.ok) {
             const myReports = await reportsResponse.json()
             setPartnerReports(myReports)

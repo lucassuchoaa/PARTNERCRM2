@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../_lib/supabaseClient';
+import { authenticate } from '../_lib/auth';
 
 export default async function handler(req, res) {
   // CORS
@@ -34,12 +35,37 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Listar apenas usuários com role='partner'
-      const { data, error } = await supabase
+      // Autenticar usuário
+      const authResult = await authenticate(req, supabase);
+
+      if (!authResult.authenticated) {
+        return res.status(authResult.statusCode).json({
+          success: false,
+          error: authResult.error
+        });
+      }
+
+      const { user } = authResult;
+
+      // Listar parceiros com filtro por role
+      let query = supabase
         .from('users')
         .select('*')
-        .eq('role', 'partner')
-        .order('created_at', { ascending: false });
+        .eq('role', 'partner');
+
+      // Filtrar por role do usuário autenticado
+      if (user.role === 'manager') {
+        // Gerente: apenas parceiros vinculados a ele
+        query = query.eq('manager_id', user.id);
+      } else if (user.role === 'partner') {
+        // Parceiro: apenas ele mesmo
+        query = query.eq('id', user.id);
+      }
+      // Admin: sem filtro adicional (vê todos)
+
+      query = query.order('created_at', { ascending: false });
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Supabase error fetching partners:', error);

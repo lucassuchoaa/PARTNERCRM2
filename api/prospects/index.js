@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../_lib/supabaseClient';
+import { authenticate } from '../_lib/auth';
 
 export default async function handler(req, res) {
   // CORS
@@ -34,11 +35,60 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      // Listar prospects
-      const { data, error } = await supabase
-        .from('prospects')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Autenticar usuário
+      const authResult = await authenticate(req, supabase);
+
+      if (!authResult.authenticated) {
+        return res.status(authResult.statusCode).json({
+          success: false,
+          error: authResult.error
+        });
+      }
+
+      const { user } = authResult;
+
+      // Query baseada em role
+      let data, error;
+
+      if (user.role === 'admin') {
+        // Admin: todos os prospects
+        ({ data, error } = await supabase
+          .from('prospects')
+          .select('*')
+          .order('created_at', { ascending: false }));
+      } else if (user.role === 'manager') {
+        // Gerente: prospects dos parceiros que ele gerencia
+        // Query em duas etapas:
+        // 1. Buscar IDs dos parceiros do gerente
+        const { data: partnerData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('role', 'partner')
+          .eq('manager_id', user.id);
+
+        const partnerIds = (partnerData || []).map(p => p.id);
+
+        // 2. Buscar prospects desses parceiros
+        if (partnerIds.length > 0) {
+          ({ data, error } = await supabase
+            .from('prospects')
+            .select('*')
+            .in('partner_id', partnerIds)
+            .order('created_at', { ascending: false }));
+        } else {
+          data = [];
+        }
+      } else if (user.role === 'partner') {
+        // Parceiro: apenas seus próprios prospects
+        ({ data, error } = await supabase
+          .from('prospects')
+          .select('*')
+          .eq('partner_id', user.id)
+          .order('created_at', { ascending: false }));
+      } else {
+        // Role desconhecido: sem dados
+        data = [];
+      }
 
       if (error) {
         console.error('Supabase error fetching prospects:', error);
@@ -66,6 +116,26 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      // Autenticar usuário
+      const authResult = await authenticate(req, supabase);
+
+      if (!authResult.authenticated) {
+        return res.status(authResult.statusCode).json({
+          success: false,
+          error: authResult.error
+        });
+      }
+
+      const { user } = authResult;
+
+      // Apenas parceiros e admins podem criar prospects
+      if (user.role !== 'partner' && user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Apenas parceiros podem criar prospects'
+        });
+      }
+
       // Criar prospect
       const {
         companyName,
@@ -83,6 +153,14 @@ export default async function handler(req, res) {
         return res.status(400).json({
           success: false,
           error: 'Dados obrigatórios faltando'
+        });
+      }
+
+      // Validar que parceiro só pode criar para si mesmo
+      if (user.role === 'partner' && partnerId !== user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Parceiro só pode criar prospects para si mesmo'
         });
       }
 
