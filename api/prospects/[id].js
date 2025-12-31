@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../_lib/supabaseClient';
+import { authenticate } from '../_lib/auth';
 
 export default async function handler(req, res) {
   // CORS
@@ -76,6 +77,26 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'PUT') {
+      // Autenticar usuário
+      const authResult = await authenticate(req, supabase);
+
+      if (!authResult.authenticated) {
+        return res.status(authResult.statusCode).json({
+          success: false,
+          error: authResult.error
+        });
+      }
+
+      const { user } = authResult;
+
+      // Apenas gerentes e admins podem atualizar prospects
+      if (user.role !== 'manager' && user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: 'Apenas gerentes podem atualizar prospects'
+        });
+      }
+
       // Atualizar prospect
       const prospectData = req.body;
 

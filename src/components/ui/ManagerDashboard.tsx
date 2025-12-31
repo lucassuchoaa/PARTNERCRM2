@@ -74,7 +74,6 @@ const navigation = [
   { name: 'Meus Parceiros', href: '#', icon: UsersIcon, current: false, view: 'partners' },
   { name: 'Indicações', href: '#', icon: UserPlusIcon, current: false, view: 'referrals' },
   { name: 'Relatórios', href: '#', icon: ChartBarIcon, current: false, view: 'reports' },
-  { name: 'Administração', href: '#', icon: FolderIcon, current: false, view: 'admin' },
 ]
 
 function classNames(...classes: string[]) {
@@ -326,10 +325,12 @@ export default function ManagerDashboard() {
         status: newStatus
       }
 
+      const token = localStorage.getItem('accessToken')
       const response = await fetch(`${API_URL}/prospects/${prospect.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         credentials: 'include',
         body: JSON.stringify(updatedProspect)
