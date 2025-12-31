@@ -7,7 +7,10 @@ const router = Router();
 // GET - Listar todos os parceiros
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const result = await pool.query(`
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+
+    let query = `
       SELECT
         u.id,
         u.email,
@@ -29,8 +32,25 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       FROM users u
       LEFT JOIN users m ON u.manager_id = m.id
       WHERE u.role = 'partner'
-      ORDER BY u.name ASC
-    `);
+    `;
+
+    const queryParams: any[] = [];
+
+    // Filtrar por role do usuário autenticado
+    if (userRole === 'manager') {
+      // Gerente vê apenas parceiros vinculados a ele
+      query += ` AND u.manager_id = $1`;
+      queryParams.push(userId);
+    } else if (userRole === 'partner') {
+      // Parceiro vê apenas a si mesmo
+      query += ` AND u.id = $1`;
+      queryParams.push(userId);
+    }
+    // Admin vê todos (sem filtro adicional)
+
+    query += ` ORDER BY u.name ASC`;
+
+    const result = await pool.query(query, queryParams);
 
     // Transformar dados para o formato esperado pelo frontend
     const transformedData = result.rows.map(row => ({
