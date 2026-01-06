@@ -15,6 +15,7 @@ export interface User {
   role: 'admin' | 'manager' | 'partner';
   cpf?: string;
   phone?: string;
+  manager_slug?: string;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
