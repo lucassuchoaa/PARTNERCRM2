@@ -82,7 +82,7 @@ router.get('/me', async (req, res) => {
     // Find user in database
     const result = await pool.query(
       `SELECT id, email, name, first_name, last_name, role, status,
-              profile_image_url, created_at, updated_at
+              profile_image_url, manager_slug, created_at, updated_at
        FROM users WHERE id = $1`,
       [decoded.userId]
     );
@@ -110,6 +110,7 @@ router.get('/me', async (req, res) => {
         status: user.status,
         isActive: user.status === 'active',
         profileImageUrl: user.profile_image_url,
+        manager_slug: user.manager_slug,
         createdAt: user.created_at,
         updatedAt: user.updated_at
       },
@@ -222,7 +223,7 @@ router.post('/login', async (req, res) => {
     // Buscar usuário no banco de dados
     const result = await pool.query(
       `SELECT id, email, name, first_name, last_name, password, role, status,
-              profile_image_url, created_at, updated_at
+              profile_image_url, manager_slug, created_at, updated_at
        FROM users WHERE LOWER(email) = LOWER($1)`,
       [email]
     );
@@ -310,6 +311,7 @@ router.post('/login', async (req, res) => {
       status: user.status,
       isActive: user.status === 'active',
       profileImageUrl: user.profile_image_url,
+      manager_slug: user.manager_slug,
       createdAt: user.created_at,
       updatedAt: user.updated_at
     };
